@@ -923,6 +923,7 @@ function buildSessionToken(user){
     name: user.name,
     project: user.project,
     zone: user.zone,
+    email: user.email,
     ts: Date.now()
   };
   return btoa(encodeURIComponent(JSON.stringify(payload)));
@@ -1052,7 +1053,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     const passwordHash = await sha256(password);
     const result = await callScript({ action:'login', empId, passwordHash });
     if (result.success){
-      showDash({ name: result.name, project: result.project, zone: result.zone, empId: result.empId });
+      showDash({ name: result.name, project: result.project, zone: result.zone, empId: result.empId, email: result.email });
     } else {
       showMsg(msg, result.message || 'Invalid Employee ID or password', 'bad');
     }
