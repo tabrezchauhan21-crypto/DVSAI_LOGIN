@@ -234,6 +234,42 @@
     background:var(--paper);
     margin-bottom:18px;
   }
+  .tools-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-bottom:18px;
+  }
+  .tool-tile{
+    display:block;
+    text-align:left;
+    border:1.5px solid var(--line);
+    border-radius:11px;
+    padding:14px 14px 13px;
+    text-decoration:none;
+    transition:border-color .15s, transform .1s, box-shadow .15s;
+    background:#fff;
+  }
+  .tool-tile:hover{
+    border-color:var(--blue-mid);
+    box-shadow:0 6px 16px rgba(15,42,74,.12);
+    transform:translateY(-1px);
+  }
+  .tool-icon{ font-size:22px; margin-bottom:6px; }
+  .tool-name{
+    font-size:12.5px;
+    font-weight:700;
+    color:var(--navy-deep);
+    margin-bottom:2px;
+  }
+  .tool-sub{
+    font-size:11px;
+    color:var(--ink-soft);
+    line-height:1.3;
+  }
+  @media (max-width: 380px){
+    .tools-grid{ grid-template-columns:1fr; }
+  }
   .logout{
     border:1.5px solid var(--line);
     background:#fff;
@@ -525,7 +561,18 @@
         <div class="avatar" id="dashInitial">?</div>
         <h2 id="dashName">—</h2>
         <div class="meta" id="dashMeta">—</div>
-        <div class="placeholder">Dashboard content not built yet — this is the logged-in shell.</div>
+        <div class="tools-grid">
+          <a href="#" class="tool-tile" id="tileDispatch">
+            <div class="tool-icon">📋</div>
+            <div class="tool-name">Dispatch Number Portal</div>
+            <div class="tool-sub">Generate &amp; track dispatch numbers</div>
+          </a>
+          <a href="#" class="tool-tile" id="tileElectricity">
+            <div class="tool-icon">⚡</div>
+            <div class="tool-name">Electricity Tracker</div>
+            <div class="tool-sub">Office meter readings &amp; bills</div>
+          </a>
+        </div>
 
         <button class="logout" id="logoutBtn">Log out</button>
         <div class="forgot-link" style="margin-top:14px;"><a href="#" id="showChangePwLink">Change password</a></div>
@@ -852,6 +899,22 @@ document.getElementById('changePwForm').addEventListener('submit', async (e) => 
 // ---------- session (in-memory only — resets on page reload) ----------
 let currentUser = null;
 
+// Builds a simple token carrying who's logged in, so tool pages in the
+// same repo can recognize the session without asking the person to log in
+// twice. NOT cryptographically signed — same trust model as the rest of
+// this system (front-end only, no tamper-proofing). Good enough for an
+// internal tool, not for anything that needs real security guarantees.
+function buildSessionToken(user){
+  const payload = {
+    empId: user.empId,
+    name: user.name,
+    project: user.project,
+    zone: user.zone,
+    ts: Date.now()
+  };
+  return btoa(encodeURIComponent(JSON.stringify(payload)));
+}
+
 function showDash(user){
   currentUser = user;
   document.getElementById('authView').style.display = 'none';
@@ -860,6 +923,10 @@ function showDash(user){
   document.getElementById('dashName').textContent = user.name;
   document.getElementById('dashMeta').textContent =
     (user.empId || '') + ' · ' + (user.project || '') + ' · ' + (user.zone || '');
+
+  const token = buildSessionToken(user);
+  document.getElementById('tileDispatch').href = 'tools/dispatch.html?token=' + token;
+  document.getElementById('tileElectricity').href = 'tools/electricity.html?token=' + token;
 }
 
 document.getElementById('logoutBtn').addEventListener('click', async () => {
