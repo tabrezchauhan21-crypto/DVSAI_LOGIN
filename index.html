@@ -235,18 +235,20 @@
     margin-bottom:18px;
   }
   .tools-grid{
-    display:flex;
-    flex-direction:column;
-    gap:10px;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:9px;
     margin-bottom:18px;
   }
   .tool-tile{
     display:flex;
-    align-items:flex-start;
-    gap:12px;
-    text-align:left;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-start;
+    gap:7px;
+    text-align:center;
     border-radius:12px;
-    padding:14px 16px;
+    padding:13px 10px;
     text-decoration:none;
     transition:transform .12s, filter .12s;
   }
@@ -263,16 +265,13 @@
   .tool-tile.mridata{ background:#26215c; }
   .tool-tile.billedunbilled{ background:#4b1528; }
   .tool-icon{
-    font-size:22px;
+    font-size:24px;
     line-height:1;
-    flex-shrink:0;
-    margin-top:1px;
   }
   .tool-name{
     font-size:13px;
     font-weight:700;
-    margin-bottom:3px;
-    line-height:1.25;
+    line-height:1.3;
   }
   .tool-tile.dispatch .tool-name{ color:#e1f5ee; }
   .tool-tile.electricity .tool-name{ color:#faeeda; }
@@ -584,35 +583,35 @@
             <div class="tool-icon">📋</div>
             <div>
               <div class="tool-name">Generate Dispatch Number</div>
-              <div class="tool-sub">Get dispatch number for letter to department &amp; employee</div>
+              <div class="tool-sub">Get Dispatch Number For Letter To Department &amp; Employee</div>
             </div>
           </a>
           <a href="#" class="tool-tile electricity" id="tileElectricity">
             <div class="tool-icon">⚡</div>
             <div>
               <div class="tool-name">Office Electricity Bill</div>
-              <div class="tool-sub">MRI &amp; Cluster Billing office electricity bill submission &amp; tracker</div>
+              <div class="tool-sub">Submit &amp; Track Office Electricity Bills (MRI &amp; Cluster Billing)</div>
             </div>
           </a>
           <a href="https://itsaicomputers-my.sharepoint.com/:f:/g/personal/tabrez_alam_thesaicomputers_com/IgDGuICrATrNTbxLM1dgYBalAYaRZ4rAVPu0mACUS_O0Czk?e=8npape" target="_blank" rel="noopener noreferrer" class="tool-tile annexure" id="tileAnnexure">
             <div class="tool-icon">📁</div>
             <div>
               <div class="tool-name">DVVNL-5 Annexure &amp; Invoice</div>
-              <div class="tool-sub">DVVNL-5KW/9KW Annexure-1 &amp; 2, E-Invoice, Invoice Master Data</div>
+              <div class="tool-sub">Access Annexure-1 &amp; 2, E-Invoice, And Invoice Master Data</div>
             </div>
           </a>
           <a href="https://itsaicomputers-my.sharepoint.com/:f:/g/personal/tabrez_alam_thesaicomputers_com/IgCjRZtIg6SJSIB89jYawEXfAasfFTXtlUzmTjIVifJI80U?e=SAWIK6" target="_blank" rel="noopener noreferrer" class="tool-tile mridata" id="tileMriData">
             <div class="tool-icon">🗂️</div>
             <div>
               <div class="tool-name">Master Data MRI Excel</div>
-              <div class="tool-sub">Month wise MRI data master, above 2.1 KW</div>
+              <div class="tool-sub">View Month-Wise MRI Data Master (Above 2.1 KW)</div>
             </div>
           </a>
           <a href="https://itsaicomputers-my.sharepoint.com/:f:/g/personal/tabrez_alam_thesaicomputers_com/IgACWWLnDdgtS4T3qn_ImN3fAVqQpUXnaF_sHSlnfGQhvjI?e=wGrtvp" target="_blank" rel="noopener noreferrer" class="tool-tile billedunbilled" id="tileBilledUnbilled">
             <div class="tool-icon">📈</div>
             <div>
               <div class="tool-name">DVVNL Billed &amp; Unbilled</div>
-              <div class="tool-sub">Daily billed &amp; unbilled raw file</div>
+              <div class="tool-sub">View Daily Billed &amp; Unbilled Raw File</div>
             </div>
           </a>
         </div>
