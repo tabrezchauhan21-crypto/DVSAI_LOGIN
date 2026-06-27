@@ -135,7 +135,7 @@
     padding:10px 12px;
     border:1.5px solid var(--line);
     border-radius:8px;
-    font-size:14px;
+    font-size:16px;
     font-family:inherit;
     color:var(--ink);
     background:#fbfcfd;
@@ -952,6 +952,7 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
   } catch(err){
     // Logging out client-side regardless, even if the server call fails.
   }
+  sessionStorage.setItem('staffPortalLogoutAt', String(Date.now()));
   currentUser = null;
   document.getElementById('dashView').classList.remove('active');
   document.getElementById('authView').style.display = 'block';
