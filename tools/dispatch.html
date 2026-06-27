@@ -1,0 +1,1361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Dispatch Portal | SAI Computers Ltd.</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@600;700&display=swap');
+:root{
+  --navy:#0d1b2a;--navy2:#162032;--panel:#1a2840;--border:#2a3f5f;
+  --cyan:#00c8e0;--cyan-dim:#007a8a;--gold:#f4b942;--white:#e8f0fe;
+  --muted:#7a9abf;--success:#22c55e;--error:#ef4444;--warn:#f59e0b;
+  --radius:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--navy);color:var(--white);font-family:'Inter',sans-serif;min-height:100vh;display:flex;flex-direction:column;}
+
+/* ── LOGIN SCREEN ── */
+#login-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;}
+.login-box{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:36px 32px;width:100%;max-width:380px;}
+.login-logo{text-align:center;margin-bottom:28px;}
+.login-logo .co{font-size:15px;color:var(--cyan);font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
+.login-logo .sub{font-size:12px;color:var(--muted);margin-top:4px;}
+.login-logo .badge{display:inline-block;background:var(--gold);color:var(--navy);font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;margin-top:10px;}
+.login-box h2{font-size:16px;font-weight:700;margin-bottom:20px;color:var(--white);}
+.login-field{margin-bottom:14px;}
+.login-field label{display:block;font-size:12px;color:var(--cyan);font-weight:600;margin-bottom:5px;}
+.login-field input{width:100%;background:var(--navy2);border:1px solid var(--border);border-radius:7px;color:var(--white);font-family:'Inter',sans-serif;font-size:14px;padding:10px 13px;outline:none;transition:border .2s;}
+.login-field input:focus{border-color:var(--cyan);}
+.btn-login{width:100%;background:linear-gradient(90deg,var(--cyan),#009fb3);color:var(--navy);border:none;border-radius:8px;font-family:'Inter',sans-serif;font-size:15px;font-weight:700;padding:12px;cursor:pointer;margin-top:6px;transition:opacity .2s;}
+.btn-login:hover{opacity:.9;}
+#login-error{display:none;color:var(--error);font-size:12px;margin-top:10px;text-align:center;padding:8px;background:#2a0d0d;border-radius:6px;border:1px solid var(--error);}
+
+/* ── MAIN APP (hidden until login) ── */
+#main-app{display:none;flex-direction:column;min-height:100vh;}
+
+/* HEADER */
+header{background:var(--navy2);border-bottom:2px solid var(--cyan);padding:13px 24px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.logo-block .company{font-size:13px;color:var(--cyan);font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
+.logo-block .subtitle{font-size:11px;color:var(--muted);margin-top:2px;}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
+.header-badge{background:var(--gold);color:var(--navy);font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;}
+.cfg-link{font-size:11px;color:var(--muted);cursor:pointer;text-decoration:underline;}
+.cfg-link:hover{color:var(--gold);}
+.logout-btn{font-size:11px;color:var(--error);cursor:pointer;border:1px solid var(--error);border-radius:6px;padding:4px 10px;transition:all .2s;}
+.logout-btn:hover{background:var(--error);color:#fff;}
+
+/* TABS */
+.tab-bar{display:flex;background:var(--navy2);border-bottom:1px solid var(--border);padding:0 20px;}
+.tab{padding:12px 20px;font-size:13px;font-weight:600;cursor:pointer;color:var(--muted);border-bottom:3px solid transparent;transition:all .2s;user-select:none;}
+.tab:hover{color:var(--white);}
+.tab.active{color:var(--cyan);border-bottom-color:var(--cyan);}
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+
+/* PAGE */
+.page{max-width:760px;margin:24px auto;padding:0 16px 60px;width:100%;}
+.dash-page{max-width:1100px;margin:24px auto;padding:0 16px 60px;width:100%;}
+.page-title{font-size:20px;font-weight:700;margin-bottom:4px;}
+.page-desc{font-size:13px;color:var(--muted);margin-bottom:22px;}
+
+/* CARDS */
+.card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:20px 20px 16px;margin-bottom:14px;}
+.card-title{font-size:11px;color:var(--gold);font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:7px;}
+.field{margin-bottom:14px;}.field:last-child{margin-bottom:0;}
+label.flabel{display:block;font-size:12px;font-weight:600;color:var(--cyan);margin-bottom:5px;}
+label.flabel .req{color:var(--error);margin-left:2px;}
+input[type="text"],input[type="date"],select,textarea{
+  width:100%;background:var(--navy2);border:1px solid var(--border);border-radius:7px;
+  color:var(--white);font-family:'Inter',sans-serif;font-size:14px;padding:9px 12px;outline:none;transition:border .2s;
+}
+input:focus,select:focus,textarea:focus{border-color:var(--cyan);}
+select option{background:var(--navy2);}
+textarea{resize:vertical;min-height:60px;}
+input::placeholder,textarea::placeholder{color:var(--muted);}
+input[readonly]{color:var(--gold);cursor:default;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+@media(max-width:520px){.two-col,.three-col{grid-template-columns:1fr;}}
+
+/* RADIO */
+.radio-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+@media(max-width:520px){.radio-grid{grid-template-columns:1fr;}}
+.radio-item{display:flex;align-items:center;gap:9px;background:var(--navy2);border:1px solid var(--border);border-radius:7px;padding:10px 12px;cursor:pointer;transition:border .2s,background .2s;}
+.radio-item:hover{border-color:var(--cyan-dim);}
+.radio-item input[type="radio"]{accent-color:var(--cyan);width:15px;height:15px;flex-shrink:0;}
+.radio-item span{font-size:13px;color:var(--white);line-height:1.3;}
+.radio-item.selected{border-color:var(--cyan);background:#0d2233;}
+.reveal-box{display:none;margin-top:8px;}
+.reveal-box.show{display:block;}
+
+/* SUBMIT TO STEPPER */
+.level-stepper{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
+.lstep{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--navy2);color:var(--muted);transition:all .2s;}
+.lstep:hover{border-color:var(--cyan-dim);color:var(--white);}
+.lstep.active{background:var(--cyan);color:var(--navy);border-color:var(--cyan);}
+.submitto-pane{display:none;}.submitto-pane.active{display:block;}
+.submit-trail{font-size:11px;color:var(--muted);margin-bottom:10px;padding:7px 10px;background:var(--navy2);border-radius:6px;border:1px solid var(--border);min-height:32px;}
+
+/* SUBMIT BTN */
+.btn-submit{width:100%;background:linear-gradient(90deg,var(--cyan),#009fb3);color:var(--navy);border:none;border-radius:8px;font-family:'Inter',sans-serif;font-size:15px;font-weight:700;padding:13px;cursor:pointer;letter-spacing:.04em;transition:opacity .2s,transform .1s;margin-top:6px;}
+.btn-submit:hover{opacity:.9;}
+.btn-submit:active{transform:scale(.98);}
+.btn-submit:disabled{opacity:.5;cursor:not-allowed;}
+
+/* RESULT */
+#result-box{display:none;background:#0d2a1a;border:2px solid var(--success);border-radius:var(--radius);padding:24px;text-align:center;margin-bottom:16px;}
+.rlabel{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;}
+.dispatch-no{font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:700;color:var(--success);letter-spacing:.08em;word-break:break-all;}
+.rmeta{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.9;text-align:left;}
+.result-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:16px;}
+.rbtn{border-radius:7px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:opacity .2s;}
+.rbtn:hover{opacity:.85;}
+.rbtn-copy{background:transparent;border:1px solid var(--success);color:var(--success);}
+.rbtn-dash{background:transparent;border:1px solid var(--cyan);color:var(--cyan);}
+.rbtn-new{background:transparent;border:1px solid var(--muted);color:var(--muted);}
+
+/* UPLOAD */
+#upload-section{background:#0a1e2e;border:1px dashed var(--border);border-radius:var(--radius);padding:16px;margin-top:14px;}
+#upload-section h4{font-size:13px;color:var(--gold);margin-bottom:10px;}
+.upload-drop{border:2px dashed var(--border);border-radius:8px;padding:14px;text-align:center;cursor:pointer;transition:border .2s;margin-bottom:10px;}
+.upload-drop:hover,.upload-drop.dragover{border-color:var(--cyan);background:#0d2233;}
+.upload-drop p{font-size:12px;color:var(--muted);}
+.upload-drop .icon{font-size:22px;margin-bottom:4px;}
+#file-input{display:none;}
+#file-preview{display:none;margin-bottom:8px;}
+#file-preview img{max-width:100%;max-height:150px;border-radius:6px;border:1px solid var(--border);}
+#file-preview .fname{font-size:11px;color:var(--muted);margin-top:4px;}
+.btn-upload{width:100%;background:var(--gold);color:var(--navy);border:none;border-radius:7px;padding:10px;font-weight:700;font-size:13px;cursor:pointer;margin-top:4px;}
+.btn-upload:disabled{opacity:.5;cursor:not-allowed;}
+#upload-status{font-size:12px;margin-top:8px;display:none;}
+
+/* ERROR */
+#error-box{display:none;background:#2a0d0d;border:1px solid var(--error);border-radius:8px;padding:10px 14px;color:#ff9999;font-size:13px;margin-bottom:14px;}
+
+/* SPINNER */
+.spinner{display:inline-block;width:14px;height:14px;border:3px solid rgba(0,0,0,.25);border-top-color:var(--navy);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:5px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* DASHBOARD STATS */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px;}
+@media(max-width:700px){.stats-row{grid-template-columns:1fr 1fr;}}
+.stat-card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:16px;}
+.stat-card .slabel{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px;}
+.stat-card .sval{font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700;}
+.s-total .sval{color:var(--cyan);}
+.s-uploaded .sval{color:var(--success);}
+.s-pending .sval{color:var(--warn);}
+.s-today .sval{color:var(--gold);}
+.stat-card .spct{font-size:11px;color:var(--muted);margin-top:4px;}
+.progress-bar{height:5px;background:var(--border);border-radius:3px;margin-top:7px;overflow:hidden;}
+.progress-fill{height:100%;border-radius:3px;background:var(--success);transition:width .6s;}
+
+/* FILTER */
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;}
+.filter-row input,.filter-row select{background:var(--navy2);border:1px solid var(--border);border-radius:7px;color:var(--white);font-family:'Inter',sans-serif;font-size:13px;padding:7px 11px;outline:none;}
+.filter-row input{flex:1;min-width:150px;}
+.filter-row input:focus,.filter-row select:focus{border-color:var(--cyan);}
+.btn-refresh{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:7px 12px;font-size:12px;cursor:pointer;transition:all .2s;white-space:nowrap;}
+.btn-refresh:hover{border-color:var(--cyan);color:var(--cyan);}
+
+/* TABLE */
+.table-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border);}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:820px;}
+th{background:var(--navy2);color:var(--muted);font-weight:600;text-align:left;padding:10px 12px;border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none;}
+th:hover{color:var(--cyan);}
+td{padding:9px 12px;border-bottom:1px solid #1a2a3a;vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:#192638;}
+.mono{font-family:'JetBrains Mono',monospace;color:var(--gold);font-size:12px;}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;}
+.badge-ok{background:#0d2a1a;color:var(--success);border:1px solid #1a4a2a;}
+.badge-pending{background:#2a1f0d;color:var(--warn);border:1px solid #4a3a10;}
+.btn-upload-inline{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;transition:all .2s;white-space:nowrap;}
+.btn-upload-inline:hover{border-color:var(--gold);color:var(--gold);}
+.view-link{color:var(--cyan);font-size:11px;text-decoration:none;}
+.view-link:hover{text-decoration:underline;}
+.subj-cell{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--muted);}
+.empty-state{text-align:center;padding:40px 20px;color:var(--muted);}
+.empty-state .icon{font-size:32px;margin-bottom:10px;}
+
+/* MODALS */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal-card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:22px;width:100%;max-width:460px;margin:16px;}
+.modal-card h3{color:var(--gold);font-size:14px;margin-bottom:6px;}
+.modal-dispatch-badge{font-family:'JetBrains Mono',monospace;color:var(--cyan);font-size:12px;margin-bottom:14px;}
+.upload-drop-sm{border:2px dashed var(--border);border-radius:8px;padding:14px;text-align:center;cursor:pointer;margin-bottom:10px;transition:border .2s;}
+.upload-drop-sm:hover,.upload-drop-sm.dragover{border-color:var(--cyan);background:#0d2233;}
+.upload-drop-sm p{font-size:12px;color:var(--muted);}
+#modal-file-input{display:none;}
+#modal-preview{display:none;margin-bottom:10px;}
+#modal-preview img{max-height:100px;border-radius:5px;border:1px solid var(--border);}
+#modal-preview .fname{font-size:11px;color:var(--muted);margin-top:4px;}
+.modal-actions{display:flex;gap:10px;margin-top:12px;}
+.btn-modal-save{flex:1;background:var(--gold);color:var(--navy);border:none;border-radius:7px;padding:10px;font-weight:700;cursor:pointer;font-size:13px;}
+.btn-modal-save:disabled{opacity:.5;cursor:not-allowed;}
+.btn-modal-cancel{flex:1;background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:10px;font-weight:600;cursor:pointer;font-size:13px;}
+#modal-status{font-size:12px;margin-top:8px;display:none;}
+
+/* CONFIG */
+.cfg-card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:22px;width:100%;max-width:420px;margin:16px;}
+.cfg-card h3{color:var(--gold);font-size:14px;margin-bottom:14px;}
+.cfg-card label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;}
+.cfg-card input{width:100%;background:var(--navy2);border:1px solid var(--border);border-radius:7px;color:var(--white);font-size:13px;padding:9px 12px;outline:none;margin-bottom:12px;}
+.cfg-card input:focus{border-color:var(--cyan);}
+.cfg-actions{display:flex;gap:10px;}
+.btn-cfg-save{flex:1;background:var(--gold);color:var(--navy);border:none;border-radius:7px;padding:9px;font-weight:700;cursor:pointer;}
+.btn-cfg-cancel{flex:1;background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:9px;cursor:pointer;}
+
+/* LOADER */
+#loader{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:center;justify-content:center;flex-direction:column;gap:12px;}
+#loader.show{display:flex;}
+.spinner-lg{width:34px;height:34px;border:4px solid rgba(255,255,255,.15);border-top-color:var(--cyan);border-radius:50%;animation:spin .8s linear infinite;}
+
+footer{text-align:center;color:var(--muted);font-size:11px;padding:13px;border-top:1px solid var(--border);margin-top:auto;}
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN SCREEN ══ -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="co">SAI Computers Ltd.</div>
+      <div class="sub">DVVNL – Agra MRI &amp; Cluster Billing</div>
+      <span class="badge">DISPATCH PORTAL</span>
+    </div>
+    <h2>Staff Login</h2>
+    <div class="login-field">
+      <label>Password</label>
+      <input type="password" id="login-pass" placeholder="Enter password to continue" onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <button class="btn-login" onclick="doLogin()">Login →</button>
+    <div id="login-error">❌ Invalid username or password</div>
+  </div>
+</div>
+
+<!-- ══ MAIN APP ══ -->
+<div id="main-app">
+
+<header>
+  <div class="logo-block">
+    <div class="company">SAI Computers Ltd.</div>
+    <div class="subtitle">DVVNL – Agra MRI &amp; Cluster Billing</div>
+  </div>
+  <div class="header-right">
+    <span class="header-badge" id="staffNameBadge">DISPATCH PORTAL v3.0</span>
+    <span class="logout-btn" onclick="doLogout()">Logout</span>
+  </div>
+</header>
+
+<div class="tab-bar">
+  <div class="tab active" id="tab-form"      onclick="switchTab('form')">✏️&nbsp; New Dispatch</div>
+  <div class="tab"        id="tab-dashboard" onclick="switchTab('dashboard')">📊&nbsp; Dashboard</div>
+</div>
+
+<!-- ══ TAB 1 — FORM ══ -->
+<div class="tab-content active" id="content-form">
+<div class="page">
+
+  <div id="result-box">
+    <div class="rlabel">✅ Dispatch Number Generated</div>
+    <div class="dispatch-no" id="dispatch-display">—</div>
+    <div class="rmeta" id="dispatch-meta"></div>
+    <div class="result-actions">
+      <button class="rbtn rbtn-copy" onclick="copyDispatch()">📋 Copy</button>
+      <button class="rbtn rbtn-dash" onclick="switchTab('dashboard')">📊 Dashboard</button>
+      <button class="rbtn rbtn-new"  onclick="resetForm()">+ New Letter</button>
+    </div>
+    <div id="upload-section">
+      <h4>📎 Upload Office Copy</h4>
+      <div class="upload-drop" id="drop-zone" onclick="document.getElementById('file-input').click()">
+        <div class="icon">📄</div>
+        <p>Click or drag &amp; drop &nbsp;·&nbsp; PDF, JPG, PNG (max 10MB)</p>
+      </div>
+      <input type="file" id="file-input" accept=".pdf,.jpg,.jpeg,.png" onchange="previewFile(this)"/>
+      <div id="file-preview">
+        <img id="preview-img" src="" alt=""/>
+        <div class="fname" id="preview-name"></div>
+      </div>
+      <button class="btn-upload" id="upload-btn" onclick="uploadAndSend()">📎 Upload Office Copy</button>
+      <div id="upload-status"></div>
+    </div>
+  </div>
+
+  <div id="error-box"></div>
+
+  <form id="dispatch-form">
+
+    <div class="card">
+      <div class="card-title">1. Raised By</div>
+      <div class="two-col">
+        <div class="field">
+          <label class="flabel">Full Name <span class="req">*</span></label>
+          <input type="text" id="raised_by" placeholder="Your full name" required/>
+        </div>
+        <div class="field">
+          <label class="flabel">Designation <span class="req">*</span></label>
+          <input type="text" id="raised_desig" placeholder="Type your designation" required/>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">2. Report Period &amp; Submission Date</div>
+      <div class="three-col">
+        <div class="field">
+          <label class="flabel">Month <span class="req">*</span></label>
+          <select id="report_month_name" required>
+            <option value="">— Month —</option>
+            <option>January</option><option>February</option><option>March</option>
+            <option>April</option><option>May</option><option>June</option>
+            <option>July</option><option>August</option><option>September</option>
+            <option>October</option><option>November</option><option>December</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="flabel">Year <span class="req">*</span></label>
+          <select id="report_year" required>
+            <option value="">— Year —</option>
+            <option>2024</option><option>2025</option><option>2026</option><option>2027</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="flabel">Submission Date <span class="req">*</span></label>
+          <input type="date" id="submission_date" required/>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">3. Project Name</div>
+      <div class="field">
+        <div class="radio-grid">
+          <label class="radio-item" onclick="selectRadio(this,'project_name','MRI PROJECT - Above 5KW & Above')">
+            <input type="radio" name="project_name"/><span>MRI PROJECT – Above 5KW &amp; Above</span>
+          </label>
+          <label class="radio-item" onclick="selectRadio(this,'project_name','CLUSTER-4 BILLING')">
+            <input type="radio" name="project_name"/><span>CLUSTER-4 BILLING</span>
+          </label>
+        </div>
+        <input type="hidden" id="project_name"/>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">4. Subject of Letter</div>
+      <div class="field">
+        <label class="flabel">Type full subject as mentioned in the letter <span class="req">*</span></label>
+        <textarea id="subject_letter" rows="3"></textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">5. Submit To</div>
+      <div class="level-stepper">
+        <div class="lstep active" data-level="discom" onclick="switchLevel('discom')">DISCOM</div>
+        <div class="lstep" data-level="zone"          onclick="switchLevel('zone')">Zone</div>
+        <div class="lstep" data-level="circle"        onclick="switchLevel('circle')">Circle</div>
+        <div class="lstep" data-level="test"          onclick="switchLevel('test')">Test</div>
+        <div class="lstep" data-level="dist"          onclick="switchLevel('dist')">Distribution</div>
+        <div class="lstep" data-level="sdo"           onclick="switchLevel('sdo')">SDO</div>
+        <div class="lstep" data-level="employee"      onclick="switchLevel('employee')">Employee</div>
+      </div>
+      <div class="submit-trail" id="submit-trail">Select level above to choose recipient</div>
+      <input type="hidden" id="submit_to"/>
+
+      <div class="submitto-pane active" id="pane-discom">
+        <div class="two-col">
+          <div class="field">
+            <label class="flabel">Designation <span class="req">*</span></label>
+            <select id="discom_desig" onchange="buildSubmitTo()">
+              <option value="">— Select —</option>
+              <option>MD (Managing Director)</option>
+              <option>Director Commercial</option>
+              <option>Director Technical</option>
+              <option>CE Commercial</option>
+              <option>SE Commercial</option>
+              <option>EE Commercial</option>
+              <option>AE Commercial</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="flabel">Office Location</label>
+            <select id="discom_loc" onchange="buildSubmitTo()">
+              <option value="AGRA (DVVNL HQ)">AGRA (DVVNL HQ)</option>
+              <option value="Other">Other</option>
+            </select>
+            <input type="text" id="discom_loc_other" class="reveal-box" placeholder="Type location…" oninput="buildSubmitTo()"/>
+          </div>
+        </div>
+      </div>
+
+      <div class="submitto-pane" id="pane-zone">
+        <div class="two-col">
+          <div class="field">
+            <label class="flabel">Zone <span class="req">*</span></label>
+            <select id="zone_sel" onchange="buildSubmitTo()">
+              <option value="">— Select Zone —</option>
+              <option>AGRA</option><option>FIROZABAD</option><option>MATHURA</option>
+              <option>ETAH</option><option>ALIGARH</option><option>BANDA</option>
+              <option>JHANSI</option><option>KANPUR-1</option><option>KANPUR-2</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="flabel">Designation</label>
+            <input type="text" value="CE (Chief Engineer) – Zone" readonly/>
+          </div>
+        </div>
+      </div>
+
+      <div class="submitto-pane" id="pane-circle">
+        <div class="two-col">
+          <div class="field">
+            <label class="flabel">Zone <span class="req">*</span></label>
+            <select id="circle_zone_sel" onchange="populateCircles()">
+              <option value="">— Select Zone —</option>
+              <option>AGRA</option><option>FIROZABAD</option><option>MATHURA</option>
+              <option>ETAH</option><option>ALIGARH</option><option>BANDA</option>
+              <option>JHANSI</option><option>KANPUR-1</option><option>KANPUR-2</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="flabel">Circle <span class="req">*</span></label>
+            <select id="circle_sel" onchange="buildSubmitTo()"><option value="">— Select Circle —</option></select>
+          </div>
+        </div>
+        <div class="field">
+          <label class="flabel">Designation</label>
+          <input type="text" value="SE (Superintending Engineer) – Circle" readonly/>
+        </div>
+      </div>
+
+      <div class="submitto-pane" id="pane-test">
+        <div class="two-col">
+          <div class="field">
+            <label class="flabel">Zone <span class="req">*</span></label>
+            <select id="test_zone_sel" onchange="populateTests()">
+              <option value="">— Select Zone —</option>
+              <option>AGRA</option><option>FIROZABAD</option><option>MATHURA</option>
+              <option>ETAH</option><option>ALIGARH</option><option>BANDA</option>
+              <option>JHANSI</option><option>KANPUR-1</option><option>KANPUR-2</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="flabel">Test Division (ETD) <span class="req">*</span></label>
+            <select id="test_sel" onchange="buildSubmitTo()"><option value="">— Select ETD —</option></select>
+          </div>
+        </div>
+        <div class="field">
+          <label class="flabel">Designation <span class="req">*</span></label>
+          <select id="test_desig" onchange="buildSubmitTo()">
+            <option value="">— Select —</option>
+            <option>EE Test (Ex.En. – Test)</option>
+            <option>AE (Meter) Test</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="submitto-pane" id="pane-dist">
+        <div class="two-col">
+          <div class="field">
+            <label class="flabel">Zone <span class="req">*</span></label>
+            <select id="dist_zone_sel" onchange="populateDists()">
+              <option value="">— Select Zone —</option>
+              <option>AGRA</option><option>FIROZABAD</option><option>MATHURA</option>
+              <option>ETAH</option><option>ALIGARH</option><option>BANDA</option>
+              <option>JHANSI</option><option>KANPUR-1</option><option>KANPUR-2</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="flabel">Distribution Division (EDD) <span class="req">*</span></label>
+            <select id="dist_sel" onchange="buildSubmitTo()"><option value="">— Select EDD —</option></select>
+          </div>
+        </div>
+        <div class="field">
+          <label class="flabel">Designation <span class="req">*</span></label>
+          <select id="dist_desig" onchange="buildSubmitTo()">
+            <option value="">— Select —</option>
+            <option>EE Distribution (Ex.En. – Distribution)</option>
+            <option>AE (SDO) Distribution</option>
+            <option>AE Commercial</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="submitto-pane" id="pane-sdo">
+        <div class="field">
+          <label class="flabel">SDO Office &amp; Location <span class="req">*</span></label>
+          <input type="text" id="sdo_details" placeholder="e.g. EDD-I AGRA" oninput="buildSubmitTo()"/>
+        </div>
+        <div class="field">
+          <label class="flabel">Designation</label>
+          <select id="sdo_desig" onchange="buildSubmitTo()">
+            <option value="">— Select —</option>
+            <option>AE (SDO) Distribution</option>
+            <option>AE (Meter) Test</option>
+            <option>JE (Junior Engineer)</option>
+            <option>Other</option>
+          </select>
+          <input type="text" id="sdo_desig_other" class="reveal-box" placeholder="Type designation…" oninput="buildSubmitTo()"/>
+        </div>
+      </div>
+
+      <div class="submitto-pane" id="pane-employee">
+        <div class="field">
+          <label class="flabel">Designation <span class="req">*</span></label>
+          <select id="employee_desig" onchange="onEmployeeDesigChange()">
+            <option value="">— Select —</option>
+            <option>Zone Manager</option>
+            <option>Circle Manager</option>
+            <option>Supervisor</option>
+            <option>Meter Reader</option>
+          </select>
+        </div>
+
+        <!-- Zone Manager: only Zone -->
+        <div class="field reveal-box" id="emp_field_zone">
+          <label class="flabel">Zone <span class="req">*</span></label>
+          <select id="employee_zone_sel" onchange="empPopulateCircles(); buildSubmitTo();">
+            <option value="">— Select Zone —</option>
+            <option>AGRA</option><option>FIROZABAD</option><option>MATHURA</option>
+            <option>ETAH</option><option>ALIGARH</option><option>BANDA</option>
+            <option>JHANSI</option><option>KANPUR-1</option><option>KANPUR-2</option>
+          </select>
+        </div>
+
+        <!-- Circle Manager: Zone + Circle -->
+        <div class="two-col reveal-box" id="emp_field_circle">
+          <div class="field">
+            <label class="flabel">Zone <span class="req">*</span></label>
+            <select id="employee_zone_sel2" onchange="empPopulateCircles(); buildSubmitTo();">
+              <option value="">— Select Zone —</option>
+              <option>AGRA</option><option>FIROZABAD</option><option>MATHURA</option>
+              <option>ETAH</option><option>ALIGARH</option><option>BANDA</option>
+              <option>JHANSI</option><option>KANPUR-1</option><option>KANPUR-2</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="flabel">Circle <span class="req">*</span></label>
+            <select id="employee_circle_sel" onchange="empPopulateDivisions(); buildSubmitTo();"><option value="">— Select Circle —</option></select>
+          </div>
+        </div>
+
+        <!-- Supervisor: Zone + Circle + Division -->
+        <div class="field reveal-box" id="emp_field_supervisor_zone">
+          <div class="two-col">
+            <div class="field">
+              <label class="flabel">Zone <span class="req">*</span></label>
+              <select id="employee_zone_sel3" onchange="empPopulateCircles(); buildSubmitTo();">
+                <option value="">— Select Zone —</option>
+                <option>AGRA</option><option>FIROZABAD</option><option>MATHURA</option>
+                <option>ETAH</option><option>ALIGARH</option><option>BANDA</option>
+                <option>JHANSI</option><option>KANPUR-1</option><option>KANPUR-2</option>
+              </select>
+            </div>
+            <div class="field">
+              <label class="flabel">Circle <span class="req">*</span></label>
+              <select id="employee_circle_sel3" onchange="empPopulateDivisions(); buildSubmitTo();"><option value="">— Select Circle —</option></select>
+            </div>
+          </div>
+          <div class="field" style="margin-top:14px;">
+            <label class="flabel">Division (Test/Distribution) <span class="req">*</span></label>
+            <select id="employee_div_sel" onchange="buildSubmitTo()"><option value="">— Select Division —</option></select>
+          </div>
+        </div>
+
+        <!-- Meter Reader: Zone + Circle + Division + Area -->
+        <div class="field reveal-box" id="emp_field_meter_zone">
+          <div class="two-col">
+            <div class="field">
+              <label class="flabel">Zone <span class="req">*</span></label>
+              <select id="employee_zone_sel4" onchange="empPopulateCircles(); buildSubmitTo();">
+                <option value="">— Select Zone —</option>
+                <option>AGRA</option><option>FIROZABAD</option><option>MATHURA</option>
+                <option>ETAH</option><option>ALIGARH</option><option>BANDA</option>
+                <option>JHANSI</option><option>KANPUR-1</option><option>KANPUR-2</option>
+              </select>
+            </div>
+            <div class="field">
+              <label class="flabel">Circle <span class="req">*</span></label>
+              <select id="employee_circle_sel4" onchange="empPopulateDivisions(); buildSubmitTo();"><option value="">— Select Circle —</option></select>
+            </div>
+          </div>
+          <div class="two-col" style="margin-top:14px;">
+            <div class="field">
+              <label class="flabel">Division (Test/Distribution) <span class="req">*</span></label>
+              <select id="employee_div_sel4" onchange="buildSubmitTo()"><option value="">— Select Division —</option></select>
+            </div>
+            <div class="field">
+              <label class="flabel">Area <span class="req">*</span></label>
+              <input type="text" id="employee_area" placeholder="Type area…" oninput="buildSubmitTo()"/>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button type="submit" class="btn-submit" id="submit-btn">Generate Dispatch Number →</button>
+  </form>
+</div>
+</div>
+
+<!-- ══ TAB 2 — DASHBOARD ══ -->
+<div class="tab-content" id="content-dashboard">
+<div class="dash-page">
+  <p class="page-title">Dispatch Register</p>
+  <p class="page-desc">All generated dispatch numbers — office copy upload status &amp; tracking</p>
+
+  <div class="stats-row">
+    <div class="stat-card s-total">
+      <div class="slabel">Total Letters</div>
+      <div class="sval" id="stat-total">—</div>
+      <div class="spct">Generated</div>
+    </div>
+    <div class="stat-card s-uploaded">
+      <div class="slabel">Copy Uploaded</div>
+      <div class="sval" id="stat-uploaded">—</div>
+      <div class="spct" id="stat-pct">—</div>
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+    </div>
+    <div class="stat-card s-pending">
+      <div class="slabel">Copy Pending</div>
+      <div class="sval" id="stat-pending">—</div>
+      <div class="spct">Upload required</div>
+    </div>
+    <div class="stat-card s-today">
+      <div class="slabel">Generated Today</div>
+      <div class="sval" id="stat-today">—</div>
+      <div class="spct" id="stat-today-date">—</div>
+    </div>
+  </div>
+
+  <div class="filter-row">
+    <input type="text" id="search-input" placeholder="🔍  Search dispatch no., subject, raised by…" oninput="applyFilters()"/>
+    <select id="filter-status" onchange="applyFilters()">
+      <option value="">All Status</option>
+      <option value="uploaded">Copy Uploaded ✅</option>
+      <option value="pending">Copy Pending ⚠</option>
+    </select>
+    <select id="filter-project" onchange="applyFilters()">
+      <option value="">All Projects</option>
+      <option value="MRI">MRI PROJECT</option>
+      <option value="CLUSTER">CLUSTER-4</option>
+    </select>
+    <select id="filter-month" onchange="applyFilters()"><option value="">All Months</option></select>
+    <button class="btn-refresh" onclick="loadDashboard()">↻ Refresh</button>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th onclick="sortBy('dispatch_no_')"># Dispatch No. ↕</th>
+          <th>Date</th>
+          <th onclick="sortBy('report_month')">Month ↕</th>
+          <th>Raised By</th>
+          <th>Subject</th>
+          <th>Submitted To</th>
+          <th>Office Copy</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="table-body">
+        <tr><td colspan="8"><div class="empty-state"><div class="icon">📊</div><p>Click Refresh to load data</p></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+</div>
+
+</div><!-- end main-app -->
+
+<!-- Upload Modal -->
+<div class="modal-overlay" id="upload-modal">
+  <div class="modal-card">
+    <h3>📎 Upload Office Copy</h3>
+    <div class="modal-dispatch-badge" id="modal-dispatch-no">—</div>
+    <div class="upload-drop-sm" id="modal-drop" onclick="document.getElementById('modal-file-input').click()">
+      <div style="font-size:22px;margin-bottom:4px">📄</div>
+      <p>Click or drag &amp; drop &nbsp;·&nbsp; PDF, JPG, PNG (max 10MB)</p>
+    </div>
+    <input type="file" id="modal-file-input" accept=".pdf,.jpg,.jpeg,.png" onchange="modalPreviewFile(this)"/>
+    <div id="modal-preview">
+      <img id="modal-preview-img" src="" alt=""/>
+      <div class="fname" id="modal-preview-name"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal-save" id="modal-save-btn" onclick="doUpload()">Upload</button>
+      <button class="btn-modal-cancel" onclick="closeUploadModal()">Cancel</button>
+    </div>
+    <div id="modal-status"></div>
+  </div>
+</div>
+
+
+<div id="loader"><div class="spinner-lg"></div><div style="font-size:13px;color:var(--muted)">Loading…</div></div>
+
+<footer>SAI Computers Ltd. · DVVNL MRI &amp; Cluster Billing · Agra, UP &nbsp;|&nbsp; Dispatch Portal v3.0</footer>
+
+<script>
+// ════════════════════════════════════
+// STAFF PORTAL SESSION (shared login gate)
+// ════════════════════════════════════
+// If this page was opened from the Staff Portal dashboard, the URL carries
+// a ?token=... parameter identifying who's logged in. If present and
+// readable, skip this tool's own password screen entirely. If missing,
+// send the person back to the Staff Portal to log in first — this page
+// is no longer meant to be opened on its own.
+var staffSession = null;
+
+function readStaffSessionToken() {
+  try {
+    var params = new URLSearchParams(window.location.search);
+    var token = params.get('token');
+    if (!token) return null;
+    var json = decodeURIComponent(atob(token));
+    var data = JSON.parse(json);
+    if (!data.empId) return null;
+    return data;
+  } catch (e) {
+    return null;
+  }
+}
+
+function goToStaffPortal() {
+  window.location.href = '../index.html';
+}
+
+// ════════════════════════════════════
+// LOGIN
+// ════════════════════════════════════
+
+
+function doLogin() {
+  var pass = document.getElementById('login-pass').value;
+  var err  = document.getElementById('login-error');
+  if (pass === 'SAI123') {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('main-app').style.display     = 'flex';
+    err.style.display = 'none';
+    initApp();
+    logLoginEvent();
+  } else {
+    err.style.display = 'block';
+    document.getElementById('login-pass').value = '';
+    document.getElementById('login-pass').focus();
+  }
+}
+
+// ── Log login event with IP-based location + browser info ──
+function logLoginEvent() {
+  fetch('https://ip-api.com/json/?fields=status,country,regionName,city,query,isp')
+    .then(function(res) { return res.json(); })
+    .then(function(geo) {
+      const params = new URLSearchParams({
+        action: 'logLogin',
+        ip: geo.query || '',
+        city: geo.city || '',
+        region: geo.regionName || '',
+        country: geo.country || '',
+        isp: geo.isp || '',
+        user_agent: navigator.userAgent,
+        platform: navigator.platform || ''
+      });
+      jsonpFetch(SCRIPT_URL + '?' + params.toString()).catch(function(){});
+    })
+    .catch(function() {
+      // Geolocation failed — still log with browser info, no location
+      const params = new URLSearchParams({
+        action: 'logLogin',
+        ip: '', city: '', region: '', country: 'Unknown', isp: '',
+        user_agent: navigator.userAgent,
+        platform: navigator.platform || ''
+      });
+      jsonpFetch(SCRIPT_URL + '?' + params.toString()).catch(function(){});
+    });
+}
+
+function doLogout() {
+  goToStaffPortal();
+}
+
+// On load: if we have a valid Staff Portal session, skip straight to the
+// app. Otherwise send the person back to log in first — this page no
+// longer accepts being opened directly without that.
+window.onload = function() {
+  staffSession = readStaffSessionToken();
+  if (staffSession) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('main-app').style.display     = 'flex';
+    var badge = document.getElementById('staffNameBadge');
+    if (badge && staffSession.name) {
+      badge.textContent = staffSession.name + ' · ' + (staffSession.empId || '');
+    }
+    initApp();
+    logLoginEvent();
+  } else {
+    goToStaffPortal();
+  }
+};
+
+// ════════════════════════════════════
+// HIERARCHY DATA
+// ════════════════════════════════════
+const HIER=[
+  {zone:"AGRA",circle:"EDC FATEHBAD",test:"ETD-FATEHBAD",dist:"EDD-BAH"},
+  {zone:"AGRA",circle:"EDC FATEHBAD",test:"ETD-FATEHBAD",dist:"EDD-ETMADPUR"},
+  {zone:"AGRA",circle:"EDC FATEHBAD",test:"ETD-FATEHBAD",dist:"EDD-III AGRA"},
+  {zone:"AGRA",circle:"EDC AGRA",test:"ETD-AGRA",dist:"EDD-I AGRA"},
+  {zone:"AGRA",circle:"EDC AGRA",test:"ETD-AGRA",dist:"EDD-II AGRA"},
+  {zone:"AGRA",circle:"EDC AGRA",test:"ETD-AGRA",dist:"EDD-IV KIRAWALI"},
+  {zone:"AGRA",circle:"EDC AGRA",test:"ETD-AGRA",dist:"EDD-KHERAGARH"},
+  {zone:"FIROZABAD",circle:"EDC FIROZABAD",test:"ETD-FIROZABAD",dist:"EDD-FIROZABAD"},
+  {zone:"FIROZABAD",circle:"EDC FIROZABAD",test:"ETD-FIROZABAD",dist:"EDD-JASRANA"},
+  {zone:"FIROZABAD",circle:"EDC FIROZABAD",test:"ETD-FIROZABAD",dist:"EDD-SHIKOHABAD"},
+  {zone:"FIROZABAD",circle:"EDC FIROZABAD",test:"ETD-FIROZABAD",dist:"EDD-SHIRSAGANJ"},
+  {zone:"FIROZABAD",circle:"EDC FIROZABAD",test:"ETD-FIROZABAD",dist:"EDD-TUNDLA"},
+  {zone:"FIROZABAD",circle:"EDC MAINPURI",test:"ETD-MAINPURI",dist:"EDD-I MAINPURI"},
+  {zone:"FIROZABAD",circle:"EDC MAINPURI",test:"ETD-MAINPURI",dist:"EDD-II MAINPURI"},
+  {zone:"FIROZABAD",circle:"EDC MAINPURI",test:"ETD-MAINPURI",dist:"EDD-III MAINPURI"},
+  {zone:"FIROZABAD",circle:"EUDC FIROZABAD",test:"EUTD-FIROZABAD",dist:"EUDD-I FIROZABAD"},
+  {zone:"FIROZABAD",circle:"EUDC FIROZABAD",test:"EUTD-FIROZABAD",dist:"EUDD-II FIROZABAD"},
+  {zone:"MATHURA",circle:"EDC II MATHURA",test:"ETD-II MATHURA",dist:"EDD-III MATHURA"},
+  {zone:"MATHURA",circle:"EDC II MATHURA",test:"ETD-II MATHURA",dist:"EDD-MATH"},
+  {zone:"MATHURA",circle:"EDC-I MATHURA",test:"ETD-I MATHURA",dist:"EDD-GOVERDHAN"},
+  {zone:"MATHURA",circle:"EDC-I MATHURA",test:"ETD-I MATHURA",dist:"EDD-I MATHURA"},
+  {zone:"MATHURA",circle:"EDC-I MATHURA",test:"ETD-I MATHURA",dist:"EDD-II KOSIKALAN"},
+  {zone:"MATHURA",circle:"EUDC MATHURA",test:"EUTD-MATHURA",dist:"EUDD-I MATHURA"},
+  {zone:"MATHURA",circle:"EUDC MATHURA",test:"EUTD-MATHURA",dist:"EUDD-II VRINDAVAN"},
+  {zone:"MATHURA",circle:"EUDC MATHURA",test:"EUTD-MATHURA",dist:"EUDD-III MATHURA"},
+  {zone:"ETAH",circle:"EDC KASGANJ",test:"ETD-KASGANJ",dist:"EDD-KASGANJ"},
+  {zone:"ETAH",circle:"EDC KASGANJ",test:"ETD-KASGANJ",dist:"EDD-KASGANJ RURAL"},
+  {zone:"ETAH",circle:"EDC ETAH",test:"ETD-ETAH",dist:"EDD-II ETAH"},
+  {zone:"ETAH",circle:"EDC ETAH",test:"ETD-ETAH",dist:"EDD-ETAH"},
+  {zone:"ETAH",circle:"EDC ETAH",test:"ETD-ETAH",dist:"EUDD-ETAH"},
+  {zone:"ETAH",circle:"EDC HATHRAS",test:"ETD-HATHRAS",dist:"EDD-I HATHRAS"},
+  {zone:"ETAH",circle:"EDC HATHRAS",test:"ETD-HATHRAS",dist:"EDD-II HATHRAS"},
+  {zone:"ETAH",circle:"EDC HATHRAS",test:"ETD-HATHRAS",dist:"EDD-III HATHRAS"},
+  {zone:"ETAH",circle:"EDC HATHRAS",test:"ETD-HATHRAS",dist:"EDD-IV SADABAD"},
+  {zone:"ALIGARH",circle:"EDC II ALIGARH",test:"ETD-II ALIGARH",dist:"EDD-IV IGLAS"},
+  {zone:"ALIGARH",circle:"EDC II ALIGARH",test:"ETD-II ALIGARH",dist:"EDD-V KHAIR ALIGARH"},
+  {zone:"ALIGARH",circle:"EDC II ALIGARH",test:"ETD-II ALIGARH",dist:"EDD-VI ALIGARH"},
+  {zone:"ALIGARH",circle:"EDC-1 ALIGARH",test:"ETD-1 ALIGARH",dist:"EDD-I ALIGARH"},
+  {zone:"ALIGARH",circle:"EDC-1 ALIGARH",test:"ETD-1 ALIGARH",dist:"EDD-II ALIGARH"},
+  {zone:"ALIGARH",circle:"EDC-1 ALIGARH",test:"ETD-1 ALIGARH",dist:"EDD-III ALIGARH"},
+  {zone:"ALIGARH",circle:"EUDC ALIGARH",test:"EUTD-ALIGARH",dist:"EUDD-IV ALIGARH"},
+  {zone:"ALIGARH",circle:"EUDC ALIGARH",test:"EUTD-ALIGARH",dist:"EUDD-I ALIGARH"},
+  {zone:"ALIGARH",circle:"EUDC ALIGARH",test:"EUTD-ALIGARH",dist:"EUDD-II ALIGARH"},
+  {zone:"ALIGARH",circle:"EUDC ALIGARH",test:"EUTD-ALIGARH",dist:"EUDD-III ALIGARH"},
+  {zone:"BANDA",circle:"EDC BANDA",test:"ETD-BANDA",dist:"EDD-ATARRA"},
+  {zone:"BANDA",circle:"EDC BANDA",test:"ETD-BANDA",dist:"EDD-BANDA"},
+  {zone:"BANDA",circle:"EDC BANDA",test:"ETD-BANDA",dist:"EUDD-BANDA"},
+  {zone:"BANDA",circle:"EDC CHITTRAKOOT",test:"ETD-CHITTRAKOOT",dist:"EDD-II CHITTRAKOOT"},
+  {zone:"BANDA",circle:"EDC CHITTRAKOOT",test:"ETD-CHITTRAKOOT",dist:"EDD-CHITRAKOOT"},
+  {zone:"BANDA",circle:"EDC HAMIRPUR",test:"ETD-HAMIRPUR",dist:"EDD-HAMIRPUR"},
+  {zone:"BANDA",circle:"EDC HAMIRPUR",test:"ETD-HAMIRPUR",dist:"EDD-RATH"},
+  {zone:"BANDA",circle:"EDC MAHOBA",test:"ETD-MAHOBA",dist:"EDD-II MAHOBA"},
+  {zone:"BANDA",circle:"EDC MAHOBA",test:"ETD-MAHOBA",dist:"EDD-MAHOBA"},
+  {zone:"JHANSI",circle:"EDC JHANSI",test:"ETD-JHANSI",dist:"EDD-II JHANSI"},
+  {zone:"JHANSI",circle:"EDC JHANSI",test:"ETD-JHANSI",dist:"EDD-MAURANIPUR"},
+  {zone:"JHANSI",circle:"EDC LALITPUR",test:"ETD-LALITPUR",dist:"EDD-II LALITPUR"},
+  {zone:"JHANSI",circle:"EDC LALITPUR",test:"ETD-LALITPUR",dist:"EDD-LALITPUR"},
+  {zone:"JHANSI",circle:"EDC ORAI",test:"ETD-ORAI",dist:"EDD-I ORAI"},
+  {zone:"JHANSI",circle:"EDC ORAI",test:"ETD-ORAI",dist:"EDD-II ORAI"},
+  {zone:"JHANSI",circle:"EUDC JHANSI",test:"EUTD-JHANSI",dist:"EUDD-I JHANSI"},
+  {zone:"JHANSI",circle:"EUDC JHANSI",test:"EUTD-JHANSI",dist:"EUDD-II JHANSI"},
+  {zone:"KANPUR-2",circle:"EDC AURAIYA",test:"ETD-AURAIYA",dist:"EDD-II AURAIYA"},
+  {zone:"KANPUR-2",circle:"EDC AURAIYA",test:"ETD-AURAIYA",dist:"EDD-DIBIAPUR"},
+  {zone:"KANPUR-2",circle:"EDC ETAWAH",test:"ETD-ETAWAH",dist:"EDD-I ETAWAH"},
+  {zone:"KANPUR-2",circle:"EDC ETAWAH",test:"ETD-ETAWAH",dist:"EDD-II ETAWAH"},
+  {zone:"KANPUR-2",circle:"EDC ETAWAH",test:"ETD-ETAWAH",dist:"EDD-SAIFAI"},
+  {zone:"KANPUR-2",circle:"EDC FARRUKHABAD",test:"ETD-FARRUKHABAD",dist:"EDD-FARRUKHABAD"},
+  {zone:"KANPUR-2",circle:"EDC FARRUKHABAD",test:"ETD-FARRUKHABAD",dist:"EDD-KAYAMGANJ"},
+  {zone:"KANPUR-2",circle:"EDC FARRUKHABAD",test:"ETD-FARRUKHABAD",dist:"EUDD FARRUKHABAD"},
+  {zone:"KANPUR-2",circle:"EDC KANNAUJ",test:"ETD-KANNAUJ",dist:"EDD-CHHIBRAMAU"},
+  {zone:"KANPUR-2",circle:"EDC KANNAUJ",test:"ETD-KANNAUJ",dist:"EDD-KANNAUJ"},
+  {zone:"KANPUR-1",circle:"EDC KANPUR",test:"ETD-KANPUR",dist:"EDD-II CHAUBEPUR (KANPUR)"},
+  {zone:"KANPUR-1",circle:"EDC KANPUR",test:"ETD-KANPUR",dist:"EDD-GHATAMPUR"},
+  {zone:"KANPUR-1",circle:"EDC KANPUR",test:"ETD-KANPUR",dist:"EDD-I KANPUR"},
+  {zone:"KANPUR-1",circle:"EDC KANPUR DEHAT",test:"ETD-KANPUR DEHAT",dist:"EDD-JIJHAK"},
+  {zone:"KANPUR-1",circle:"EDC KANPUR DEHAT",test:"ETD-KANPUR DEHAT",dist:"EDD-KANPUR DEHAT"},
+  {zone:"KANPUR-1",circle:"EDC KANPUR DEHAT",test:"ETD-KANPUR DEHAT",dist:"EDD-PUKHRAYAN"}
+];
+
+// ════════════════════════════════════
+// CONFIG
+// ════════════════════════════════════
+// ── HARDCODED CONFIG — works on any device/system ──
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxQz-v-uPsNDOQvZ8r_JXtPSTE4lSUjRLzGQpzjW0MRRkPhCERrTCKroQBbe-0onqAb9w/exec';
+const FY         = '2026-2027';
+const LOC        = 'AGRA';
+
+function initApp() {
+  document.getElementById('submission_date').value = new Date().toISOString().split('T')[0];
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('report_month_name').value = MONTHS[new Date().getMonth()];
+  document.getElementById('report_year').value = String(new Date().getFullYear());
+}
+
+// ════════════════════════════════════
+// TABS
+// ════════════════════════════════════
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.getElementById('content-' + tab).classList.add('active');
+  if (tab === 'dashboard') loadDashboard();
+}
+
+// ════════════════════════════════════
+// RADIO
+// ════════════════════════════════════
+function selectRadio(el, hiddenId, value) {
+  el.parentElement.querySelectorAll('.radio-item').forEach(r => r.classList.remove('selected'));
+  el.classList.add('selected');
+  el.querySelector('input[type="radio"]').checked = true;
+  document.getElementById(hiddenId).value = value;
+}
+
+// ════════════════════════════════════
+// SUBMIT TO STEPPER
+// ════════════════════════════════════
+let _currentLevel = 'discom';
+function switchLevel(level) {
+  _currentLevel = level;
+  document.querySelectorAll('.lstep').forEach(s => s.classList.toggle('active', s.dataset.level === level));
+  document.querySelectorAll('.submitto-pane').forEach(p => p.classList.toggle('active', p.id === 'pane-' + level));
+  document.getElementById('submit_to').value = '';
+  document.getElementById('submit-trail').textContent = 'Select level above to choose recipient';
+  if (level === 'employee') {
+    document.getElementById('employee_desig').value = '';
+    document.querySelectorAll('#pane-employee .reveal-box').forEach(el => el.classList.remove('show'));
+  }
+}
+
+function buildSubmitTo() {
+  let val = '', trail = '';
+  if (_currentLevel === 'discom') {
+    let d = v('discom_desig'), loc = v('discom_loc');
+    if (loc === 'Other') loc = v('discom_loc_other');
+    document.getElementById('discom_loc_other').classList.toggle('show', v('discom_loc') === 'Other');
+    if (d && loc) { val = d + ' – ' + loc; trail = 'DISCOM → ' + val; }
+  } else if (_currentLevel === 'zone') {
+    let z = v('zone_sel');
+    if (z) { val = 'CE (Chief Engineer) – Zone ' + z; trail = 'Zone: ' + z + ' → CE'; }
+  } else if (_currentLevel === 'circle') {
+    let z = v('circle_zone_sel'), c = v('circle_sel');
+    if (z && c) { val = 'SE (Superintending Engineer) – ' + c + ' (Zone: ' + z + ')'; trail = 'Zone: ' + z + ' → ' + c + ' → SE'; }
+  } else if (_currentLevel === 'test') {
+    let z = v('test_zone_sel'), t = v('test_sel'), d = v('test_desig');
+    if (z && t && d) { val = d + ' – ' + t + ' (Zone: ' + z + ')'; trail = 'Zone: ' + z + ' → ' + t + ' → ' + d; }
+  } else if (_currentLevel === 'dist') {
+    let z = v('dist_zone_sel'), dd = v('dist_sel'), d = v('dist_desig');
+    if (z && dd && d) { val = d + ' – ' + dd + ' (Zone: ' + z + ')'; trail = 'Zone: ' + z + ' → ' + dd + ' → ' + d; }
+  } else if (_currentLevel === 'sdo') {
+    let d = v('sdo_desig'), loc = v('sdo_details');
+    if (d === 'Other') { d = v('sdo_desig_other'); document.getElementById('sdo_desig_other').classList.add('show'); }
+    else { document.getElementById('sdo_desig_other').classList.remove('show'); }
+    if (loc) { val = loc + (d ? ' (' + d + ')' : ''); trail = 'SDO → ' + val; }
+  } else if (_currentLevel === 'employee') {
+    const d = v('employee_desig');
+    if (d === 'Zone Manager') {
+      const z = v('employee_zone_sel');
+      if (z) { val = 'Zone Manager – Zone ' + z; trail = 'Employee → Zone: ' + z + ' → Zone Manager'; }
+    } else if (d === 'Circle Manager') {
+      const z = v('employee_zone_sel2'), c = v('employee_circle_sel');
+      if (z && c) { val = 'Circle Manager – ' + c + ' (Zone: ' + z + ')'; trail = 'Employee → Zone: ' + z + ' → ' + c + ' → Circle Manager'; }
+    } else if (d === 'Supervisor') {
+      const z = v('employee_zone_sel3'), c = v('employee_circle_sel3'), dv = v('employee_div_sel');
+      if (z && c && dv) { val = 'Supervisor – ' + dv + ' (' + c + ', Zone: ' + z + ')'; trail = 'Employee → Zone: ' + z + ' → ' + c + ' → ' + dv + ' → Supervisor'; }
+    } else if (d === 'Meter Reader') {
+      const z = v('employee_zone_sel4'), c = v('employee_circle_sel4'), dv = v('employee_div_sel4'), area = v('employee_area');
+      if (z && c && dv && area) { val = 'Meter Reader – ' + area + ' (' + dv + ', ' + c + ', Zone: ' + z + ')'; trail = 'Employee → Zone: ' + z + ' → ' + c + ' → ' + dv + ' → ' + area + ' → Meter Reader'; }
+    }
+  }
+  document.getElementById('submit_to').value = val;
+  document.getElementById('submit-trail').textContent = trail || 'Select level above to choose recipient';
+}
+
+function populateCircles() {
+  const z = v('circle_zone_sel');
+  fillSelect('circle_sel', [...new Set(HIER.filter(r => r.zone === z).map(r => r.circle))], '— Select Circle —');
+  buildSubmitTo();
+}
+function populateTests() {
+  const z = v('test_zone_sel');
+  fillSelect('test_sel', [...new Set(HIER.filter(r => r.zone === z).map(r => r.test))], '— Select ETD —');
+  buildSubmitTo();
+}
+function populateDists() {
+  const z = v('dist_zone_sel');
+  fillSelect('dist_sel', [...new Set(HIER.filter(r => r.zone === z).map(r => r.dist))].sort(), '— Select EDD —');
+  buildSubmitTo();
+}
+function fillSelect(id, items, ph) {
+  document.getElementById(id).innerHTML = '<option value="">' + ph + '</option>' + items.map(i => '<option>' + i + '</option>').join('');
+}
+
+// ── EMPLOYEE LEVEL: show/hide fields based on designation ──
+function onEmployeeDesigChange() {
+  const d = v('employee_desig');
+  document.getElementById('emp_field_zone').classList.toggle('show', d === 'Zone Manager');
+  document.getElementById('emp_field_circle').classList.toggle('show', d === 'Circle Manager');
+  document.getElementById('emp_field_supervisor_zone').classList.toggle('show', d === 'Supervisor');
+  document.getElementById('emp_field_meter_zone').classList.toggle('show', d === 'Meter Reader');
+  buildSubmitTo();
+}
+
+// ── EMPLOYEE LEVEL: zone → circle (works for all 4 zone selects) ──
+function empPopulateCircles() {
+  const d = v('employee_desig');
+  let zoneId, circleId;
+  if (d === 'Circle Manager')      { zoneId = 'employee_zone_sel2'; circleId = 'employee_circle_sel'; }
+  else if (d === 'Supervisor')     { zoneId = 'employee_zone_sel3'; circleId = 'employee_circle_sel3'; }
+  else if (d === 'Meter Reader')   { zoneId = 'employee_zone_sel4'; circleId = 'employee_circle_sel4'; }
+  else return;
+  const z = v(zoneId);
+  fillSelect(circleId, [...new Set(HIER.filter(r => r.zone === z).map(r => r.circle))], '— Select Circle —');
+}
+
+// ── EMPLOYEE LEVEL: circle → division (Test + Distribution combined) ──
+function empPopulateDivisions() {
+  const d = v('employee_desig');
+  let circleId, divId;
+  if (d === 'Supervisor')         { circleId = 'employee_circle_sel3'; divId = 'employee_div_sel'; }
+  else if (d === 'Meter Reader')  { circleId = 'employee_circle_sel4'; divId = 'employee_div_sel4'; }
+  else return;
+  const c = v(circleId);
+  const divisions = [...new Set(HIER.filter(r => r.circle === c).flatMap(r => [r.test, r.dist]))];
+  fillSelect(divId, divisions, '— Select Division —');
+}
+
+// ════════════════════════════════════
+// FORM SUBMIT
+// ════════════════════════════════════
+document.getElementById('dispatch-form').addEventListener('submit', async function(e) {
+  e.preventDefault(); hideError();
+  if (!SCRIPT_URL) { showError('Apps Script URL not configured.'); return; }
+
+  const raised_by      = v('raised_by').trim();
+  const raised_desig   = v('raised_desig').trim();
+  const month_name     = v('report_month_name');
+  const report_year    = v('report_year');
+  const sub_date       = v('submission_date');
+  const project_name   = v('project_name');
+  const subject_letter = document.getElementById('subject_letter').value.trim();
+  const submit_to      = v('submit_to');
+  const report_month   = (month_name && report_year) ? month_name + '-' + report_year : '';
+
+  const miss = [];
+  if (!raised_by)      miss.push('Name');
+  if (!raised_desig)   miss.push('Designation');
+  if (!report_month)   miss.push('Report Month & Year');
+  if (!sub_date)       miss.push('Submission Date');
+  if (!project_name)   miss.push('Project Name');
+  if (!subject_letter) miss.push('Subject of Letter');
+  if (!submit_to)      miss.push('Submit To');
+  if (miss.length) { showError('Please fill: ' + miss.join(', ')); return; }
+
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Generating…';
+  try {
+    const params = new URLSearchParams({ action:'generateDispatch', raised_by, raised_designation:raised_desig, report_month, submission_date:sub_date, project_name, subject_letter, submit_to, fy:FY, location:LOC });
+    const data = await jsonpFetch(SCRIPT_URL + '?' + params.toString());
+    if (data.status === 'ok') {
+      showResult(data.dispatch_no, data.saved_at, report_month, subject_letter, submit_to, raised_by, raised_desig);
+    } else { showError('Server error: ' + (data.message || 'Unknown')); }
+  } catch(err) { showError('Network error. (' + err.message + ')'); }
+  btn.disabled = false; btn.innerHTML = 'Generate Dispatch Number →';
+});
+
+// ════════════════════════════════════
+// RESULT
+// ════════════════════════════════════
+let _lastNo = '', _lastMeta = {};
+function showResult(no, savedAt, month, subject, to, by, desig) {
+  _lastNo = no; _lastMeta = { month, subject, to, by, desig, savedAt };
+  document.getElementById('dispatch-display').textContent = no;
+  const shortS = subject.length > 80 ? subject.substring(0,80)+'…' : subject;
+  document.getElementById('dispatch-meta').innerHTML =
+    '<b>Month:</b> ' + month + ' &nbsp;·&nbsp; <b>By:</b> ' + by + ' (' + desig + ')<br>' +
+    '<b>Subject:</b> ' + shortS + '<br><b>To:</b> ' + to + '<br>' +
+    '<span style="font-size:11px">Saved: ' + savedAt + '</span>';
+  document.getElementById('result-box').style.display = 'block';
+  document.getElementById('dispatch-form').style.display = 'none';
+  window.scrollTo({ top:0, behavior:'smooth' });
+}
+
+function copyDispatch() {
+  navigator.clipboard.writeText(_lastNo).then(() => {
+    const b = document.querySelector('.rbtn-copy');
+    b.textContent = '✅ Copied!';
+    setTimeout(() => b.textContent = '📋 Copy', 2000);
+  });
+}
+
+function resetForm() {
+  document.getElementById('result-box').style.display = 'none';
+  document.getElementById('dispatch-form').style.display = 'block';
+  document.getElementById('dispatch-form').reset();
+  document.querySelectorAll('.radio-item').forEach(r => r.classList.remove('selected'));
+  ['project_name','submit_to'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('submit-trail').textContent = 'Select level above to choose recipient';
+  document.querySelectorAll('.reveal-box').forEach(el => { el.classList.remove('show'); el.value=''; });
+  document.getElementById('file-preview').style.display = 'none';
+  document.getElementById('upload-status').style.display = 'none';
+  _formFile = null; _lastNo = '';
+  switchLevel('discom');
+  document.getElementById('submission_date').value = new Date().toISOString().split('T')[0];
+}
+
+// ════════════════════════════════════
+// UPLOAD — POST method (fixes size issue)
+// ════════════════════════════════════
+let _formFile = null;
+
+function previewFile(input) {
+  const file = input.files[0]; if (!file) return;
+  if (file.size > 10*1024*1024) { showUploadStatus('error','File too large (max 10MB)'); return; }
+  _formFile = file;
+  document.getElementById('preview-name').textContent = '📎 ' + file.name + ' (' + (file.size/1024).toFixed(1) + ' KB)';
+  const img = document.getElementById('preview-img');
+  if (file.type.startsWith('image/')) {
+    const r = new FileReader(); r.onload = e => { img.src = e.target.result; img.style.display='block'; }; r.readAsDataURL(file);
+  } else { img.style.display = 'none'; }
+  document.getElementById('file-preview').style.display = 'block';
+}
+
+const dz = document.getElementById('drop-zone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('dragover');
+  const f = e.dataTransfer.files[0];
+  if (f) { const dt = new DataTransfer(); dt.items.add(f); document.getElementById('file-input').files = dt.files; previewFile(document.getElementById('file-input')); }
+});
+
+async function uploadAndSend() {
+  if (!_formFile) { showUploadStatus('error','Please select a file.'); return; }
+  if (!SCRIPT_URL) { showUploadStatus('error','Apps Script URL not configured.'); return; }
+  const btn = document.getElementById('upload-btn');
+  btn.disabled = true; btn.textContent = 'Uploading…';
+  try {
+    const b64 = await fileToBase64(_formFile);
+    const res = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action:'uploadFile', dispatch_no:_lastNo, filename:_formFile.name, mime:_formFile.type, data:b64 })
+    });
+    const data = await res.json();
+    if (data.status === 'ok') {
+      showUploadStatus('ok', '✅ Uploaded! <a href="' + data.url + '" target="_blank" style="color:var(--cyan)">View File</a>');
+    } else { showUploadStatus('error','Upload failed: ' + (data.message||'Unknown')); }
+  } catch(e) { showUploadStatus('error','Error: ' + e.message); }
+  btn.disabled = false; btn.textContent = '📎 Upload Office Copy';
+}
+
+function showUploadStatus(type, msg) {
+  const el = document.getElementById('upload-status');
+  el.style.display = 'block'; el.style.color = type==='ok' ? 'var(--success)' : 'var(--error)'; el.innerHTML = msg;
+}
+
+// ════════════════════════════════════
+// DASHBOARD
+// ════════════════════════════════════
+let allRows = [], sortKey = 'dispatch_no_', sortAsc = false;
+
+async function loadDashboard() {
+  if (!SCRIPT_URL) { showTableMsg('⚙ Apps Script URL not configured.'); return; }
+  showLoader(true);
+  try {
+    const data = await jsonpFetch(SCRIPT_URL + '?action=getAll');
+    if (data.status === 'ok') {
+      allRows = (data.rows || []).reverse();
+      populateMonthFilter(); updateStats(); applyFilters();
+    } else { showTableMsg('Error: ' + (data.message||'Unknown')); }
+  } catch(e) { showTableMsg('⚠ Could not connect. Check Apps Script URL.'); }
+  showLoader(false);
+}
+
+function updateStats() {
+  const total    = allRows.length;
+  const uploaded = allRows.filter(r => gf(r,'file_url').startsWith('http')).length;
+  const pending  = total - uploaded;
+  const pct      = total ? Math.round(uploaded/total*100) : 0;
+  const now      = new Date();
+  const todayStr = String(now.getDate()).padStart(2,'0') + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + now.getFullYear();
+  const todayCount = allRows.filter(r => String(gf(r,'saved_at')).startsWith(todayStr)).length;
+  document.getElementById('stat-total').textContent    = total;
+  document.getElementById('stat-uploaded').textContent = uploaded;
+  document.getElementById('stat-pending').textContent  = pending;
+  document.getElementById('stat-today').textContent    = todayCount;
+  document.getElementById('stat-pct').textContent      = total ? pct+'% complete' : '—';
+  document.getElementById('progress-fill').style.width = pct+'%';
+  document.getElementById('stat-today-date').textContent = now.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+}
+
+function populateMonthFilter() {
+  const months = [...new Set(allRows.map(r => gf(r,'report_month')).filter(Boolean))].sort();
+  document.getElementById('filter-month').innerHTML = '<option value="">All Months</option>' + months.map(m=>'<option>'+m+'</option>').join('');
+}
+
+function applyFilters() {
+  const search  = document.getElementById('search-input').value.toLowerCase();
+  const status  = document.getElementById('filter-status').value;
+  const project = document.getElementById('filter-project').value;
+  const month   = document.getElementById('filter-month').value;
+  let rows = allRows.filter(r => {
+    const no   = gf(r,'dispatch_no_').toLowerCase();
+    const subj = gf(r,'subject_of_letter').toLowerCase();
+    const by   = gf(r,'raised_by').toLowerCase();
+    const to   = gf(r,'submit_to').toLowerCase();
+    const hasFile = gf(r,'file_url').startsWith('http');
+    if (search && !no.includes(search) && !subj.includes(search) && !by.includes(search) && !to.includes(search)) return false;
+    if (status==='uploaded' && !hasFile) return false;
+    if (status==='pending'  && hasFile)  return false;
+    if (project && !gf(r,'project_name').toUpperCase().includes(project)) return false;
+    if (month   && gf(r,'report_month') !== month) return false;
+    return true;
+  });
+  rows.sort((a,b) => { const av=gf(a,sortKey), bv=gf(b,sortKey); return sortAsc ? av.localeCompare(bv) : bv.localeCompare(av); });
+  renderTable(rows);
+}
+
+function sortBy(key) { sortKey===key ? sortAsc=!sortAsc : (sortKey=key, sortAsc=false); applyFilters(); }
+
+function gf(r, key) {
+  if (r[key] !== undefined) return String(r[key]);
+  const clean = key.replace(/_+$/,'');
+  const found = Object.keys(r).find(k => k.replace(/[\s._\-]+/g,'').toLowerCase() === clean.replace(/_/g,'').toLowerCase());
+  return found ? String(r[found]) : '';
+}
+
+function renderTable(rows) {
+  const tbody = document.getElementById('table-body');
+  if (!rows.length) { tbody.innerHTML='<tr><td colspan="8"><div class="empty-state"><div class="icon">📭</div><p>No records found</p></div></td></tr>'; return; }
+  tbody.innerHTML = rows.map(r => {
+    const no      = gf(r,'dispatch_no_') || '—';
+    const date    = gf(r,'submission_date') || '—';
+    const month   = gf(r,'report_month')   || '—';
+    const by      = gf(r,'raised_by')      || '—';
+    const desig   = gf(r,'designation')    || '';
+    const subj    = gf(r,'subject_of_letter') || '—';
+    const to      = gf(r,'submit_to')      || '—';
+    const fileUrl = gf(r,'file_url');
+    const hasFile = fileUrl.startsWith('http');
+    const badge  = hasFile ? '<span class="badge badge-ok">✅ Uploaded</span>' : '<span class="badge badge-pending">⚠ Pending</span>';
+    const action = hasFile ? '<a href="'+fileUrl+'" target="_blank" class="view-link">📄 View</a>' : '<button class="btn-upload-inline" onclick="openUploadModal(\''+esc(no)+'\')">📎 Upload</button>';
+    return '<tr><td><span class="mono">'+no+'</span></td><td style="font-size:12px;color:var(--muted)">'+date+'</td><td style="font-size:12px">'+month+'</td>' +
+      '<td style="font-size:12px">'+by+(desig?'<br><span style="font-size:11px;color:var(--muted)">'+desig+'</span>':'')+'</td>' +
+      '<td><div class="subj-cell" title="'+esc(subj)+'">'+(subj.length>50?subj.substring(0,50)+'…':subj)+'</div></td>' +
+      '<td style="font-size:11px;color:var(--muted)" title="'+esc(to)+'">'+(to.length>32?to.substring(0,32)+'…':to)+'</td>' +
+      '<td>'+badge+'</td><td>'+action+'</td></tr>';
+  }).join('');
+}
+
+// ════════════════════════════════════
+// UPLOAD MODAL (Dashboard) — POST
+// ════════════════════════════════════
+let _modalDispatchNo = '', _modalFile = null;
+function openUploadModal(no) {
+  _modalDispatchNo = no; _modalFile = null;
+  document.getElementById('modal-dispatch-no').textContent = no;
+  document.getElementById('modal-preview').style.display = 'none';
+  document.getElementById('modal-preview-img').src = '';
+  document.getElementById('modal-preview-name').textContent = '';
+  document.getElementById('modal-status').style.display = 'none';
+  document.getElementById('modal-file-input').value = '';
+  const btn = document.getElementById('modal-save-btn');
+  btn.disabled = false; btn.textContent = 'Upload';
+  document.getElementById('upload-modal').classList.add('open');
+}
+function closeUploadModal() { document.getElementById('upload-modal').classList.remove('open'); }
+
+const mdrop = document.getElementById('modal-drop');
+mdrop.addEventListener('dragover', e => { e.preventDefault(); mdrop.classList.add('dragover'); });
+mdrop.addEventListener('dragleave', () => mdrop.classList.remove('dragover'));
+mdrop.addEventListener('drop', e => {
+  e.preventDefault(); mdrop.classList.remove('dragover');
+  const f = e.dataTransfer.files[0];
+  if (f) { const dt = new DataTransfer(); dt.items.add(f); document.getElementById('modal-file-input').files = dt.files; modalPreviewFile(document.getElementById('modal-file-input')); }
+});
+
+function modalPreviewFile(input) {
+  const file = input.files[0]; if (!file) return;
+  if (file.size > 10*1024*1024) { showModalStatus('error','File too large'); return; }
+  _modalFile = file;
+  document.getElementById('modal-preview-name').textContent = '📎 '+file.name+' ('+(file.size/1024).toFixed(1)+' KB)';
+  const img = document.getElementById('modal-preview-img');
+  if (file.type.startsWith('image/')) { const r=new FileReader(); r.onload=e=>{img.src=e.target.result;img.style.display='block';}; r.readAsDataURL(file); }
+  else { img.style.display='none'; }
+  document.getElementById('modal-preview').style.display = 'block';
+}
+
+async function doUpload() {
+  if (!_modalFile) { showModalStatus('error','Please select a file first.'); return; }
+  if (!SCRIPT_URL) { showModalStatus('error','Apps Script URL not configured.'); return; }
+  const btn = document.getElementById('modal-save-btn');
+  btn.disabled = true; btn.textContent = 'Uploading…';
+  try {
+    const b64 = await fileToBase64(_modalFile);
+    const res = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action:'uploadFile', dispatch_no:_modalDispatchNo, filename:_modalFile.name, mime:_modalFile.type, data:b64 })
+    });
+    const data = await res.json();
+    if (data.status === 'ok') {
+      showModalStatus('ok','✅ Uploaded! <a href="'+data.url+'" target="_blank" style="color:var(--cyan)">View File</a>');
+      btn.textContent = 'Done ✓';
+      const idx = allRows.findIndex(r => gf(r,'dispatch_no_') === _modalDispatchNo);
+      if (idx >= 0) allRows[idx].file_url = data.url;
+      updateStats(); applyFilters();
+    } else { showModalStatus('error','Failed: '+(data.message||'Unknown')); btn.disabled=false; btn.textContent='Upload'; }
+  } catch(e) { showModalStatus('error','Error: '+e.message); btn.disabled=false; btn.textContent='Upload'; }
+}
+
+function showModalStatus(type, msg) { const el=document.getElementById('modal-status'); el.style.display='block'; el.style.color=type==='ok'?'var(--success)':'var(--error)'; el.innerHTML=msg; }
+
+
+
+// ════════════════════════════════════
+// JSONP — bypasses CORS for GET requests
+// ════════════════════════════════════
+function jsonpFetch(url) {
+  return new Promise(function(resolve, reject) {
+    var cbName = 'cb_' + Date.now() + '_' + Math.random().toString(36).substr(2,5);
+    var script = document.createElement('script');
+    var timeout = setTimeout(function() {
+      cleanup();
+      reject(new Error('Request timeout'));
+    }, 15000);
+    function cleanup() {
+      clearTimeout(timeout);
+      delete window[cbName];
+      if (script.parentNode) script.parentNode.removeChild(script);
+    }
+    window[cbName] = function(data) {
+      cleanup();
+      resolve(data);
+    };
+    script.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'callback=' + cbName;
+    script.onerror = function() { cleanup(); reject(new Error('Script load failed')); };
+    document.head.appendChild(script);
+  });
+}
+
+// ════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════
+function v(id) { return document.getElementById(id).value; }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function fileToBase64(file) { return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result.split(',')[1]); r.onerror=()=>rej(new Error('Read failed')); r.readAsDataURL(file); }); }
+function showLoader(val) { document.getElementById('loader').classList.toggle('show',val); }
+function showTableMsg(msg) { document.getElementById('table-body').innerHTML='<tr><td colspan="8"><div class="empty-state"><div class="icon">⚠</div><p>'+msg+'</p></div></td></tr>'; }
+function showError(msg) { const b=document.getElementById('error-box'); b.textContent='⚠ '+msg; b.style.display='block'; b.scrollIntoView({behavior:'smooth'}); }
+function hideError() { document.getElementById('error-box').style.display='none'; }
+</script>
+</body>
+</html>
