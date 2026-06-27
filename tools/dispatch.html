@@ -798,7 +798,7 @@ function logLoginEvent() {
         user_agent: navigator.userAgent,
         platform: navigator.platform || ''
       });
-      jsonpFetch(SCRIPT_URL + '?' + params.toString()).catch(function(){});
+      gsFetch(SCRIPT_URL + '?' + params.toString()).catch(function(){});
     })
     .catch(function() {
       // Geolocation failed — still log with browser info, no location
@@ -808,7 +808,7 @@ function logLoginEvent() {
         user_agent: navigator.userAgent,
         platform: navigator.platform || ''
       });
-      jsonpFetch(SCRIPT_URL + '?' + params.toString()).catch(function(){});
+      gsFetch(SCRIPT_URL + '?' + params.toString()).catch(function(){});
     });
 }
 
@@ -1099,7 +1099,7 @@ document.getElementById('dispatch-form').addEventListener('submit', async functi
   btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Generating…';
   try {
     const params = new URLSearchParams({ action:'generateDispatch', raised_by, raised_designation:raised_desig, report_month, submission_date:sub_date, project_name, subject_letter, submit_to, fy:FY, location:LOC, email: (staffSession && staffSession.email) || '' });
-    const data = await jsonpFetch(SCRIPT_URL + '?' + params.toString());
+    const data = await gsFetch(SCRIPT_URL + '?' + params.toString());
     if (data.status === 'ok') {
       showResult(data.dispatch_no, data.saved_at, report_month, subject_letter, submit_to, raised_by, raised_desig);
     } else { showError('Server error: ' + (data.message || 'Unknown')); }
@@ -1293,7 +1293,7 @@ async function loadDashboard() {
   if (!SCRIPT_URL) { showTableMsg('⚙ Apps Script URL not configured.'); return; }
   showLoader(true);
   try {
-    const data = await jsonpFetch(SCRIPT_URL + '?action=getAll');
+    const data = await gsFetch(SCRIPT_URL + '?action=getAll');
     if (data.status === 'ok') {
       allRows = (data.rows || []).reverse();
       populateMonthFilter(); updateStats(); applyFilters();
@@ -1486,6 +1486,19 @@ function showModalStatus(type, msg) { const el=document.getElementById('modal-st
 // ════════════════════════════════════
 // JSONP — bypasses CORS for GET requests
 // ════════════════════════════════════
+// Plain fetch()-based GET to the Apps Script backend. Replaces the old
+// JSONP (dynamic <script> tag) approach, which mobile networks — Indian
+// carriers in particular, with their data-compression proxies — can
+// silently break, showing "Script load failed" even though the backend
+// itself is fine. Regular fetch() is more robust and is already proven
+// to work against this same backend (the file upload POST request uses
+// it successfully).
+async function gsFetch(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Server returned ' + res.status);
+  return res.json();
+}
+
 function jsonpFetch(url) {
   return new Promise(function(resolve, reject) {
     var cbName = 'cb_' + Date.now() + '_' + Math.random().toString(36).substr(2,5);
