@@ -16,7 +16,7 @@
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh}
-.hdr{background:var(--dk);color:#fff;padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:58px;position:sticky;top:0;z-index:200;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.hdr{background:var(--dk);color:#fff;padding:8px 20px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;min-height:58px;position:sticky;top:0;z-index:200;box-shadow:0 2px 8px rgba(0,0,0,.2)}
 .hdr.admin-hdr{background:var(--adm)}
 .brand{display:flex;align-items:center;gap:10px}
 .brand-logo{width:34px;height:34px;background:var(--ac);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;color:var(--dk)}
@@ -39,7 +39,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 .ld{font-size:13px;color:var(--mu);margin-bottom:24px}
 .fg{margin-bottom:14px}
 .fg label{display:block;font-size:11px;font-weight:700;color:var(--dk);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
-.fg select,.fg input{width:100%;height:42px;border:1.5px solid var(--bo);border-radius:8px;padding:0 13px;font-size:14px;font-family:'DM Sans',sans-serif;color:var(--tx);background:#f8fafc;transition:border-color .2s;outline:none}
+.fg select,.fg input{width:100%;height:42px;border:1.5px solid var(--bo);border-radius:8px;padding:0 13px;font-size:16px;font-family:'DM Sans',sans-serif;color:var(--tx);background:#f8fafc;transition:border-color .2s;outline:none}
 .fg select:focus,.fg input:focus{border-color:var(--md);background:#fff}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:0 18px;height:42px;border-radius:8px;border:none;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
 .bp{background:var(--dk);color:#fff;width:100%}.bp:hover{background:var(--md)}
@@ -150,7 +150,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 .office-name-tag{font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;color:var(--adm)}
 .office-meta{font-size:11px;color:var(--mu)}
 .inline-add{display:flex;gap:7px;margin-top:8px;flex-wrap:wrap}
-.inline-add input{flex:1;min-width:140px;height:32px;border:1.5px solid var(--bo);border-radius:7px;padding:0 10px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none}
+.inline-add input{flex:1;min-width:140px;height:32px;border:1.5px solid var(--bo);border-radius:7px;padding:0 10px;font-size:16px;font-family:'DM Sans',sans-serif;outline:none}
 .inline-add input:focus{border-color:var(--adm2)}
 .divider{border:none;border-top:1.5px solid var(--bo);margin:16px 0}
 .nodata{text-align:center;padding:32px 16px;color:var(--mu);font-size:13px}
@@ -646,6 +646,14 @@ function sanitizeMonth(val){
 // the Staff Portal — this page is no longer meant to be opened directly.
 // Admin login is untouched either way; it's a separate concern from
 // regular staff access.
+//
+// LOGOUT-AWARE CHECK: a token never expires on its own, so without this
+// check, hitting the browser's Back button after logging out would show
+// this page again using the old (still technically valid-looking) token.
+// To stop that: every logout writes a timestamp to sessionStorage. A
+// token issued BEFORE that timestamp is treated as stale and rejected,
+// even though its structure still parses fine. A fresh login always
+// produces a newer token, so logging in again works as normal.
 let staffSession = null;
 
 function readStaffSessionToken() {
@@ -656,6 +664,8 @@ function readStaffSessionToken() {
     const json = decodeURIComponent(atob(token));
     const data = JSON.parse(json);
     if (!data.empId) return null;
+    const logoutAt = parseInt(sessionStorage.getItem('staffPortalLogoutAt') || '0', 10);
+    if (data.ts && data.ts <= logoutAt) return null; // session was logged out after this token was issued
     return data;
   } catch (e) {
     return null;
@@ -665,6 +675,17 @@ function readStaffSessionToken() {
 function goToStaffPortal() {
   window.location.href = '../index.html';
 }
+
+// If the browser restores this page from its back/forward cache (e.g. the
+// person hit Back after logging out), no script re-runs by default — the
+// page would just sit there showing whatever was on screen before. This
+// forces a real reload whenever that happens, so the check above always
+// gets a chance to run again.
+window.addEventListener('pageshow', function (event) {
+  if (event.persisted) {
+    window.location.reload();
+  }
+});
 
 function applyStaffSessionToOfficeLogin() {
   if (!staffSession) return;
@@ -748,6 +769,7 @@ function doAdminLogin(){
 
 function doLogout(){
   if(!confirm('Logout?')) return;
+  sessionStorage.setItem('staffPortalLogoutAt', String(Date.now()));
   goToStaffPortal();
 }
 

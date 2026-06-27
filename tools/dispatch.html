@@ -25,7 +25,7 @@ body{background:var(--navy);color:var(--white);font-family:'Inter',sans-serif;mi
 .login-box h2{font-size:16px;font-weight:700;margin-bottom:20px;color:var(--white);}
 .login-field{margin-bottom:14px;}
 .login-field label{display:block;font-size:12px;color:var(--cyan);font-weight:600;margin-bottom:5px;}
-.login-field input{width:100%;background:var(--navy2);border:1px solid var(--border);border-radius:7px;color:var(--white);font-family:'Inter',sans-serif;font-size:14px;padding:10px 13px;outline:none;transition:border .2s;}
+.login-field input{width:100%;background:var(--navy2);border:1px solid var(--border);border-radius:7px;color:var(--white);font-family:'Inter',sans-serif;font-size:16px;padding:10px 13px;outline:none;transition:border .2s;}
 .login-field input:focus{border-color:var(--cyan);}
 .btn-login{width:100%;background:linear-gradient(90deg,var(--cyan),#009fb3);color:var(--navy);border:none;border-radius:8px;font-family:'Inter',sans-serif;font-size:15px;font-weight:700;padding:12px;cursor:pointer;margin-top:6px;transition:opacity .2s;}
 .btn-login:hover{opacity:.9;}
@@ -39,7 +39,7 @@ header{background:var(--navy2);border-bottom:2px solid var(--cyan);padding:13px 
 .logo-block .company{font-size:13px;color:var(--cyan);font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
 .logo-block .subtitle{font-size:11px;color:var(--muted);margin-top:2px;}
 .header-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
-.header-badge{background:var(--gold);color:var(--navy);font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;}
+.header-badge{background:var(--gold);color:var(--navy);font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;max-width:55vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .cfg-link{font-size:11px;color:var(--muted);cursor:pointer;text-decoration:underline;}
 .cfg-link:hover{color:var(--gold);}
 .logout-btn{font-size:11px;color:var(--error);cursor:pointer;border:1px solid var(--error);border-radius:6px;padding:4px 10px;transition:all .2s;}
@@ -67,7 +67,7 @@ label.flabel{display:block;font-size:12px;font-weight:600;color:var(--cyan);marg
 label.flabel .req{color:var(--error);margin-left:2px;}
 input[type="text"],input[type="date"],select,textarea{
   width:100%;background:var(--navy2);border:1px solid var(--border);border-radius:7px;
-  color:var(--white);font-family:'Inter',sans-serif;font-size:14px;padding:9px 12px;outline:none;transition:border .2s;
+  color:var(--white);font-family:'Inter',sans-serif;font-size:16px;padding:9px 12px;outline:none;transition:border .2s;
 }
 input:focus,select:focus,textarea:focus{border-color:var(--cyan);}
 select option{background:var(--navy2);}
@@ -163,7 +163,7 @@ input[readonly]{color:var(--gold);cursor:default;}
 
 /* FILTER */
 .filter-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;}
-.filter-row input,.filter-row select{background:var(--navy2);border:1px solid var(--border);border-radius:7px;color:var(--white);font-family:'Inter',sans-serif;font-size:13px;padding:7px 11px;outline:none;}
+.filter-row input,.filter-row select{background:var(--navy2);border:1px solid var(--border);border-radius:7px;color:var(--white);font-family:'Inter',sans-serif;font-size:16px;padding:7px 11px;outline:none;}
 .filter-row input{flex:1;min-width:150px;}
 .filter-row input:focus,.filter-row select:focus{border-color:var(--cyan);}
 .btn-refresh{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:7px 12px;font-size:12px;cursor:pointer;transition:all .2s;white-space:nowrap;}
@@ -211,7 +211,7 @@ tr:hover td{background:#192638;}
 .cfg-card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:22px;width:100%;max-width:420px;margin:16px;}
 .cfg-card h3{color:var(--gold);font-size:14px;margin-bottom:14px;}
 .cfg-card label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;}
-.cfg-card input{width:100%;background:var(--navy2);border:1px solid var(--border);border-radius:7px;color:var(--white);font-size:13px;padding:9px 12px;outline:none;margin-bottom:12px;}
+.cfg-card input{width:100%;background:var(--navy2);border:1px solid var(--border);border-radius:7px;color:var(--white);font-size:16px;padding:9px 12px;outline:none;margin-bottom:12px;}
 .cfg-card input:focus{border-color:var(--cyan);}
 .cfg-actions{display:flex;gap:10px;}
 .btn-cfg-save{flex:1;background:var(--gold);color:var(--navy);border:none;border-radius:7px;padding:9px;font-weight:700;cursor:pointer;}
@@ -721,6 +721,14 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:13px;border-t
 // readable, skip this tool's own password screen entirely. If missing,
 // send the person back to the Staff Portal to log in first — this page
 // is no longer meant to be opened on its own.
+//
+// LOGOUT-AWARE CHECK: a token never expires on its own, so without this
+// check, hitting the browser's Back button after logging out would show
+// this page again using the old (still technically valid-looking) token.
+// To stop that: every logout writes a timestamp to sessionStorage. A
+// token issued BEFORE that timestamp is treated as stale and rejected,
+// even though its structure still parses fine. A fresh login always
+// produces a newer token, so logging in again works as normal.
 var staffSession = null;
 
 function readStaffSessionToken() {
@@ -731,6 +739,8 @@ function readStaffSessionToken() {
     var json = decodeURIComponent(atob(token));
     var data = JSON.parse(json);
     if (!data.empId) return null;
+    var logoutAt = parseInt(sessionStorage.getItem('staffPortalLogoutAt') || '0', 10);
+    if (data.ts && data.ts <= logoutAt) return null; // session was logged out after this token was issued
     return data;
   } catch (e) {
     return null;
@@ -740,6 +750,17 @@ function readStaffSessionToken() {
 function goToStaffPortal() {
   window.location.href = '../index.html';
 }
+
+// If the browser restores this page from its back/forward cache (e.g. the
+// person hit Back after logging out), no script re-runs by default — the
+// page would just sit there showing whatever was on screen before. This
+// forces a real reload whenever that happens, so the check above always
+// gets a chance to run again.
+window.addEventListener('pageshow', function (event) {
+  if (event.persisted) {
+    window.location.reload();
+  }
+});
 
 // ════════════════════════════════════
 // LOGIN
@@ -792,6 +813,7 @@ function logLoginEvent() {
 }
 
 function doLogout() {
+  sessionStorage.setItem('staffPortalLogoutAt', String(Date.now()));
   goToStaffPortal();
 }
 
