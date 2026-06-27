@@ -123,9 +123,19 @@ input[readonly]{color:var(--gold);cursor:default;}
 .upload-drop p{font-size:12px;color:var(--muted);}
 .upload-drop .icon{font-size:22px;margin-bottom:4px;}
 #file-input{display:none;}
-#file-preview{display:none;margin-bottom:8px;}
-#file-preview img{max-width:100%;max-height:150px;border-radius:6px;border:1px solid var(--border);}
-#file-preview .fname{font-size:11px;color:var(--muted);margin-top:4px;}
+#camera-input{display:none;}
+.upload-actions{display:flex;gap:8px;margin-bottom:10px;}
+.btn-camera{flex:1;background:transparent;border:1.5px solid var(--cyan);color:var(--cyan);border-radius:7px;padding:9px;font-weight:600;font-size:12.5px;cursor:pointer;transition:background .2s,opacity .2s;}
+.btn-camera:hover{background:#0d2233;}
+.btn-camera:disabled{opacity:.4;cursor:not-allowed;border-color:var(--muted);color:var(--muted);}
+.camera-count{font-size:10.5px;color:var(--muted);text-align:center;margin:-4px 0 10px;}
+#file-list{display:none;flex-direction:column;gap:6px;margin-bottom:8px;}
+.file-item{display:flex;align-items:center;gap:8px;background:#0d2233;border:1px solid var(--border);border-radius:7px;padding:6px 8px;}
+.file-item img{width:36px;height:36px;object-fit:cover;border-radius:5px;flex-shrink:0;}
+.file-item .fi-icon{width:36px;height:36px;border-radius:5px;background:var(--panel);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.file-item .fi-name{font-size:11px;color:var(--white);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.file-item .fi-tag{font-size:9.5px;color:var(--cyan);background:rgba(0,200,224,.12);padding:2px 6px;border-radius:10px;flex-shrink:0;}
+.file-item .fi-remove{cursor:pointer;color:var(--error);font-size:16px;flex-shrink:0;padding:0 4px;}
 .btn-upload{width:100%;background:var(--gold);color:var(--navy);border:none;border-radius:7px;padding:10px;font-weight:700;font-size:13px;cursor:pointer;margin-top:4px;}
 .btn-upload:disabled{opacity:.5;cursor:not-allowed;}
 #upload-status{font-size:12px;margin-top:8px;display:none;}
@@ -189,9 +199,8 @@ tr:hover td{background:#192638;}
 .upload-drop-sm:hover,.upload-drop-sm.dragover{border-color:var(--cyan);background:#0d2233;}
 .upload-drop-sm p{font-size:12px;color:var(--muted);}
 #modal-file-input{display:none;}
-#modal-preview{display:none;margin-bottom:10px;}
-#modal-preview img{max-height:100px;border-radius:5px;border:1px solid var(--border);}
-#modal-preview .fname{font-size:11px;color:var(--muted);margin-top:4px;}
+#modal-camera-input{display:none;}
+#modal-file-list{display:none;flex-direction:column;gap:6px;margin-bottom:10px;}
 .modal-actions{display:flex;gap:10px;margin-top:12px;}
 .btn-modal-save{flex:1;background:var(--gold);color:var(--navy);border:none;border-radius:7px;padding:10px;font-weight:700;cursor:pointer;font-size:13px;}
 .btn-modal-save:disabled{opacity:.5;cursor:not-allowed;}
@@ -272,13 +281,15 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:13px;border-t
       <h4>📎 Upload Office Copy</h4>
       <div class="upload-drop" id="drop-zone" onclick="document.getElementById('file-input').click()">
         <div class="icon">📄</div>
-        <p>Click or drag &amp; drop &nbsp;·&nbsp; PDF, JPG, PNG (max 10MB)</p>
+        <p>Click or drag &amp; drop &nbsp;·&nbsp; PDF, JPG, PNG (max 10MB each)</p>
       </div>
-      <input type="file" id="file-input" accept=".pdf,.jpg,.jpeg,.png" onchange="previewFile(this)"/>
-      <div id="file-preview">
-        <img id="preview-img" src="" alt=""/>
-        <div class="fname" id="preview-name"></div>
+      <input type="file" id="file-input" accept=".pdf,.jpg,.jpeg,.png" onchange="addPickedFile(this)"/>
+      <div class="upload-actions">
+        <button type="button" class="btn-camera" id="camera-btn" onclick="document.getElementById('camera-input').click()">📷 Take Photo</button>
       </div>
+      <input type="file" id="camera-input" accept="image/*" capture="environment" onchange="addCameraFile(this)"/>
+      <div class="camera-count" id="camera-count">0 / 2 photos taken by camera</div>
+      <div id="file-list"></div>
       <button class="btn-upload" id="upload-btn" onclick="uploadAndSend()">📎 Upload Office Copy</button>
       <div id="upload-status"></div>
     </div>
@@ -681,11 +692,13 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:13px;border-t
       <div style="font-size:22px;margin-bottom:4px">📄</div>
       <p>Click or drag &amp; drop &nbsp;·&nbsp; PDF, JPG, PNG (max 10MB)</p>
     </div>
-    <input type="file" id="modal-file-input" accept=".pdf,.jpg,.jpeg,.png" onchange="modalPreviewFile(this)"/>
-    <div id="modal-preview">
-      <img id="modal-preview-img" src="" alt=""/>
-      <div class="fname" id="modal-preview-name"></div>
+    <input type="file" id="modal-file-input" accept=".pdf,.jpg,.jpeg,.png" onchange="modalAddPickedFile(this)"/>
+    <div class="upload-actions">
+      <button type="button" class="btn-camera" id="modal-camera-btn" onclick="document.getElementById('modal-camera-input').click()">📷 Take Photo</button>
     </div>
+    <input type="file" id="modal-camera-input" accept="image/*" capture="environment" onchange="modalAddCameraFile(this)"/>
+    <div class="camera-count" id="modal-camera-count">0 / 2 photos taken by camera</div>
+    <div id="modal-file-list"></div>
     <div class="modal-actions">
       <button class="btn-modal-save" id="modal-save-btn" onclick="doUpload()">Upload</button>
       <button class="btn-modal-cancel" onclick="closeUploadModal()">Cancel</button>
@@ -1063,7 +1076,7 @@ document.getElementById('dispatch-form').addEventListener('submit', async functi
   const btn = document.getElementById('submit-btn');
   btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Generating…';
   try {
-    const params = new URLSearchParams({ action:'generateDispatch', raised_by, raised_designation:raised_desig, report_month, submission_date:sub_date, project_name, subject_letter, submit_to, fy:FY, location:LOC });
+    const params = new URLSearchParams({ action:'generateDispatch', raised_by, raised_designation:raised_desig, report_month, submission_date:sub_date, project_name, subject_letter, submit_to, fy:FY, location:LOC, email: (staffSession && staffSession.email) || '' });
     const data = await jsonpFetch(SCRIPT_URL + '?' + params.toString());
     if (data.status === 'ok') {
       showResult(data.dispatch_no, data.saved_at, report_month, subject_letter, submit_to, raised_by, raised_desig);
@@ -1105,9 +1118,10 @@ function resetForm() {
   ['project_name','submit_to'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('submit-trail').textContent = 'Select level above to choose recipient';
   document.querySelectorAll('.reveal-box').forEach(el => { el.classList.remove('show'); el.value=''; });
-  document.getElementById('file-preview').style.display = 'none';
   document.getElementById('upload-status').style.display = 'none';
-  _formFile = null; _lastNo = '';
+  _officeCopyFiles = []; _cameraCount = 0; _lastNo = '';
+  updateCameraButtonState();
+  renderFileItems(_officeCopyFiles, document.getElementById('file-list'), removeOfficeCopyFile);
   switchLevel('discom');
   document.getElementById('submission_date').value = new Date().toISOString().split('T')[0];
 }
@@ -1115,18 +1129,92 @@ function resetForm() {
 // ════════════════════════════════════
 // UPLOAD — POST method (fixes size issue)
 // ════════════════════════════════════
-let _formFile = null;
+// ════════════════════════════════════
+// OFFICE COPY UPLOAD — multi-file + camera (max 2 by camera)
+// ════════════════════════════════════
+const MAX_CAMERA_PHOTOS = 2;
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
-function previewFile(input) {
+function fileIconFor(file) {
+  return file.type.startsWith('image/') ? null : '📄';
+}
+
+function renderFileItems(files, listEl, removeFn) {
+  if (files.length === 0) {
+    listEl.style.display = 'none';
+    listEl.innerHTML = '';
+    return;
+  }
+  listEl.style.display = 'flex';
+  listEl.innerHTML = '';
+  files.forEach((entry, i) => {
+    const row = document.createElement('div');
+    row.className = 'file-item';
+    const thumbHtml = entry.file.type.startsWith('image/')
+      ? `<img src="${entry.previewUrl}" alt="" />`
+      : `<div class="fi-icon">📄</div>`;
+    row.innerHTML = `
+      ${thumbHtml}
+      <span class="fi-name">${entry.file.name}</span>
+      ${entry.source === 'camera' ? '<span class="fi-tag">camera</span>' : ''}
+      <span class="fi-remove" data-i="${i}">&times;</span>
+    `;
+    listEl.appendChild(row);
+  });
+  listEl.querySelectorAll('.fi-remove').forEach(el => {
+    el.addEventListener('click', () => removeFn(+el.dataset.i));
+  });
+}
+
+function readAsPreviewUrl(file) {
+  return new Promise(resolve => {
+    if (!file.type.startsWith('image/')) { resolve(''); return; }
+    const r = new FileReader();
+    r.onload = e => resolve(e.target.result);
+    r.readAsDataURL(file);
+  });
+}
+
+let _officeCopyFiles = [];
+let _cameraCount = 0;
+
+function updateCameraButtonState() {
+  const btn = document.getElementById('camera-btn');
+  const countEl = document.getElementById('camera-count');
+  countEl.textContent = _cameraCount + ' / ' + MAX_CAMERA_PHOTOS + ' photos taken by camera';
+  btn.disabled = _cameraCount >= MAX_CAMERA_PHOTOS;
+}
+
+async function addPickedFile(input) {
   const file = input.files[0]; if (!file) return;
-  if (file.size > 10*1024*1024) { showUploadStatus('error','File too large (max 10MB)'); return; }
-  _formFile = file;
-  document.getElementById('preview-name').textContent = '📎 ' + file.name + ' (' + (file.size/1024).toFixed(1) + ' KB)';
-  const img = document.getElementById('preview-img');
-  if (file.type.startsWith('image/')) {
-    const r = new FileReader(); r.onload = e => { img.src = e.target.result; img.style.display='block'; }; r.readAsDataURL(file);
-  } else { img.style.display = 'none'; }
-  document.getElementById('file-preview').style.display = 'block';
+  if (file.size > MAX_FILE_SIZE) { showUploadStatus('error', 'File too large (max 10MB)'); input.value = ''; return; }
+  const previewUrl = await readAsPreviewUrl(file);
+  _officeCopyFiles.push({ file, source: 'picker', previewUrl });
+  renderFileItems(_officeCopyFiles, document.getElementById('file-list'), removeOfficeCopyFile);
+  input.value = '';
+}
+
+async function addCameraFile(input) {
+  const file = input.files[0]; if (!file) return;
+  if (_cameraCount >= MAX_CAMERA_PHOTOS) {
+    showUploadStatus('error', 'Maximum ' + MAX_CAMERA_PHOTOS + ' photos by camera reached.');
+    input.value = ''; return;
+  }
+  if (file.size > MAX_FILE_SIZE) { showUploadStatus('error', 'Photo too large (max 10MB)'); input.value = ''; return; }
+  const previewUrl = await readAsPreviewUrl(file);
+  _officeCopyFiles.push({ file, source: 'camera', previewUrl });
+  _cameraCount++;
+  updateCameraButtonState();
+  renderFileItems(_officeCopyFiles, document.getElementById('file-list'), removeOfficeCopyFile);
+  input.value = '';
+}
+
+function removeOfficeCopyFile(index) {
+  const entry = _officeCopyFiles[index];
+  if (!entry) return;
+  if (entry.source === 'camera') { _cameraCount = Math.max(0, _cameraCount - 1); updateCameraButtonState(); }
+  _officeCopyFiles.splice(index, 1);
+  renderFileItems(_officeCopyFiles, document.getElementById('file-list'), removeOfficeCopyFile);
 }
 
 const dz = document.getElementById('drop-zone');
@@ -1135,25 +1223,37 @@ dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
 dz.addEventListener('drop', e => {
   e.preventDefault(); dz.classList.remove('dragover');
   const f = e.dataTransfer.files[0];
-  if (f) { const dt = new DataTransfer(); dt.items.add(f); document.getElementById('file-input').files = dt.files; previewFile(document.getElementById('file-input')); }
+  if (f) { const dt = new DataTransfer(); dt.items.add(f); document.getElementById('file-input').files = dt.files; addPickedFile(document.getElementById('file-input')); }
 });
 
 async function uploadAndSend() {
-  if (!_formFile) { showUploadStatus('error','Please select a file.'); return; }
-  if (!SCRIPT_URL) { showUploadStatus('error','Apps Script URL not configured.'); return; }
+  if (_officeCopyFiles.length === 0) { showUploadStatus('error', 'Please select at least one file.'); return; }
+  if (!SCRIPT_URL) { showUploadStatus('error', 'Apps Script URL not configured.'); return; }
   const btn = document.getElementById('upload-btn');
-  btn.disabled = true; btn.textContent = 'Uploading…';
-  try {
-    const b64 = await fileToBase64(_formFile);
-    const res = await fetch(SCRIPT_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action:'uploadFile', dispatch_no:_lastNo, filename:_formFile.name, mime:_formFile.type, data:b64 })
-    });
-    const data = await res.json();
-    if (data.status === 'ok') {
-      showUploadStatus('ok', '✅ Uploaded! <a href="' + data.url + '" target="_blank" style="color:var(--cyan)">View File</a>');
-    } else { showUploadStatus('error','Upload failed: ' + (data.message||'Unknown')); }
-  } catch(e) { showUploadStatus('error','Error: ' + e.message); }
+  btn.disabled = true;
+  let okCount = 0, failCount = 0, lastUrl = '';
+  for (let i = 0; i < _officeCopyFiles.length; i++) {
+    const entry = _officeCopyFiles[i];
+    btn.textContent = 'Uploading ' + (i + 1) + ' / ' + _officeCopyFiles.length + '…';
+    try {
+      const b64 = await fileToBase64(entry.file);
+      const res = await fetch(SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'uploadFile', dispatch_no: _lastNo, filename: entry.file.name, mime: entry.file.type, data: b64 })
+      });
+      const data = await res.json();
+      if (data.status === 'ok') { okCount++; lastUrl = data.url; } else { failCount++; }
+    } catch (e) { failCount++; }
+  }
+  if (okCount > 0 && failCount === 0) {
+    showUploadStatus('ok', '✅ ' + okCount + ' file' + (okCount > 1 ? 's' : '') + ' uploaded! <a href="' + lastUrl + '" target="_blank" style="color:var(--cyan)">View latest</a>');
+    _officeCopyFiles = []; _cameraCount = 0; updateCameraButtonState();
+    renderFileItems(_officeCopyFiles, document.getElementById('file-list'), removeOfficeCopyFile);
+  } else if (okCount > 0) {
+    showUploadStatus('error', '⚠️ ' + okCount + ' uploaded, ' + failCount + ' failed. Remove the uploaded ones and retry the rest.');
+  } else {
+    showUploadStatus('error', 'Upload failed for all files.');
+  }
   btn.disabled = false; btn.textContent = '📎 Upload Office Copy';
 }
 
@@ -1259,15 +1359,23 @@ function renderTable(rows) {
 // ════════════════════════════════════
 // UPLOAD MODAL (Dashboard) — POST
 // ════════════════════════════════════
-let _modalDispatchNo = '', _modalFile = null;
+let _modalDispatchNo = '', _modalFiles = [], _modalCameraCount = 0;
+
+function updateModalCameraButtonState() {
+  const btn = document.getElementById('modal-camera-btn');
+  const countEl = document.getElementById('modal-camera-count');
+  countEl.textContent = _modalCameraCount + ' / ' + MAX_CAMERA_PHOTOS + ' photos taken by camera';
+  btn.disabled = _modalCameraCount >= MAX_CAMERA_PHOTOS;
+}
+
 function openUploadModal(no) {
-  _modalDispatchNo = no; _modalFile = null;
+  _modalDispatchNo = no; _modalFiles = []; _modalCameraCount = 0;
   document.getElementById('modal-dispatch-no').textContent = no;
-  document.getElementById('modal-preview').style.display = 'none';
-  document.getElementById('modal-preview-img').src = '';
-  document.getElementById('modal-preview-name').textContent = '';
   document.getElementById('modal-status').style.display = 'none';
   document.getElementById('modal-file-input').value = '';
+  document.getElementById('modal-camera-input').value = '';
+  updateModalCameraButtonState();
+  renderFileItems(_modalFiles, document.getElementById('modal-file-list'), modalRemoveFile);
   const btn = document.getElementById('modal-save-btn');
   btn.disabled = false; btn.textContent = 'Upload';
   document.getElementById('upload-modal').classList.add('open');
@@ -1280,40 +1388,73 @@ mdrop.addEventListener('dragleave', () => mdrop.classList.remove('dragover'));
 mdrop.addEventListener('drop', e => {
   e.preventDefault(); mdrop.classList.remove('dragover');
   const f = e.dataTransfer.files[0];
-  if (f) { const dt = new DataTransfer(); dt.items.add(f); document.getElementById('modal-file-input').files = dt.files; modalPreviewFile(document.getElementById('modal-file-input')); }
+  if (f) { const dt = new DataTransfer(); dt.items.add(f); document.getElementById('modal-file-input').files = dt.files; modalAddPickedFile(document.getElementById('modal-file-input')); }
 });
 
-function modalPreviewFile(input) {
+async function modalAddPickedFile(input) {
   const file = input.files[0]; if (!file) return;
-  if (file.size > 10*1024*1024) { showModalStatus('error','File too large'); return; }
-  _modalFile = file;
-  document.getElementById('modal-preview-name').textContent = '📎 '+file.name+' ('+(file.size/1024).toFixed(1)+' KB)';
-  const img = document.getElementById('modal-preview-img');
-  if (file.type.startsWith('image/')) { const r=new FileReader(); r.onload=e=>{img.src=e.target.result;img.style.display='block';}; r.readAsDataURL(file); }
-  else { img.style.display='none'; }
-  document.getElementById('modal-preview').style.display = 'block';
+  if (file.size > MAX_FILE_SIZE) { showModalStatus('error', 'File too large (max 10MB)'); input.value = ''; return; }
+  const previewUrl = await readAsPreviewUrl(file);
+  _modalFiles.push({ file, source: 'picker', previewUrl });
+  renderFileItems(_modalFiles, document.getElementById('modal-file-list'), modalRemoveFile);
+  input.value = '';
+}
+
+async function modalAddCameraFile(input) {
+  const file = input.files[0]; if (!file) return;
+  if (_modalCameraCount >= MAX_CAMERA_PHOTOS) {
+    showModalStatus('error', 'Maximum ' + MAX_CAMERA_PHOTOS + ' photos by camera reached.');
+    input.value = ''; return;
+  }
+  if (file.size > MAX_FILE_SIZE) { showModalStatus('error', 'Photo too large (max 10MB)'); input.value = ''; return; }
+  const previewUrl = await readAsPreviewUrl(file);
+  _modalFiles.push({ file, source: 'camera', previewUrl });
+  _modalCameraCount++;
+  updateModalCameraButtonState();
+  renderFileItems(_modalFiles, document.getElementById('modal-file-list'), modalRemoveFile);
+  input.value = '';
+}
+
+function modalRemoveFile(index) {
+  const entry = _modalFiles[index];
+  if (!entry) return;
+  if (entry.source === 'camera') { _modalCameraCount = Math.max(0, _modalCameraCount - 1); updateModalCameraButtonState(); }
+  _modalFiles.splice(index, 1);
+  renderFileItems(_modalFiles, document.getElementById('modal-file-list'), modalRemoveFile);
 }
 
 async function doUpload() {
-  if (!_modalFile) { showModalStatus('error','Please select a file first.'); return; }
+  if (_modalFiles.length === 0) { showModalStatus('error','Please select at least one file.'); return; }
   if (!SCRIPT_URL) { showModalStatus('error','Apps Script URL not configured.'); return; }
   const btn = document.getElementById('modal-save-btn');
-  btn.disabled = true; btn.textContent = 'Uploading…';
-  try {
-    const b64 = await fileToBase64(_modalFile);
-    const res = await fetch(SCRIPT_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action:'uploadFile', dispatch_no:_modalDispatchNo, filename:_modalFile.name, mime:_modalFile.type, data:b64 })
-    });
-    const data = await res.json();
-    if (data.status === 'ok') {
-      showModalStatus('ok','✅ Uploaded! <a href="'+data.url+'" target="_blank" style="color:var(--cyan)">View File</a>');
-      btn.textContent = 'Done ✓';
-      const idx = allRows.findIndex(r => gf(r,'dispatch_no_') === _modalDispatchNo);
-      if (idx >= 0) allRows[idx].file_url = data.url;
-      updateStats(); applyFilters();
-    } else { showModalStatus('error','Failed: '+(data.message||'Unknown')); btn.disabled=false; btn.textContent='Upload'; }
-  } catch(e) { showModalStatus('error','Error: '+e.message); btn.disabled=false; btn.textContent='Upload'; }
+  btn.disabled = true;
+  let okCount = 0, failCount = 0, lastUrl = '';
+  for (let i = 0; i < _modalFiles.length; i++) {
+    const entry = _modalFiles[i];
+    btn.textContent = 'Uploading ' + (i + 1) + ' / ' + _modalFiles.length + '…';
+    try {
+      const b64 = await fileToBase64(entry.file);
+      const res = await fetch(SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action:'uploadFile', dispatch_no:_modalDispatchNo, filename:entry.file.name, mime:entry.file.type, data:b64 })
+      });
+      const data = await res.json();
+      if (data.status === 'ok') { okCount++; lastUrl = data.url; } else { failCount++; }
+    } catch(e) { failCount++; }
+  }
+  if (okCount > 0 && failCount === 0) {
+    showModalStatus('ok','✅ ' + okCount + ' file' + (okCount > 1 ? 's' : '') + ' uploaded! <a href="'+lastUrl+'" target="_blank" style="color:var(--cyan)">View latest</a>');
+    btn.textContent = 'Done ✓';
+    const idx = allRows.findIndex(r => gf(r,'dispatch_no_') === _modalDispatchNo);
+    if (idx >= 0) allRows[idx].file_url = lastUrl;
+    updateStats(); applyFilters();
+  } else if (okCount > 0) {
+    showModalStatus('error', '⚠️ ' + okCount + ' uploaded, ' + failCount + ' failed.');
+    btn.disabled = false; btn.textContent = 'Upload';
+  } else {
+    showModalStatus('error','Upload failed for all files.');
+    btn.disabled = false; btn.textContent = 'Upload';
+  }
 }
 
 function showModalStatus(type, msg) { const el=document.getElementById('modal-status'); el.style.display='block'; el.style.color=type==='ok'?'var(--success)':'var(--error)'; el.innerHTML=msg; }
