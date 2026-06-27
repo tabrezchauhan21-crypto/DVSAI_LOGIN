@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SAI Computers · Staff Login</title>
+<style>
+  :root{
+    --navy:#0f2a4a;
+    --navy-deep:#091b30;
+    --blue:#1f4e79;
+    --blue-mid:#2e75b6;
+    --gold:#c9962c;
+    --paper:#f4f7fb;
+    --line:#d8dee5;
+    --ink:#1c2530;
+    --ink-soft:#647082;
+    --good:#1d7a4c;
+    --bad:#c0392b;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;
+    background:
+      radial-gradient(circle at 15% 20%, rgba(46,117,182,.25), transparent 45%),
+      radial-gradient(circle at 85% 80%, rgba(201,150,44,.18), transparent 50%),
+      linear-gradient(160deg, var(--navy-deep), var(--navy) 60%, #14385c);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+    color:var(--ink);
+  }
+
+  .shell{
+    width:100%;
+    max-width:430px;
+  }
+
+  .brand{
+    text-align:center;
+    margin-bottom:22px;
+  }
+  .brand .mark{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:46px;height:46px;
+    border-radius:11px;
+    background:linear-gradient(135deg, var(--blue-mid), var(--gold));
+    color:#fff;
+    font-weight:800;
+    font-size:18px;
+    letter-spacing:.5px;
+    margin-bottom:10px;
+    box-shadow:0 8px 22px rgba(0,0,0,.25);
+  }
+  .brand h1{
+    color:#fff;
+    font-size:18px;
+    margin:0;
+    font-weight:700;
+    letter-spacing:.2px;
+  }
+  .brand p{
+    color:rgba(255,255,255,.6);
+    font-size:12.5px;
+    margin:4px 0 0;
+  }
+
+  .card{
+    background:#fff;
+    border-radius:16px;
+    padding:8px;
+    box-shadow:0 24px 60px rgba(0,0,0,.35);
+    overflow:hidden;
+  }
+
+  .tabs{
+    display:flex;
+    background:var(--paper);
+    border-radius:11px;
+    padding:4px;
+    margin:6px 6px 0;
+  }
+  .tabs button{
+    flex:1;
+    border:none;
+    background:transparent;
+    padding:10px 0;
+    font-size:13.5px;
+    font-weight:700;
+    color:var(--ink-soft);
+    border-radius:8px;
+    cursor:pointer;
+    transition:background .15s, color .15s;
+    font-family:inherit;
+  }
+  .tabs button.active{
+    background:var(--navy-deep);
+    color:#fff;
+  }
+
+  .panel{
+    padding:24px 22px 22px;
+  }
+  .panel h2{
+    font-size:15px;
+    margin:0 0 4px;
+    color:var(--navy-deep);
+    font-weight:700;
+  }
+  .panel .sub{
+    font-size:12px;
+    color:var(--ink-soft);
+    margin:0 0 18px;
+  }
+
+  .field{
+    margin-bottom:13px;
+  }
+  .field label{
+    display:block;
+    font-size:11px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.5px;
+    color:var(--ink-soft);
+    margin-bottom:5px;
+  }
+  .field input, .field select{
+    width:100%;
+    padding:10px 12px;
+    border:1.5px solid var(--line);
+    border-radius:8px;
+    font-size:14px;
+    font-family:inherit;
+    color:var(--ink);
+    background:#fbfcfd;
+    transition:border-color .15s, background .15s;
+  }
+  .field select{
+    appearance:none;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%23647082' stroke-width='1.5' fill='none' fill-rule='evenodd'/></svg>");
+    background-repeat:no-repeat;
+    background-position:right 12px center;
+    padding-right:30px;
+  }
+  .field select:disabled{
+    background-color:#f1f3f5;
+    color:var(--ink-soft);
+    cursor:not-allowed;
+  }
+  .field input:focus, .field select:focus{
+    outline:none;
+    border-color:var(--blue-mid);
+    background:#fff;
+  }
+  .field input.err, .field select.err{
+    border-color:var(--bad);
+  }
+  .field .hint{
+    font-size:11px;
+    color:var(--bad);
+    margin-top:4px;
+    min-height:13px;
+  }
+  .field.empid input{ text-transform:uppercase; }
+
+  .submit{
+    width:100%;
+    padding:12px 0;
+    border:none;
+    border-radius:9px;
+    background:var(--navy-deep);
+    color:#fff;
+    font-size:14px;
+    font-weight:700;
+    cursor:pointer;
+    margin-top:6px;
+    transition:background .15s, opacity .15s;
+    font-family:inherit;
+  }
+  .submit:hover:not(:disabled){ background:var(--blue); }
+  .submit:disabled{ opacity:.55; cursor:not-allowed; }
+
+  .msg{
+    margin-top:13px;
+    font-size:12.5px;
+    padding:9px 11px;
+    border-radius:8px;
+    display:none;
+  }
+  .msg.show{ display:block; }
+  .msg.good{ background:#e7f5ec; color:var(--good); }
+  .msg.bad{ background:#fdeceb; color:var(--bad); }
+
+  .view{ display:none; }
+  .view.active{ display:block; }
+
+  /* Logged-in dashboard placeholder */
+  .dash{
+    padding:30px 22px;
+    text-align:center;
+  }
+  .dash .avatar{
+    width:58px;height:58px;
+    border-radius:50%;
+    background:linear-gradient(135deg, var(--blue-mid), var(--gold));
+    color:#fff;
+    display:flex;align-items:center;justify-content:center;
+    font-weight:800;
+    font-size:21px;
+    margin:0 auto 14px;
+  }
+  .dash h2{
+    margin:0 0 2px;
+    font-size:17px;
+    color:var(--navy-deep);
+  }
+  .dash .meta{
+    font-size:12.5px;
+    color:var(--ink-soft);
+    margin-bottom:18px;
+  }
+  .dash .placeholder{
+    border:1.5px dashed var(--line);
+    border-radius:10px;
+    padding:26px 16px;
+    color:var(--ink-soft);
+    font-size:12.5px;
+    background:var(--paper);
+    margin-bottom:18px;
+  }
+  .logout{
+    border:1.5px solid var(--line);
+    background:#fff;
+    color:var(--navy-deep);
+    font-weight:700;
+    font-size:13px;
+    padding:9px 20px;
+    border-radius:8px;
+    cursor:pointer;
+    font-family:inherit;
+  }
+  .logout:hover{ border-color:var(--bad); color:var(--bad); }
+
+  .forgot-link{
+    text-align:center;
+    margin-top:12px;
+    font-size:12.5px;
+  }
+  .forgot-link a{
+    color:var(--blue-mid);
+    text-decoration:none;
+    font-weight:600;
+  }
+  .forgot-link a:hover{
+    text-decoration:underline;
+  }
+
+  .footnote{
+    text-align:center;
+    color:rgba(255,255,255,.45);
+    font-size:11px;
+    margin-top:18px;
+  }
+
+  /* ===== Admin dashboard ===== */
+  .admin-shell{
+    display:none;
+    width:100%;
+    max-width:1100px;
+  }
+  .admin-card{
+    background:#fff;
+    border-radius:16px;
+    box-shadow:0 24px 60px rgba(0,0,0,.35);
+    overflow:hidden;
+  }
+  .admin-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:18px 24px;
+    background:var(--navy-deep);
+    color:#fff;
+  }
+  .admin-header h2{ margin:0; font-size:16px; font-weight:700; }
+  .admin-header .sub{ font-size:11.5px; color:rgba(255,255,255,.6); margin-top:2px; }
+  .admin-logout{
+    background:rgba(255,255,255,.12);
+    border:1px solid rgba(255,255,255,.3);
+    color:#fff;
+    padding:7px 16px;
+    border-radius:7px;
+    font-size:12.5px;
+    font-weight:600;
+    cursor:pointer;
+    font-family:inherit;
+  }
+  .admin-logout:hover{ background:rgba(255,255,255,.22); }
+  .admin-body{ padding:20px 24px 26px; }
+  .admin-section-title{
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:.5px;
+    color:var(--ink-soft);
+    font-weight:700;
+    margin:22px 0 10px;
+  }
+  .admin-section-title:first-child{ margin-top:0; }
+  .admin-filters{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    margin-bottom:10px;
+  }
+  .admin-filters input, .admin-filters select{
+    padding:8px 10px;
+    border:1.5px solid var(--line);
+    border-radius:7px;
+    font-size:12.5px;
+    font-family:inherit;
+    color:var(--ink);
+    background:#fbfcfd;
+  }
+  .admin-filters input{ flex:1; min-width:160px; }
+  .admin-filters input:focus, .admin-filters select:focus{
+    outline:none; border-color:var(--blue-mid);
+  }
+  .admin-table-wrap{
+    overflow:auto;
+    border:1px solid var(--line);
+    border-radius:10px;
+    max-height:320px;
+  }
+  table.admin-table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:12.5px;
+    min-width:700px;
+  }
+  table.admin-table thead th{
+    background:var(--paper);
+    position:sticky; top:0;
+    text-align:left;
+    padding:8px 10px;
+    font-weight:700;
+    color:var(--ink-soft);
+    border-bottom:1px solid var(--line);
+    white-space:nowrap;
+  }
+  table.admin-table tbody td{
+    padding:7px 10px;
+    border-bottom:1px solid var(--line);
+    white-space:nowrap;
+  }
+  table.admin-table tbody tr:hover{ background:var(--blue-light); }
+  .admin-table .del-btn{
+    color:var(--bad);
+    cursor:pointer;
+    font-size:12px;
+    font-weight:700;
+    background:none;
+    border:none;
+    font-family:inherit;
+    padding:0;
+  }
+  .admin-table .del-btn:hover{ text-decoration:underline; }
+  .log-row.failed td{ color:var(--bad); }
+  .log-row.failed{ background:#fdeceb; }
+  .admin-empty{
+    padding:20px;
+    text-align:center;
+    color:var(--ink-soft);
+    font-size:13px;
+  }
+</style>
+</head>
+<body>
+
+<div class="shell" id="shell">
+  <div class="brand">
+    <div class="mark">SAI</div>
+    <h1>SAI Computers · Staff Portal</h1>
+    <p>Sign up or log in with your Employee ID</p>
+  </div>
+
+  <div class="card">
+
+    <!-- ===== AUTH VIEW ===== -->
+    <div id="authView">
+      <div class="tabs">
+        <button id="tabLogin" class="active">Log in</button>
+        <button id="tabSignup">Sign up</button>
+        <button id="tabAdmin">Admin</button>
+      </div>
+
+      <!-- LOGIN -->
+      <div class="panel view active" id="loginPanel">
+        <h2>Welcome back</h2>
+        <p class="sub">Log in with your Employee ID and password.</p>
+        <form id="loginForm" novalidate>
+          <div class="field empid">
+            <label for="loginEmpId">Employee ID</label>
+            <input id="loginEmpId" type="text" autocomplete="username" required />
+          </div>
+          <div class="field">
+            <label for="loginPassword">Password</label>
+            <input id="loginPassword" type="password" autocomplete="current-password" required />
+          </div>
+          <button type="submit" class="submit" id="loginSubmit">Log in</button>
+          <div class="msg" id="loginMsg"></div>
+          <div class="forgot-link"><a href="#" id="forgotLink">Forgot password?</a></div>
+        </form>
+      </div>
+
+      <!-- FORGOT PASSWORD -->
+      <div class="panel view" id="forgotPanel">
+        <h2>Reset your password</h2>
+        <p class="sub" id="forgotSub">Enter your Employee ID and we'll email a code to your registered address.</p>
+
+        <form id="forgotStep1Form">
+          <div class="field empid">
+            <label for="fpEmpId">Employee ID</label>
+            <input id="fpEmpId" type="text" required />
+          </div>
+          <button type="submit" class="submit" id="fpSendBtn">Send code</button>
+          <div class="msg" id="forgotMsg"></div>
+        </form>
+
+        <form id="forgotStep2Form" style="display:none;">
+          <div class="field">
+            <label for="fpOtp">6-digit code</label>
+            <input id="fpOtp" type="text" inputmode="numeric" maxlength="6" required />
+          </div>
+          <div class="field">
+            <label for="fpNewPassword">New password</label>
+            <input id="fpNewPassword" type="password" autocomplete="new-password" required />
+            <div class="hint" id="fpNewPasswordHint"></div>
+          </div>
+          <div class="field">
+            <label for="fpConfirm">Confirm new password</label>
+            <input id="fpConfirm" type="password" autocomplete="new-password" required />
+          </div>
+          <button type="submit" class="submit" id="fpResetBtn">Reset password</button>
+          <div class="msg" id="forgotMsg2"></div>
+        </form>
+
+        <div class="forgot-link"><a href="#" id="backToLoginLink">Back to log in</a></div>
+      </div>
+
+      <!-- SIGNUP -->
+      <div class="panel view" id="signupPanel">
+        <h2>Create your account</h2>
+        <p class="sub">Used once — your Emp ID becomes your login.</p>
+        <form id="signupForm" novalidate>
+          <div class="field">
+            <label for="suName">Full name</label>
+            <input id="suName" type="text" required />
+          </div>
+          <div class="field">
+            <label for="suMobile">Mobile number</label>
+            <input id="suMobile" type="tel" inputmode="numeric" maxlength="10" required />
+            <div class="hint" id="suMobileHint"></div>
+          </div>
+          <div class="field">
+            <label for="suEmail">Email (used for password reset)</label>
+            <input id="suEmail" type="email" autocomplete="email" required />
+            <div class="hint" id="suEmailHint"></div>
+          </div>
+          <div class="field">
+            <label for="suProject">Project</label>
+            <select id="suProject" required>
+              <option value="" disabled selected>Select project</option>
+              <option value="CLUSTER BILLING">Cluster Billing</option>
+              <option value="MRI PROJECT">MRI Project</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="suZone">Zone</label>
+            <select id="suZone" required disabled>
+              <option value="" disabled selected>Select project first</option>
+            </select>
+          </div>
+          <div class="field empid">
+            <label for="suEmpId">Employee ID</label>
+            <input id="suEmpId" type="text" required />
+          </div>
+          <div class="field">
+            <label for="suPassword">Set password</label>
+            <input id="suPassword" type="password" autocomplete="new-password" required />
+            <div class="hint" id="suPasswordHint"></div>
+          </div>
+          <div class="field">
+            <label for="suConfirm">Confirm password</label>
+            <input id="suConfirm" type="password" autocomplete="new-password" required />
+          </div>
+          <button type="submit" class="submit" id="signupSubmit">Create account</button>
+          <div class="msg" id="signupMsg"></div>
+        </form>
+      </div>
+
+      <!-- ADMIN LOGIN -->
+      <div class="panel view" id="adminLoginPanel">
+        <h2>Admin access</h2>
+        <p class="sub">Enter the admin password to view staff records.</p>
+        <form id="adminLoginForm" novalidate>
+          <div class="field">
+            <label for="adminPassword">Admin password</label>
+            <input id="adminPassword" type="password" required />
+          </div>
+          <button type="submit" class="submit" id="adminLoginSubmit">Log in</button>
+          <div class="msg" id="adminLoginMsg"></div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ===== LOGGED IN VIEW ===== -->
+    <div class="view" id="dashView">
+      <div class="dash">
+        <div class="avatar" id="dashInitial">?</div>
+        <h2 id="dashName">—</h2>
+        <div class="meta" id="dashMeta">—</div>
+        <div class="placeholder">Dashboard content not built yet — this is the logged-in shell.</div>
+
+        <button class="logout" id="logoutBtn">Log out</button>
+        <div class="forgot-link" style="margin-top:14px;"><a href="#" id="showChangePwLink">Change password</a></div>
+
+        <form id="changePwForm" style="display:none; text-align:left; margin-top:14px;">
+          <div class="field">
+            <label for="cpCurrent">Current password</label>
+            <input id="cpCurrent" type="password" autocomplete="current-password" required />
+          </div>
+          <div class="field">
+            <label for="cpNew">New password</label>
+            <input id="cpNew" type="password" autocomplete="new-password" required />
+            <div class="hint" id="cpNewHint"></div>
+          </div>
+          <div class="field">
+            <label for="cpConfirm">Confirm new password</label>
+            <input id="cpConfirm" type="password" autocomplete="new-password" required />
+          </div>
+          <button type="submit" class="submit" id="cpSubmit">Update password</button>
+          <div class="msg" id="cpMsg"></div>
+        </form>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footnote">SAI Computers Ltd. &middot; internal staff access</div>
+</div>
+
+<div class="admin-shell" id="adminShell">
+  <div class="admin-card">
+    <div class="admin-header">
+      <div>
+        <h2>Staff Portal — Admin</h2>
+        <div class="sub">Registered staff &amp; activity log</div>
+      </div>
+      <button class="admin-logout" id="adminLogoutBtn">Log out</button>
+    </div>
+    <div class="admin-body">
+
+      <div class="admin-section-title">Registered staff</div>
+      <div class="admin-filters">
+        <input type="text" id="adminUserSearch" placeholder="Search name or Emp ID…" />
+        <select id="adminProjectFilter">
+          <option value="">All projects</option>
+          <option value="CLUSTER BILLING">Cluster Billing</option>
+          <option value="MRI PROJECT">MRI Project</option>
+        </select>
+        <select id="adminZoneFilter"><option value="">All zones</option></select>
+      </div>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Name</th><th>Emp ID</th><th>Mobile</th><th>Email</th>
+              <th>Project</th><th>Zone</th><th>Signed up</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="adminUsersBody">
+            <tr><td colspan="8"><div class="admin-empty">Log in to load staff records.</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="admin-section-title">Activity log</div>
+      <div class="admin-filters">
+        <input type="text" id="adminLogSearch" placeholder="Search Emp ID or name…" />
+        <select id="adminActionFilter">
+          <option value="">All actions</option>
+          <option value="SIGNUP">Signup</option>
+          <option value="LOGIN_SUCCESS">Login success</option>
+          <option value="LOGIN_FAILED">Login failed</option>
+          <option value="LOGOUT">Logout</option>
+          <option value="CHANGE_PASSWORD">Change password</option>
+          <option value="FORGOT_PASSWORD_REQUEST">Forgot password request</option>
+          <option value="PASSWORD_RESET">Password reset</option>
+        </select>
+      </div>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr><th>When</th><th>Emp ID</th><th>Name</th><th>Action</th><th>Detail</th><th>Device</th></tr>
+          </thead>
+          <tbody id="adminLogBody">
+            <tr><td colspan="6"><div class="admin-empty">Log in to load activity.</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   Set this to your deployed Google Apps Script Web App URL
+   (Deploy > New deployment > Web app > Execute as: Me > Who has
+   access: Anyone). See README for full setup steps.
+   ============================================================ */
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzk0G5KZ_ssFHvoR8kQhDCiDhY_Ka2q6HKwKaTDzD0BQQIkioyrXkQrspflLFzSyaSS/exec";
+
+// ---------- helpers ----------
+async function sha256(text){
+  const enc = new TextEncoder().encode(text);
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+function showMsg(el, text, kind){
+  el.textContent = text;
+  el.className = 'msg show ' + kind;
+}
+function clearMsg(el){
+  el.className = 'msg';
+}
+
+async function callScript(params){
+  if (!SCRIPT_URL || SCRIPT_URL.indexOf('PASTE_YOUR') === 0){
+    throw new Error('Backend not connected yet — set SCRIPT_URL at the top of the script.');
+  }
+  const fullParams = Object.assign({ device: navigator.userAgent }, params);
+  const url = SCRIPT_URL + '?' + new URLSearchParams(fullParams).toString();
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Server returned ' + res.status);
+  return res.json();
+}
+
+// ---------- project / zone data ----------
+const ZONES_BY_PROJECT = {
+  'CLUSTER BILLING': ['ALIGARH', 'MATHURA', 'ETAH'],
+  'MRI PROJECT': ['AGRA', 'ALIGARH', 'MATHURA', 'ETAH', 'KANPUR-1', 'KANPUR-2', 'JHANSI', 'BANDA', 'FIROZABAD']
+};
+
+const suProject = document.getElementById('suProject');
+const suZone = document.getElementById('suZone');
+
+suProject.addEventListener('change', () => {
+  const zones = ZONES_BY_PROJECT[suProject.value] || [];
+  suZone.innerHTML = '';
+  if (zones.length === 0){
+    suZone.disabled = true;
+    suZone.innerHTML = '<option value="" disabled selected>Select project first</option>';
+    return;
+  }
+  suZone.disabled = false;
+  suZone.innerHTML = '<option value="" disabled selected>Select zone</option>' +
+    zones.map(z => `<option value="${z}">${z.charAt(0) + z.slice(1).toLowerCase()}</option>`).join('');
+});
+
+// ---------- tab switching ----------
+const tabLogin = document.getElementById('tabLogin');
+const tabSignup = document.getElementById('tabSignup');
+const tabAdmin = document.getElementById('tabAdmin');
+const loginPanel = document.getElementById('loginPanel');
+const signupPanel = document.getElementById('signupPanel');
+const forgotPanel = document.getElementById('forgotPanel');
+const adminLoginPanel = document.getElementById('adminLoginPanel');
+const tabsBar = document.querySelector('.tabs');
+
+function showAuthPanel(panel){
+  [loginPanel, signupPanel, forgotPanel, adminLoginPanel].forEach(p => p.classList.remove('active'));
+  panel.classList.add('active');
+  tabsBar.style.display = (panel === forgotPanel) ? 'none' : 'flex';
+}
+
+tabLogin.addEventListener('click', () => {
+  tabLogin.classList.add('active'); tabSignup.classList.remove('active'); tabAdmin.classList.remove('active');
+  showAuthPanel(loginPanel);
+});
+tabSignup.addEventListener('click', () => {
+  tabSignup.classList.add('active'); tabLogin.classList.remove('active'); tabAdmin.classList.remove('active');
+  showAuthPanel(signupPanel);
+});
+tabAdmin.addEventListener('click', () => {
+  tabAdmin.classList.add('active'); tabLogin.classList.remove('active'); tabSignup.classList.remove('active');
+  document.getElementById('adminPassword').value = '';
+  clearMsg(document.getElementById('adminLoginMsg'));
+  showAuthPanel(adminLoginPanel);
+});
+
+document.getElementById('forgotLink').addEventListener('click', (e) => {
+  e.preventDefault();
+  document.getElementById('forgotStep1Form').style.display = 'block';
+  document.getElementById('forgotStep2Form').style.display = 'none';
+  document.getElementById('forgotSub').textContent = "Enter your Employee ID and we'll email a code to your registered address.";
+  document.getElementById('fpEmpId').value = '';
+  clearMsg(document.getElementById('forgotMsg'));
+  showAuthPanel(forgotPanel);
+});
+document.getElementById('backToLoginLink').addEventListener('click', (e) => {
+  e.preventDefault();
+  tabLogin.click();
+});
+
+// ---------- forgot password: step 1 (request code) ----------
+let fpEmpIdInFlight = '';
+
+document.getElementById('forgotStep1Form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('forgotMsg');
+  const btn = document.getElementById('fpSendBtn');
+  clearMsg(msg);
+
+  const empId = document.getElementById('fpEmpId').value.trim().toUpperCase();
+  if (!empId){
+    showMsg(msg, 'Enter your Employee ID', 'bad');
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = 'Sending…';
+  try{
+    const result = await callScript({ action: 'forgotPasswordRequest', empId });
+    if (result.success){
+      fpEmpIdInFlight = empId;
+      showMsg(msg, 'Code sent to your registered email.', 'good');
+      document.getElementById('forgotStep1Form').style.display = 'none';
+      document.getElementById('forgotStep2Form').style.display = 'block';
+      document.getElementById('forgotSub').textContent = 'Enter the 6-digit code and choose a new password.';
+    } else {
+      showMsg(msg, result.message || 'Could not send code', 'bad');
+    }
+  } catch(err){
+    showMsg(msg, err.message, 'bad');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Send code';
+  }
+});
+
+// ---------- forgot password: step 2 (verify + set new password) ----------
+document.getElementById('forgotStep2Form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('forgotMsg2');
+  const btn = document.getElementById('fpResetBtn');
+  clearMsg(msg);
+  document.getElementById('fpNewPasswordHint').textContent = '';
+
+  const otp = document.getElementById('fpOtp').value.trim();
+  const newPassword = document.getElementById('fpNewPassword').value;
+  const confirm = document.getElementById('fpConfirm').value;
+
+  if (!/^\d{6}$/.test(otp)){
+    showMsg(msg, 'Enter the 6-digit code from your email', 'bad');
+    return;
+  }
+  if (newPassword.length < 6){
+    document.getElementById('fpNewPasswordHint').textContent = 'Password must be at least 6 characters';
+    return;
+  }
+  if (newPassword !== confirm){
+    showMsg(msg, 'Passwords do not match', 'bad');
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = 'Resetting…';
+  try{
+    const newPasswordHash = await sha256(newPassword);
+    const result = await callScript({
+      action: 'forgotPasswordReset', empId: fpEmpIdInFlight, otp, newPasswordHash
+    });
+    if (result.success){
+      showMsg(msg, 'Password reset — you can log in now.', 'good');
+      document.getElementById('forgotStep2Form').reset();
+      setTimeout(() => tabLogin.click(), 900);
+    } else {
+      showMsg(msg, result.message || 'Reset failed', 'bad');
+    }
+  } catch(err){
+    showMsg(msg, err.message, 'bad');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Reset password';
+  }
+});
+
+// ---------- change password (logged-in user) ----------
+document.getElementById('showChangePwLink').addEventListener('click', (e) => {
+  e.preventDefault();
+  const form = document.getElementById('changePwForm');
+  form.style.display = (form.style.display === 'none') ? 'block' : 'none';
+});
+
+document.getElementById('changePwForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('cpMsg');
+  const btn = document.getElementById('cpSubmit');
+  clearMsg(msg);
+  document.getElementById('cpNewHint').textContent = '';
+
+  const current = document.getElementById('cpCurrent').value;
+  const newPw = document.getElementById('cpNew').value;
+  const confirm = document.getElementById('cpConfirm').value;
+
+  if (newPw.length < 6){
+    document.getElementById('cpNewHint').textContent = 'Password must be at least 6 characters';
+    return;
+  }
+  if (newPw !== confirm){
+    showMsg(msg, 'Passwords do not match', 'bad');
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = 'Updating…';
+  try{
+    const currentPasswordHash = await sha256(current);
+    const newPasswordHash = await sha256(newPw);
+    const result = await callScript({
+      action: 'changePassword',
+      empId: currentUser.empId,
+      currentPasswordHash,
+      newPasswordHash
+    });
+    if (result.success){
+      showMsg(msg, 'Password updated.', 'good');
+      document.getElementById('changePwForm').reset();
+    } else {
+      showMsg(msg, result.message || 'Could not update password', 'bad');
+    }
+  } catch(err){
+    showMsg(msg, err.message, 'bad');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Update password';
+  }
+});
+
+// ---------- session (in-memory only — resets on page reload) ----------
+let currentUser = null;
+
+function showDash(user){
+  currentUser = user;
+  document.getElementById('authView').style.display = 'none';
+  document.getElementById('dashView').classList.add('active');
+  document.getElementById('dashInitial').textContent = (user.name || '?').trim().charAt(0).toUpperCase();
+  document.getElementById('dashName').textContent = user.name;
+  document.getElementById('dashMeta').textContent =
+    (user.empId || '') + ' · ' + (user.project || '') + ' · ' + (user.zone || '');
+}
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('logoutBtn');
+  const empId = currentUser ? currentUser.empId : '';
+  btn.disabled = true;
+  try{
+    await callScript({ action: 'logout', empId, name: currentUser ? currentUser.name : '' });
+  } catch(err){
+    // Logging out client-side regardless, even if the server call fails.
+  }
+  currentUser = null;
+  document.getElementById('dashView').classList.remove('active');
+  document.getElementById('authView').style.display = 'block';
+  document.getElementById('loginForm').reset();
+  btn.disabled = false;
+});
+
+// ---------- signup ----------
+const suMobile = document.getElementById('suMobile');
+suMobile.addEventListener('input', () => {
+  suMobile.value = suMobile.value.replace(/\D/g,'').slice(0,10);
+});
+
+document.getElementById('signupForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('signupMsg');
+  const btn = document.getElementById('signupSubmit');
+  clearMsg(msg);
+
+  const name = document.getElementById('suName').value.trim();
+  const mobile = document.getElementById('suMobile').value.trim();
+  const email = document.getElementById('suEmail').value.trim();
+  const project = suProject.value;
+  const zone = suZone.value;
+  const empId = document.getElementById('suEmpId').value.trim().toUpperCase();
+  const password = document.getElementById('suPassword').value;
+  const confirm = document.getElementById('suConfirm').value;
+
+  document.getElementById('suMobileHint').textContent = '';
+  document.getElementById('suEmailHint').textContent = '';
+  document.getElementById('suPasswordHint').textContent = '';
+
+  if (!project){
+    showMsg(msg, 'Please select a project', 'bad');
+    return;
+  }
+  if (!zone){
+    showMsg(msg, 'Please select a zone', 'bad');
+    return;
+  }
+  if (!/^[6-9]\d{9}$/.test(mobile)){
+    document.getElementById('suMobileHint').textContent = 'Enter a valid 10-digit mobile number';
+    return;
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+    document.getElementById('suEmailHint').textContent = 'Enter a valid email address';
+    return;
+  }
+  if (password.length < 6){
+    document.getElementById('suPasswordHint').textContent = 'Password must be at least 6 characters';
+    return;
+  }
+  if (password !== confirm){
+    showMsg(msg, 'Passwords do not match', 'bad');
+    return;
+  }
+  if (!name || !empId){
+    showMsg(msg, 'Please fill in all fields', 'bad');
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = 'Creating…';
+  try{
+    const passwordHash = await sha256(password);
+    const result = await callScript({ action:'signup', name, mobile, email, project, zone, empId, passwordHash });
+    if (result.success){
+      showMsg(msg, 'Account created — you can log in now.', 'good');
+      document.getElementById('signupForm').reset();
+      suZone.disabled = true;
+      suZone.innerHTML = '<option value="" disabled selected>Select project first</option>';
+      setTimeout(() => tabLogin.click(), 900);
+    } else {
+      showMsg(msg, result.message || 'Signup failed', 'bad');
+    }
+  } catch(err){
+    showMsg(msg, err.message, 'bad');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Create account';
+  }
+});
+
+// ---------- login ----------
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('loginMsg');
+  const btn = document.getElementById('loginSubmit');
+  clearMsg(msg);
+
+  const empId = document.getElementById('loginEmpId').value.trim().toUpperCase();
+  const password = document.getElementById('loginPassword').value;
+
+  if (!empId || !password){
+    showMsg(msg, 'Enter your Employee ID and password', 'bad');
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = 'Logging in…';
+  try{
+    const passwordHash = await sha256(password);
+    const result = await callScript({ action:'login', empId, passwordHash });
+    if (result.success){
+      showDash({ name: result.name, project: result.project, zone: result.zone, empId: result.empId });
+    } else {
+      showMsg(msg, result.message || 'Invalid Employee ID or password', 'bad');
+    }
+  } catch(err){
+    showMsg(msg, err.message, 'bad');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Log in';
+  }
+});
+
+// ---------- admin ----------
+const ALL_ZONES = ['AGRA','ALIGARH','MATHURA','ETAH','KANPUR-1','KANPUR-2','JHANSI','BANDA','FIROZABAD'];
+document.getElementById('adminZoneFilter').innerHTML = '<option value="">All zones</option>' +
+  ALL_ZONES.map(z => `<option value="${z}">${z.charAt(0) + z.slice(1).toLowerCase()}</option>`).join('');
+
+let adminPasswordHash = null;
+let adminUsersCache = [];
+let adminLogCache = [];
+
+function escapeHtml(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function formatWhen(iso){
+  try{
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'2-digit' }) + ' ' +
+           d.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
+  } catch(e){
+    return iso || '';
+  }
+}
+
+document.getElementById('adminLoginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('adminLoginMsg');
+  const btn = document.getElementById('adminLoginSubmit');
+  clearMsg(msg);
+
+  const password = document.getElementById('adminPassword').value;
+  if (!password){
+    showMsg(msg, 'Enter the admin password', 'bad');
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = 'Checking…';
+  try{
+    const hash = await sha256(password);
+    const result = await callScript({ action: 'adminLogin', adminPasswordHash: hash });
+    if (result.success){
+      adminPasswordHash = hash;
+      document.getElementById('adminPassword').value = '';
+      showAdminDashboard();
+    } else {
+      showMsg(msg, result.message || 'Incorrect admin password', 'bad');
+    }
+  } catch(err){
+    showMsg(msg, err.message, 'bad');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Log in';
+  }
+});
+
+async function showAdminDashboard(){
+  document.getElementById('shell').style.display = 'none';
+  document.getElementById('adminShell').style.display = 'block';
+  await loadAdminData();
+}
+
+document.getElementById('adminLogoutBtn').addEventListener('click', () => {
+  adminPasswordHash = null;
+  adminUsersCache = [];
+  adminLogCache = [];
+  document.getElementById('adminShell').style.display = 'none';
+  document.getElementById('shell').style.display = 'block';
+  tabLogin.click();
+});
+
+async function loadAdminData(){
+  const usersBody = document.getElementById('adminUsersBody');
+  const logBody = document.getElementById('adminLogBody');
+  usersBody.innerHTML = '<tr><td colspan="8"><div class="admin-empty">Loading…</div></td></tr>';
+  logBody.innerHTML = '<tr><td colspan="6"><div class="admin-empty">Loading…</div></td></tr>';
+  try{
+    const result = await callScript({ action: 'adminGetData', adminPasswordHash });
+    if (!result.success){
+      usersBody.innerHTML = `<tr><td colspan="8"><div class="admin-empty">${escapeHtml(result.message || 'Could not load data')}</div></td></tr>`;
+      logBody.innerHTML = '';
+      return;
+    }
+    adminUsersCache = result.users || [];
+    adminLogCache = result.log || [];
+    renderAdminUsers();
+    renderAdminLog();
+  } catch(err){
+    usersBody.innerHTML = `<tr><td colspan="8"><div class="admin-empty">${escapeHtml(err.message)}</div></td></tr>`;
+  }
+}
+
+function renderAdminUsers(){
+  const search = document.getElementById('adminUserSearch').value.trim().toLowerCase();
+  const projectFilter = document.getElementById('adminProjectFilter').value;
+  const zoneFilter = document.getElementById('adminZoneFilter').value;
+  const body = document.getElementById('adminUsersBody');
+
+  const filtered = adminUsersCache.filter(u => {
+    if (projectFilter && u.project !== projectFilter) return false;
+    if (zoneFilter && u.zone !== zoneFilter) return false;
+    if (search && !((u.name + ' ' + u.empId).toLowerCase().includes(search))) return false;
+    return true;
+  });
+
+  if (filtered.length === 0){
+    body.innerHTML = '<tr><td colspan="8"><div class="admin-empty">No matching staff.</div></td></tr>';
+    return;
+  }
+
+  body.innerHTML = filtered.map(u => `
+    <tr>
+      <td>${escapeHtml(u.name)}</td>
+      <td>${escapeHtml(u.empId)}</td>
+      <td>${escapeHtml(u.mobile)}</td>
+      <td>${escapeHtml(u.email)}</td>
+      <td>${escapeHtml(u.project)}</td>
+      <td>${escapeHtml(u.zone)}</td>
+      <td>${formatWhen(u.timestamp)}</td>
+      <td><button class="del-btn" data-empid="${escapeHtml(u.empId)}">Remove</button></td>
+    </tr>
+  `).join('');
+
+  body.querySelectorAll('.del-btn').forEach(btn => {
+    btn.addEventListener('click', () => deleteAdminUser(btn.dataset.empid));
+  });
+}
+
+function renderAdminLog(){
+  const search = document.getElementById('adminLogSearch').value.trim().toLowerCase();
+  const actionFilter = document.getElementById('adminActionFilter').value;
+  const body = document.getElementById('adminLogBody');
+
+  const filtered = adminLogCache.filter(r => {
+    if (actionFilter && r.action !== actionFilter) return false;
+    if (search && !((String(r.empId) + ' ' + String(r.name)).toLowerCase().includes(search))) return false;
+    return true;
+  });
+
+  if (filtered.length === 0){
+    body.innerHTML = '<tr><td colspan="6"><div class="admin-empty">No matching activity.</div></td></tr>';
+    return;
+  }
+
+  body.innerHTML = filtered.map(r => `
+    <tr class="log-row ${r.action === 'LOGIN_FAILED' ? 'failed' : ''}">
+      <td>${formatWhen(r.timestamp)}</td>
+      <td>${escapeHtml(r.empId)}</td>
+      <td>${escapeHtml(r.name)}</td>
+      <td>${escapeHtml(r.action)}</td>
+      <td>${escapeHtml(r.detail)}</td>
+      <td>${escapeHtml((r.device || '').slice(0, 50))}</td>
+    </tr>
+  `).join('');
+}
+
+async function deleteAdminUser(empId){
+  if (!confirm(`Remove ${empId} from the staff list? This cannot be undone.`)) return;
+  try{
+    const result = await callScript({ action: 'adminDeleteUser', adminPasswordHash, empId });
+    if (result.success){
+      adminUsersCache = adminUsersCache.filter(u => u.empId !== empId);
+      renderAdminUsers();
+    } else {
+      alert(result.message || 'Could not remove user');
+    }
+  } catch(err){
+    alert(err.message);
+  }
+}
+
+document.getElementById('adminUserSearch').addEventListener('input', renderAdminUsers);
+document.getElementById('adminProjectFilter').addEventListener('change', renderAdminUsers);
+document.getElementById('adminZoneFilter').addEventListener('change', renderAdminUsers);
+document.getElementById('adminLogSearch').addEventListener('input', renderAdminLog);
+document.getElementById('adminActionFilter').addEventListener('change', renderAdminLog);
+</script>
+</body>
+</html>
