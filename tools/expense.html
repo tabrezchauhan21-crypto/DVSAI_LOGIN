@@ -53,7 +53,12 @@
 <body>
 <header>
   <h1>⚡ DVVNL Office Expense Approval <span class="tag" id="periodTag">MAY-2026</span></h1>
-  <div class="who" id="whoBar"></div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <div class="who" id="whoBar"></div>
+    <button id="logoutBtn" class="hide" onclick="doLogout()"
+      style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.4);color:#fff;
+      padding:7px 14px;border-radius:7px;font-size:12.5px;font-weight:600;cursor:pointer">Log out</button>
+  </div>
 </header>
 
 <!-- LOGIN / GATE (standalone). ERP passes id automatically. -->
@@ -218,9 +223,14 @@ function bootFromToken(){
   var params=new URLSearchParams(window.location.search);
   var token=params.get('token');
   if(!token) return false;
+  // If user logged out in this browser tab session, do NOT auto-login on back/refresh.
+  if(sessionStorage.getItem('expenseLoggedOut')==='1'){
+    showDeny('Aap log out ho chuke hain. Dobara access ke liye Staff Portal se login karein.');
+    return true;
+  }
   var sess=decodeDvsaiToken(token);
   if(!sess || !sess.empId){ showDeny('Invalid session token. Please log in via the Staff Portal.'); return true; }
-  // optional freshness check: token older than 12h -> ask to re-login from portal
+  // freshness check: token older than 12h -> ask to re-login from portal
   if(sess.ts && (Date.now()-Number(sess.ts) > 12*60*60*1000)){
     showDeny('Session expired. Please open this tool again from the Staff Portal.'); return true;
   }
@@ -230,6 +240,40 @@ function bootFromToken(){
 }
 // On load: if a DVSAI token is present, auto-login; else show manual login (standalone testing).
 window.addEventListener('DOMContentLoaded', function(){ bootFromToken(); });
+
+// Back/forward cache guard: agar page bfcache se wapas aaye (back button) aur user
+// logged out tha, to session wapas na khule.
+window.addEventListener('pageshow', function(ev){
+  if(sessionStorage.getItem('expenseLoggedOut')==='1'){
+    clearSessionUI();
+    showDeny('Aap log out ho chuke hain. Dobara access ke liye Staff Portal se login karein.');
+  }
+});
+
+/* ---- LOGOUT ---- */
+function clearSessionUI(){
+  ME=null; CATS=[]; ROLE={}; CACHE=[]; USERS=[];
+  document.getElementById('appView').classList.add('hide');
+  document.getElementById('logoutBtn').classList.add('hide');
+  document.getElementById('whoBar').innerHTML='';
+}
+function doLogout(){
+  if(!confirm('Log out karein?')) return;
+  // 1) mark logged-out for this browser-tab session (survives back/refresh)
+  sessionStorage.setItem('expenseLoggedOut','1');
+  // 2) clear in-memory session + UI
+  clearSessionUI();
+  // 3) remove the token from the URL so it can't be reused on refresh/back
+  try{ history.replaceState(null,'',window.location.pathname); }catch(e){}
+  // 4) send back to Staff Portal (fresh login required)
+  var params=new URLSearchParams(window.location.search);
+  if(params.get('token')!==null || window.location.pathname.indexOf('/tools/')>=0){
+    window.location.replace('../index.html');   // GitHub Pages: tools/expense.html -> ../index.html
+  } else {
+    // standalone: show the deny/login screen
+    showDeny('Aap log out ho chuke hain. Dobara login karein.');
+  }
+}
 
 /* ---- LOGIN GATE ---- */
 function gateLogin(id){
@@ -250,6 +294,7 @@ function gateLogin(id){
     document.getElementById('loginView').classList.add('hide');
     document.getElementById('denyView').classList.add('hide');
     document.getElementById('appView').classList.remove('hide');
+    document.getElementById('logoutBtn').classList.remove('hide');
     document.getElementById('whoBar').innerHTML =
       '<b>'+esc(ME.Name)+'</b> · '+esc(ME.Id)+'<br>'+esc(ME.Designation)+
       ' · '+esc(ME.Project==='CLUSTER'?ME.Cluster:ME.Project)+
