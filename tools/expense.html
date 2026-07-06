@@ -85,7 +85,7 @@
 </head>
 <body>
 <header>
-  <h1>⚡ DVVNL Office Expense Approval <span class="tag" id="periodTag" style="background:rgba(255,255,255,.22);color:#fff;border:1px solid rgba(255,255,255,.4)">—</span><span style="font-size:9px;opacity:.6;margin-left:6px">v3-TA</span></h1>
+  <h1>⚡ DVVNL Office Expense Approval <span class="tag" id="periodTag" style="background:rgba(255,255,255,.22);color:#fff;border:1px solid rgba(255,255,255,.4)">—</span><span style="font-size:9px;opacity:.6;margin-left:6px">v4-TA</span></h1>
   <div style="display:flex;align-items:center;gap:12px">
     <div class="who" id="whoBar"></div>
     <button id="logoutBtn" class="hide" onclick="doLogout()"
@@ -354,7 +354,7 @@ function gateLogin(id){
       if(document.getElementById('loginView').classList.contains('hide')) showDeny(msg); else showLoginErr(msg);
       return;
     }
-    ME=res.user; CATS=res.cats; ROLE=res.role; MONTHS=res.months||{current:'',last:'',open:[]};
+    ME=res.user; CATS=catsForProject(ME.Project); ROLE=res.role; MONTHS=res.months||{current:'',last:'',open:[]};
     document.getElementById('loginView').classList.add('hide');
     document.getElementById('denyView').classList.add('hide');
     document.getElementById('appView').classList.remove('hide');
