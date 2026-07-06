@@ -63,6 +63,22 @@
   .loadwrap{display:flex;align-items:center;gap:10px;justify-content:center;padding:24px;color:#6b7784;font-size:13px}
   .loadwrap .spin{border:2px solid #cfd6df;border-top-color:var(--brand);width:22px;height:22px}
   .btn.busy{opacity:.7;cursor:progress}
+  /* mobile friendly */
+  @media (max-width:640px){
+    .wrap{padding:0 8px;margin:10px auto}
+    header{padding:10px 12px}
+    header h1{font-size:14px}
+    header .who{font-size:11px}
+    .catgrid{grid-template-columns:1fr}
+    .kpis{grid-template-columns:1fr 1fr}
+    .card{padding:12px}
+    table{font-size:11.5px}
+    th,td{padding:5px 6px}
+    .monthslot{flex-direction:column;align-items:stretch}
+    .monthslot .lbl{min-width:0}
+    dialog{width:96vw}
+    .tabbar button{flex:1}
+  }
   .monthslot{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
   .monthslot .lbl{font-size:12px;font-weight:700;color:#33475b;min-width:110px}
 </style>
@@ -246,14 +262,15 @@ var SUPER_ADMIN = 'AB293';
 var MRI_CATS = [
   {name:'Water',bill:true},{name:'Sweeper Salary',bill:true},{name:'Cleaning Material',bill:true},
   {name:'Courier By Bus',bill:true},{name:'Courier By DTDC',bill:true},
-  {name:'TA',bill:false,note:'travel'},{name:'DA',bill:false,note:'visit'},{name:'Misc',bill:true}
+  {name:'TA',bill:false,trips:true},{name:'DA',bill:false,note:'visit'},{name:'Misc',bill:true}
 ];
 var CLU_CATS = [
   {name:'Office Refreshment (Tea)',bill:false},{name:'Stationary',bill:true},{name:'Water',bill:true},
   {name:'Sweeper Salary',bill:true},{name:'Cleaning Material',bill:true},
   {name:'Courier By Bus',bill:true},{name:'Courier By DTDC',bill:true},
-  {name:'TA',bill:false,note:'travel'},{name:'DA',bill:false,note:'visit'},{name:'Misc',bill:true}
+  {name:'TA',bill:false,trips:true},{name:'DA',bill:false,note:'visit'},{name:'Misc',bill:true}
 ];
+var BIKE_RATE=3;   // ₹ per km
 function catsForProject(p){ return p==='CLUSTER'?CLU_CATS:MRI_CATS; }
 
 /* Month format helpers.
@@ -275,7 +292,8 @@ function labelToPicker(lbl){ // 'JUNE-2026' -> '2026-06'
 var ME=null, CATS=[], ROLE={}, CACHE=[], USERS=[], MONTHS={current:'',last:'',open:[]};
 var curId=null, editUserId=null, activeTab='queue', CURRENT_TS='';
 var BILLS={};   // { catName: url } collected during form fill
-var NOTES={};   // { catName: text } for TA/DA travel/visit details
+var NOTES={};   // { catName: text } for DA visit details
+var TRIPS=[];   // TA trips: [{mode,from,to,km,amount,ticketUrl}]
 
 /* ---- ERP hook ---- */
 function initExpenseTool(empId){ gateLogin((empId||'').toUpperCase()); }
@@ -409,18 +427,19 @@ function applyMonthGate(){
   document.getElementById('formBody').classList.toggle('hide', !open);
 }
 
-/* ---- category inputs with per-field bill upload ---- */
+/* ---- category inputs ---- */
 function buildCatInputs(){
-  BILLS={}; NOTES={};
+  BILLS={}; NOTES={}; TRIPS=[];
   var w=document.getElementById('catInputs'); w.innerHTML='';
   CATS.forEach(function(c){
+    if(c.trips){ w.innerHTML += taBox(c); return; }   // TA gets a trip builder
     var billUI = c.bill
-      ? '<div class="filerow"><input type="file" accept="application/pdf" data-cat="'+esc(c.name)+'" onchange="onBillPick(this)" style="font-size:11px;padding:4px"><span class="fu" data-fu="'+esc(c.name)+'"></span></div>'
+      ? '<div class="filerow"><input type="file" accept="application/pdf,image/*" capture="environment" data-cat="'+esc(c.name)+'" onchange="onBillPick(this)" style="font-size:11px;padding:4px"><span class="fu" data-fu="'+esc(c.name)+'"></span></div>'
       : '';
     var noteUI = c.note
-      ? '<textarea data-note="'+esc(c.name)+'" oninput="onNote(this)" placeholder="'+(c.note==='travel'?'From – To and how you travelled (e.g. Agra → Mathura by bus, 60 km)':'Visit / meeting detail (where & why)')+'" style="margin-top:6px;min-height:44px;font-size:12px"></textarea>'
+      ? '<textarea data-note="'+esc(c.name)+'" oninput="onNote(this)" placeholder="Visit / meeting detail (where & why)" style="margin-top:6px;min-height:44px;font-size:12px"></textarea>'
       : '';
-    var tag = c.bill ? '<span class="billtag">BILL PDF</span>'
+    var tag = c.bill ? '<span class="billtag">BILL *</span>'
             : (c.note ? '<span class="billtag" style="background:#e2f0d9;color:#2f6f2f">DETAIL</span>' : '<span class="billtag no">NO BILL</span>');
     w.innerHTML +=
       '<div class="catbox">'+
@@ -429,11 +448,79 @@ function buildCatInputs(){
         noteUI+ billUI+
       '</div>';
   });
+  renderTrips();
   recalc();
+}
+
+/* TA box (spans full width) */
+function taBox(c){
+  return '<div class="catbox" style="grid-column:1/-1">'+
+    '<div class="cn"><span>TA — Travel Allowance</span><span class="billtag" style="background:#e2f0d9;color:#2f6f2f">TRIPS</span></div>'+
+    '<div class="muted" style="margin-bottom:6px">Add each trip. Bike: KM × ₹'+BIKE_RATE+' auto. Bus: ticket amount + ticket photo.</div>'+
+    '<div id="tripList"></div>'+
+    '<button type="button" class="btn sm" onclick="addTrip()" style="margin-top:4px">+ Add Trip</button>'+
+    '<div style="margin-top:6px;font-size:13px">TA Total: <b id="taTotal">₹0</b></div>'+
+  '</div>';
+}
+function addTrip(){ TRIPS.push({mode:'bike',from:'',to:'',km:'',amount:0,ticketUrl:''}); renderTrips(); recalc(); }
+function removeTrip(i){ TRIPS.splice(i,1); renderTrips(); recalc(); }
+function renderTrips(){
+  var box=document.getElementById('tripList'); if(!box) return;
+  if(!TRIPS.length){ box.innerHTML='<div class="muted">No trips added.</div>'; setTaTotal(); return; }
+  var h='';
+  TRIPS.forEach(function(t,i){
+    var bike=(t.mode==='bike');
+    h+='<div style="border:1px solid var(--line);border-radius:8px;padding:8px;margin-bottom:6px;background:#fff">'+
+      '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'+
+        '<select onchange="tripSet('+i+',\'mode\',this.value)" style="width:auto">'+
+          '<option value="bike"'+(bike?' selected':'')+'>Bike</option>'+
+          '<option value="bus"'+(!bike?' selected':'')+'>Bus</option>'+
+        '</select>'+
+        '<input placeholder="From" value="'+esc(t.from)+'" oninput="tripSet('+i+',\'from\',this.value)" style="flex:1;min-width:90px">'+
+        '<input placeholder="To" value="'+esc(t.to)+'" oninput="tripSet('+i+',\'to\',this.value)" style="flex:1;min-width:90px">'+
+        '<button type="button" class="btn sm bad" onclick="removeTrip('+i+')" style="margin:0">✕</button>'+
+      '</div>'+
+      (bike
+        ? '<div style="display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap">'+
+            '<input type="number" min="0" placeholder="KM" value="'+(t.km||'')+'" oninput="tripSet('+i+',\'km\',this.value)" style="width:110px">'+
+            '<span class="muted">× ₹'+BIKE_RATE+' = <b>₹'+num(t.amount)+'</b></span>'+
+          '</div>'
+        : '<div style="display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap">'+
+            '<input type="number" min="0" placeholder="Ticket amount ₹" value="'+(t.amount||'')+'" oninput="tripSet('+i+',\'amount\',this.value)" style="width:150px">'+
+            '<input type="file" accept="application/pdf,image/*" capture="environment" onchange="tripTicket('+i+',this)" style="font-size:11px">'+
+            '<span class="fu" id="tk'+i+'">'+(t.ticketUrl?'<a href="'+t.ticketUrl+'" target="_blank">ticket ✓</a>':'')+'</span>'+
+          '</div>')+
+    '</div>';
+  });
+  box.innerHTML=h; setTaTotal();
+}
+function tripSet(i,key,val){
+  TRIPS[i][key]=val;
+  if(key==='mode'){ TRIPS[i].amount = (val==='bike') ? (Number(TRIPS[i].km)||0)*BIKE_RATE : 0; renderTrips(); }
+  if(key==='km'){ TRIPS[i].amount=(Number(val)||0)*BIKE_RATE; renderTrips(); }
+  if(key==='amount'){ TRIPS[i].amount=Number(val)||0; }
+  setTaTotal(); recalc();
+}
+function taTotal(){ var s=0; TRIPS.forEach(t=>s+=Number(t.amount)||0); return s; }
+function setTaTotal(){ var e=document.getElementById('taTotal'); if(e) e.textContent='₹'+num(taTotal()); }
+function tripTicket(i,input){
+  var file=input.files&&input.files[0]; if(!file) return;
+  if(file.size>5*1024*1024){ toast('File too large (max 5MB)'); input.value=''; return; }
+  var span=document.getElementById('tk'+i); if(span) span.textContent=' uploading…';
+  var reader=new FileReader();
+  reader.onload=function(){
+    var b64=String(reader.result).split(',')[1];
+    post({action:'uploadBill',filename:file.name,mime:file.type,dataBase64:b64}).then(res=>{
+      if(res.ok){ TRIPS[i].ticketUrl=res.url; if(span) span.innerHTML=' <a href="'+res.url+'" target="_blank">ticket ✓</a>'; toast('Ticket uploaded'); }
+      else { if(span) span.textContent=''; toast('Upload failed: '+(res.reason||res.error)); }
+    }).catch(()=>{ if(span) span.textContent=''; toast('Upload failed'); });
+  };
+  reader.readAsDataURL(file);
 }
 function onNote(t){ var c=t.dataset.note; var v=t.value.trim(); if(v) NOTES[c]=v; else delete NOTES[c]; }
 function recalc(){
-  var s=0; document.querySelectorAll('#catInputs input[type=number]').forEach(i=>s+=Number(i.value)||0);
+  var s=0; document.querySelectorAll('#catInputs input[type=number][data-cat]').forEach(i=>s+=Number(i.value)||0);
+  s+=taTotal();
   document.getElementById('fTotal').textContent='₹'+num(s);
 }
 
@@ -441,15 +528,16 @@ function recalc(){
 function onBillPick(input){
   var cat=input.dataset.cat;
   var file=input.files&&input.files[0]; if(!file) return;
-  if(file.type!=='application/pdf'){ toast('Only PDF allowed'); input.value=''; return; }
+  var okType=(file.type==='application/pdf'||file.type==='image/jpeg'||file.type==='image/png'||file.type==='image/jpg');
+  if(!okType){ toast('Only PDF or image (JPG/PNG) allowed'); input.value=''; return; }
   if(file.size > 5*1024*1024){ toast('File too large (max 5MB)'); input.value=''; return; }
   var span=document.querySelector('.fu[data-fu="'+cssEsc(cat)+'"]');
   if(span) span.textContent=' uploading…';
   var reader=new FileReader();
   reader.onload=function(){
     var b64=String(reader.result).split(',')[1];
-    post({action:'uploadBill',filename:file.name,dataBase64:b64}).then(res=>{
-      if(res.ok){ BILLS[cat]=res.url; if(span) span.innerHTML=' <a href="'+res.url+'" target="_blank">bill ✓</a>'; toast('Bill uploaded'); }
+    post({action:'uploadBill',filename:file.name,mime:file.type,dataBase64:b64}).then(res=>{
+      if(res.ok){ BILLS[cat]=res.url; if(span) span.innerHTML=' <a href="'+res.url+'" target="_blank">file ✓</a>'; toast('Uploaded'); }
       else { if(span) span.textContent=''; toast('Upload failed: '+(res.reason||res.error)); }
     }).catch(()=>{ if(span) span.textContent=''; toast('Upload failed'); });
   };
@@ -465,9 +553,11 @@ function prefillExisting(){
     var amt={}; try{ amt=JSON.parse(mine.Amounts||'{}'); }catch(e){}
     var bl={};  try{ bl=JSON.parse(mine.Bills||'{}'); }catch(e){}
     var nt={};  try{ nt=JSON.parse(mine.Notes||'{}'); }catch(e){}
-    document.querySelectorAll('#catInputs input[type=number]').forEach(i=>{ if(amt[i.dataset.cat]!==undefined) i.value=amt[i.dataset.cat]; });
+    document.querySelectorAll('#catInputs input[type=number][data-cat]').forEach(i=>{ if(amt[i.dataset.cat]!==undefined) i.value=amt[i.dataset.cat]; });
     document.querySelectorAll('#catInputs textarea[data-note]').forEach(t=>{ if(nt[t.dataset.note]!==undefined){ t.value=nt[t.dataset.note]; NOTES[t.dataset.note]=nt[t.dataset.note]; } });
-    for(var k in bl){ if(bl[k]){ BILLS[k]=bl[k]; var span=document.querySelector('.fu[data-fu="'+cssEsc(k)+'"]'); if(span) span.innerHTML=' <a href="'+bl[k]+'" target="_blank">bill ✓</a>'; } }
+    for(var k in bl){ if(bl[k]){ BILLS[k]=bl[k]; var span=document.querySelector('.fu[data-fu="'+cssEsc(k)+'"]'); if(span) span.innerHTML=' <a href="'+bl[k]+'" target="_blank">file ✓</a>'; } }
+    // restore TA trips
+    if(nt.__TA_TRIPS){ try{ TRIPS=JSON.parse(nt.__TA_TRIPS)||[]; }catch(e){ TRIPS=[]; } renderTrips(); }
     document.getElementById('fRemark').value=mine.MiscRemark||'';
     recalc();
     toast('Loaded your existing '+m+' entry — you can add/update');
@@ -567,9 +657,36 @@ function billLinks(r){
 function submitExpense(btn){
   if(!(MONTHS.open&&MONTHS.open.length)){ toast('No month is open — submission is closed'); return; }
   var month=document.getElementById('monthPick').value;
+
+  // collect amounts (non-TA)
   var amounts={},any=false;
-  document.querySelectorAll('#catInputs input[type=number]').forEach(i=>{var v=Number(i.value)||0;amounts[i.dataset.cat]=v;if(v>0)any=true;});
+  document.querySelectorAll('#catInputs input[type=number][data-cat]').forEach(i=>{var v=Number(i.value)||0;amounts[i.dataset.cat]=v;if(v>0)any=true;});
+  // TA amount from trips
+  var ta=taTotal(); if(ta>0){ amounts['TA']=ta; any=true; }
   if(!any){toast('Enter at least one amount');return;}
+
+  // --- mandatory bill validation: any bill-required category with amount>0 must have a file ---
+  var missing=[];
+  CATS.forEach(function(c){
+    if(c.bill && Number(amounts[c.name])>0 && !BILLS[c.name]) missing.push(c.name);
+  });
+  if(missing.length){ toast('Upload bill for: '+missing.join(', ')); return; }
+
+  // --- TA trip validation ---
+  for(var i=0;i<TRIPS.length;i++){
+    var t=TRIPS[i];
+    if(!t.from || !t.to){ toast('Trip '+(i+1)+': enter From and To'); return; }
+    if(t.mode==='bike' && !(Number(t.km)>0)){ toast('Trip '+(i+1)+': enter KM'); return; }
+    if(t.mode==='bus'){
+      if(!(Number(t.amount)>0)){ toast('Trip '+(i+1)+': enter bus ticket amount'); return; }
+      if(!t.ticketUrl){ toast('Trip '+(i+1)+': upload bus ticket'); return; }
+    }
+  }
+
+  // pack TA trips into notes so they persist
+  if(TRIPS.length) NOTES['__TA_TRIPS']=JSON.stringify(TRIPS);
+  else delete NOTES['__TA_TRIPS'];
+
   setBusy(btn,true,'Submitting…');
   post({action:'submit',submitterId:ME.Id,month:month,amounts:amounts,bills:BILLS,notes:NOTES,miscRemark:val('fRemark')})
     .then(res=>{
@@ -692,11 +809,24 @@ function infoBlock(r){
   var amounts={};try{amounts=JSON.parse(r.Amounts||'{}');}catch(e){}
   var notes={};try{notes=JSON.parse(r.Notes||'{}');}catch(e){}
   var parts=[];for(var k in amounts) if(amounts[k]) parts.push(k+': ₹'+num(amounts[k]));
-  var noteLines=[];for(var nk in notes) if(notes[nk]) noteLines.push('<b>'+esc(nk)+':</b> '+esc(notes[nk]));
+  var noteLines=[];for(var nk in notes){ if(nk==='__TA_TRIPS') continue; if(notes[nk]) noteLines.push('<b>'+esc(nk)+':</b> '+esc(notes[nk])); }
+  // TA trips detail
+  var taHtml='';
+  if(notes.__TA_TRIPS){
+    var trips=[]; try{ trips=JSON.parse(notes.__TA_TRIPS)||[]; }catch(e){}
+    if(trips.length){
+      taHtml='<br><b>TA Trips:</b>';
+      trips.forEach(function(t,i){
+        taHtml+='<br>'+(i+1)+'. '+esc(t.mode).toUpperCase()+': '+esc(t.from)+' → '+esc(t.to)+
+          (t.mode==='bike'?(' · '+esc(t.km)+' km × ₹'+BIKE_RATE+' = ₹'+num(t.amount)):(' · ticket ₹'+num(t.amount)+(t.ticketUrl?' · <a href="'+esc(t.ticketUrl)+'" target="_blank">ticket</a>':'')));
+      });
+    }
+  }
   return '<div class="muted"><b>'+esc(r.OfficeName)+'</b> · '+esc(r.SubmitterName)+' ('+esc(r.SubmitterId)+') · '+esc(r.Month)+
     '<br>'+esc(r.Project)+(r.Cluster?' · '+esc(r.Cluster):'')+
     '<br>'+parts.join(' &nbsp;|&nbsp; ')+
     (noteLines.length?'<br>'+noteLines.join('<br>'):'')+
+    taHtml+
     '<br>Claimed Total: <b>₹'+num(r.ClaimedTotal)+'</b>'+
     (billLinks(r)?'<br>Bills: '+billLinks(r):'')+
     (r.MiscRemark?'<br>Remark: '+esc(r.MiscRemark):'')+
