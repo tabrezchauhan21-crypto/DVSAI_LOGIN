@@ -19,10 +19,18 @@
   label{display:block;font-size:12.5px;margin:8px 0 3px;font-weight:600;color:#33475b}
   input,select,textarea{width:100%;padding:9px;border:1px solid #cfd6df;border-radius:8px;font-size:14px}
   textarea{resize:vertical;min-height:56px}
+  .catgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+  .catbox{border:1px solid var(--line);border-radius:10px;padding:10px;background:#fbfcfd}
+  .catbox .cn{font-size:12.5px;font-weight:700;color:#33475b;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center}
+  .billtag{font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:10px;background:#cfe2ff;color:#084298}
+  .billtag.no{background:#e9ecef;color:#6b7784}
+  .filerow{margin-top:6px;font-size:11px}
+  .filerow a{color:var(--brand);font-weight:600}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
   .btn{background:var(--brand);color:#fff;border:0;padding:10px 16px;border-radius:8px;font-size:14px;cursor:pointer;margin-top:12px}
   .btn.ok{background:var(--ok)}.btn.bad{background:var(--bad)}.btn.grey{background:#6b7784}
   .btn.sm{padding:5px 10px;margin:0;font-size:12px}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
   table{width:100%;border-collapse:collapse;font-size:12.5px}
   th,td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
   th{background:#eef2f7;position:sticky;top:0}
@@ -30,12 +38,12 @@
   .PENDING_AP1{background:#fff3cd;color:#8a6d00}.PENDING_ADMIN{background:#cfe2ff;color:#084298}
   .APPROVED{background:#d1e7dd;color:#0f5132}.REJECTED{background:#f8d7da;color:#842029}
   .muted{color:#6b7784;font-size:11.5px}
-  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:14px}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
   .kpi{background:#fff;border:1px solid var(--line);border-left:4px solid var(--brand);border-radius:10px;padding:12px}
-  .kpi .v{font-size:22px;font-weight:800}.kpi .l{font-size:12px;color:#6b7784}
+  .kpi .v{font-size:20px;font-weight:800}.kpi .l{font-size:12px;color:#6b7784}
   .amt{font-weight:700;text-align:right}
   .center{max-width:400px;margin:56px auto;text-align:center}
-  dialog{border:0;border-radius:12px;padding:0;width:min(640px,94vw)}
+  dialog{border:0;border-radius:12px;padding:0;width:min(680px,94vw)}
   dialog .dlg{padding:18px;max-height:86vh;overflow:auto}
   .hide{display:none}
   .sub{font-size:11px;font-weight:700;letter-spacing:.5px;color:#6b7784;margin:14px 0 6px;text-transform:uppercase}
@@ -48,6 +56,8 @@
   .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#1c2733;color:#fff;
     padding:10px 18px;border-radius:8px;font-size:13px;opacity:0;transition:.3s;z-index:99}
   .toast.show{opacity:1}
+  .monthslot{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+  .monthslot .lbl{font-size:12px;font-weight:700;color:#33475b;min-width:110px}
 </style>
 </head>
 <body>
@@ -61,15 +71,14 @@
   </div>
 </header>
 
-<!-- LOGIN / GATE (standalone). ERP passes id automatically. -->
+<!-- LOGIN / GATE (standalone) -->
 <div class="wrap center" id="loginView">
   <div class="card">
     <h3>Sign in (Emp Id)</h3>
     <input id="lgId" placeholder="Enter your Emp Id" style="text-transform:uppercase;text-align:center">
     <button class="btn" onclick="doLogin()">Enter</button>
     <div id="lgErr" class="err hide" style="margin-top:12px"></div>
-    <p class="muted" style="margin-top:10px">When opened from the Staff Portal, this logs in
-      automatically (via token). This manual box is only for standalone testing.</p>
+    <p class="muted" style="margin-top:10px">When opened from the Staff Portal, this logs in automatically. This manual box is only for standalone testing.</p>
   </div>
 </div>
 
@@ -85,20 +94,21 @@
 <div class="wrap hide" id="appView">
   <div class="tabbar" id="tabbar"></div>
 
-  <!-- Admin: active month control -->
+  <!-- Admin: month control -->
   <div id="monthAdmin" class="card hide">
-    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
-      <div>
-        <h3 style="margin:0">Active Submission Month</h3>
-        <div class="muted">Only this month stays open for submission. Setting a new month automatically closes the previous one. Closed month data is also hidden.</div>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <input id="monthInput" placeholder="e.g. JUN-2026" style="width:150px;text-transform:uppercase">
-        <button class="btn sm ok" onclick="saveMonth()">Set / Open</button>
-        <button class="btn sm bad" onclick="closeMonth()">Close All</button>
-      </div>
+    <h3 style="margin:0 0 4px">Open Submission Months</h3>
+    <div class="muted" style="margin-bottom:10px">You can keep two months open together: the current month and the last month. Type a month like <b>JUNE-2026</b> and open it. Leave blank &amp; save to close that slot. Closed month data is hidden.</div>
+    <div class="monthslot">
+      <span class="lbl">Current month</span>
+      <input id="monthCurrent" placeholder="e.g. JUNE-2026" style="width:160px;text-transform:uppercase">
+      <button class="btn sm ok" onclick="saveMonth('current')">Save</button>
     </div>
-    <div class="muted" style="margin-top:8px">Currently open: <b id="curMonthLabel">—</b></div>
+    <div class="monthslot">
+      <span class="lbl">Last month</span>
+      <input id="monthLast" placeholder="e.g. MAY-2026" style="width:160px;text-transform:uppercase">
+      <button class="btn sm ok" onclick="saveMonth('last')">Save</button>
+    </div>
+    <div class="muted" style="margin-top:6px">Currently open: <b id="openMonthsLabel">None</b></div>
   </div>
 
   <!-- Admin dashboard KPIs -->
@@ -106,19 +116,27 @@
 
   <!-- Submit form -->
   <div class="card hide" id="formCard">
-    <h3>Submit Expense — <span id="formOffice"></span> <span id="formMonth" style="color:#0b5394"></span></h3>
+    <h3>Submit Expense — <span id="formOffice"></span></h3>
     <div class="flow" id="formFlow"></div>
-    <div id="monthClosedBanner" class="err hide" style="margin-top:10px">
-      No submission month is currently open. Submission is closed — you can add entries once the admin opens a month.
+
+    <div id="noMonthBanner" class="err hide" style="margin-top:10px">
+      No submission month is open. You can add entries once the admin opens a month.
     </div>
-    <div class="grid" id="catInputs" style="margin-top:10px"></div>
-    <label>Misc Remark</label>
-    <input id="fRemark" placeholder="e.g. AIR COOLER / 490 COMPUTER REPAIR">
-    <label>Photo / Bill URL (optional)</label>
-    <input id="fPhoto" placeholder="Drive / OneDrive link">
-    <div style="display:flex;gap:12px;align-items:center;margin-top:10px">
-      <div style="font-size:15px">Auto Total: <b id="fTotal">₹0</b></div>
-      <button class="btn" id="submitBtn" onclick="submitExpense()">Submit for Approval</button>
+
+    <div id="formBody" style="margin-top:10px">
+      <label>Submission month</label>
+      <select id="monthPick" onchange="prefillExisting()" style="max-width:220px"></select>
+      <div class="muted" style="margin:6px 0">You can submit partially and add more later in the same month. Amounts and bills you add will be merged.</div>
+
+      <div class="catgrid" id="catInputs" style="margin-top:8px"></div>
+
+      <label style="margin-top:12px">Misc Remark</label>
+      <input id="fRemark" placeholder="e.g. AIR COOLER / 490 COMPUTER REPAIR">
+
+      <div style="display:flex;gap:12px;align-items:center;margin-top:12px">
+        <div style="font-size:15px">Auto Total: <b id="fTotal">₹0</b></div>
+        <button class="btn" id="submitBtn" onclick="submitExpense()">Submit / Update</button>
+      </div>
     </div>
   </div>
 
@@ -143,20 +161,20 @@
   <!-- Admin: Users management -->
   <div class="card hide" id="usersCard">
     <div style="display:flex;justify-content:space-between;align-items:center">
-      <h3 style="margin:0">User & Hierarchy Management</h3>
+      <h3 style="margin:0">User &amp; Hierarchy Management</h3>
       <button class="btn sm ok" onclick="openUserAdd()">+ Add User</button>
     </div>
     <div id="usersWrap" style="overflow:auto;margin-top:10px;max-height:70vh"></div>
   </div>
 </div>
 
-<!-- Approver-1 dialog: approve + comment (NO edit) -->
+<!-- Approver-1 dialog -->
 <dialog id="ap1Dlg"><div class="dlg">
   <h3>Approve — forward to Final Approver (AB293)</h3>
   <div id="ap1Info"></div>
   <p class="muted">You cannot edit amounts. If there is any issue, add a comment — it will be shown to the final approver.</p>
   <label>Comment / Suggestion (optional)</label>
-  <textarea id="ap1Comment" placeholder="e.g. Courier bill verify kiya. TA thoda zyada lag raha hai."></textarea>
+  <textarea id="ap1Comment" placeholder="e.g. Courier bill verified. TA looks a bit high."></textarea>
   <div style="display:flex;gap:8px;margin-top:12px">
     <button class="btn ok" onclick="doAp1Approve()">Approve ✓</button>
     <button class="btn bad" onclick="doReject()">Reject</button>
@@ -164,7 +182,7 @@
   </div>
 </div></dialog>
 
-<!-- Admin approve dialog: edit amounts + final -->
+<!-- Admin approve dialog -->
 <dialog id="adDlg"><div class="dlg">
   <h3>Final Approve — Admin (AB293)</h3>
   <div id="adInfo"></div>
@@ -199,7 +217,7 @@
         <option>SUPERVISOR</option><option>CIRCLE INCHARGE</option>
         <option>ASST. ZONE MANAGER</option><option>ZONE MANAGER</option><option>CLUSTER HEAD</option>
       </select></div>
-    <div><label>Approver-1 (Emp Id, blank=AB293 direct)</label>
+    <div><label>Approver-1 (Emp Id, blank = AB293 direct)</label>
       <input id="uApprover1" style="text-transform:uppercase"></div>
     <div><label>Active</label>
       <select id="uActive"><option>Y</option><option>N</option></select></div>
@@ -215,113 +233,91 @@
 <script>
 /* ====== CONFIG ====== */
 var API = 'https://script.google.com/macros/s/AKfycbx0NSar1iAJ2Co3z0SP48iisI0HydhEKUyn-5OEdzzXiDJ5jit5nmg-sO1jN74YQ6WGow/exec';
-var ACTIVE_MONTH = '';   // set from server on login/getMonth; '' = no month open
 var SUPER_ADMIN = 'AB293';
 
-var MRI_CATS = ['Water','Sweeper+Cleaning','Courier By Bus','Courier By DTDC','TA','DA','Misc'];
-var CLU_CATS = ['Office Refreshment (Tea)','Stationary','Water','Sweeper+Cleaning',
-                'Courier By Bus','Courier By DTDC','TA','DA','Misc'];
+/* Category definitions with bill flags (mirror of backend) */
+var MRI_CATS = [
+  {name:'Water',bill:true},{name:'Sweeper Salary',bill:true},{name:'Cleaning Material',bill:true},
+  {name:'Courier By Bus',bill:true},{name:'Courier By DTDC',bill:true},
+  {name:'TA',bill:false},{name:'DA',bill:false},{name:'Misc',bill:true}
+];
+var CLU_CATS = [
+  {name:'Office Refreshment (Tea)',bill:false},{name:'Stationary',bill:true},{name:'Water',bill:true},
+  {name:'Sweeper Salary',bill:true},{name:'Cleaning Material',bill:true},
+  {name:'Courier By Bus',bill:true},{name:'Courier By DTDC',bill:true},
+  {name:'TA',bill:false},{name:'DA',bill:false},{name:'Misc',bill:true}
+];
+function catsForProject(p){ return p==='CLUSTER'?CLU_CATS:MRI_CATS; }
 
-var ME=null, CATS=[], ROLE={}, CACHE=[], USERS=[], curId=null, editUserId=null, activeTab='queue';
-var CURRENT_TS='';   // timestamp of the active DVSAI token (for per-token logout)
+var ME=null, CATS=[], ROLE={}, CACHE=[], USERS=[], MONTHS={current:'',last:'',open:[]};
+var curId=null, editUserId=null, activeTab='queue', CURRENT_TS='';
+var BILLS={};   // { catName: url } collected during form fill
 
-/* ---- ERP hook after dvsai_login ---- */
+/* ---- ERP hook ---- */
 function initExpenseTool(empId){ gateLogin((empId||'').toUpperCase()); }
 window.initExpenseTool = initExpenseTool;
-
 function doLogin(){ gateLogin((document.getElementById('lgId').value||'').trim().toUpperCase()); }
 
-/* ---- DVSAI session token auto-login ----
-   DVSAI_LOGIN builds: btoa(encodeURIComponent(JSON.stringify({empId,name,project,zone,email,ts})))
-   and passes it as ?token=... . We decode it, pull the Emp Id, and gate-login
-   automatically so the user does NOT log in twice. */
-function decodeDvsaiToken(token){
-  try{ return JSON.parse(decodeURIComponent(atob(token))); }
-  catch(e){ return null; }
-}
+/* ---- DVSAI token auto-login ---- */
+function decodeDvsaiToken(token){ try{ return JSON.parse(decodeURIComponent(atob(token))); }catch(e){ return null; } }
 function bootFromToken(){
   var params=new URLSearchParams(window.location.search);
   var token=params.get('token');
   if(!token) return false;
   var sess=decodeDvsaiToken(token);
   if(!sess || !sess.empId){ showDeny('Invalid session. Please log in again from the Staff Portal.'); return true; }
-  // Per-token logout: only block if THIS exact token was logged out (back/refresh),
-  // not when a fresh login produced a new token.
-  var loggedOutTs = sessionStorage.getItem('expenseLoggedOutTs') || '';
-  if(loggedOutTs && String(sess.ts)===loggedOutTs){
-    showDeny('You have been logged out. Please log in again from the Staff Portal.');
-    return true;
-  }
-  // A fresh/different token has arrived -> clear any old logout flag.
-  if(loggedOutTs && String(sess.ts)!==loggedOutTs){
-    sessionStorage.removeItem('expenseLoggedOutTs');
-  }
-  // freshness check: token older than 12h -> ask to re-login from portal
-  if(sess.ts && (Date.now()-Number(sess.ts) > 12*60*60*1000)){
-    showDeny('Session expired. Please open this tool again from the Staff Portal.'); return true;
-  }
-  CURRENT_TS = String(sess.ts||'');
-  document.getElementById('loginView').classList.add('hide');  // hide manual login, auto-login instead
+  var loggedOutTs=sessionStorage.getItem('expenseLoggedOutTs')||'';
+  if(loggedOutTs && String(sess.ts)===loggedOutTs){ showDeny('You have been logged out. Please log in again from the Staff Portal.'); return true; }
+  if(loggedOutTs && String(sess.ts)!==loggedOutTs){ sessionStorage.removeItem('expenseLoggedOutTs'); }
+  if(sess.ts && (Date.now()-Number(sess.ts) > 12*60*60*1000)){ showDeny('Session expired. Please open this tool again from the Staff Portal.'); return true; }
+  CURRENT_TS=String(sess.ts||'');
+  document.getElementById('loginView').classList.add('hide');
   gateLogin(String(sess.empId).toUpperCase());
   return true;
 }
-// On load: if a DVSAI token is present, auto-login; else show manual login (standalone testing).
 window.addEventListener('DOMContentLoaded', function(){ bootFromToken(); });
-
-// Back/forward cache guard: if page returns from bfcache (back button) and THIS token
-// was logged out, do not reopen the session.
-window.addEventListener('pageshow', function(ev){
-  var loggedOutTs = sessionStorage.getItem('expenseLoggedOutTs') || '';
+window.addEventListener('pageshow', function(){
+  var loggedOutTs=sessionStorage.getItem('expenseLoggedOutTs')||'';
   if(loggedOutTs && CURRENT_TS && loggedOutTs===CURRENT_TS){
-    clearSessionUI();
-    showDeny('You have been logged out. Please log in again from the Staff Portal.');
+    clearSessionUI(); showDeny('You have been logged out. Please log in again from the Staff Portal.');
   }
 });
 
-/* ---- LOGOUT ---- */
+/* ---- Logout ---- */
 function clearSessionUI(){
-  ME=null; CATS=[]; ROLE={}; CACHE=[]; USERS=[];
+  ME=null;CATS=[];ROLE={};CACHE=[];USERS=[];
   document.getElementById('appView').classList.add('hide');
   document.getElementById('logoutBtn').classList.add('hide');
   document.getElementById('whoBar').innerHTML='';
 }
 function doLogout(){
   if(!confirm('Log out?')) return;
-  // Mark THIS token (by its timestamp) as logged-out, so back/refresh won't reopen it,
-  // but a fresh login from the portal (new timestamp) will work normally.
-  if(CURRENT_TS) sessionStorage.setItem('expenseLoggedOutTs', CURRENT_TS);
+  if(CURRENT_TS) sessionStorage.setItem('expenseLoggedOutTs',CURRENT_TS);
   clearSessionUI();
-  // Remove the token from the URL so it can't be reused on refresh/back.
   try{ history.replaceState(null,'',window.location.pathname); }catch(e){}
-  // Send back to the Staff Portal (fresh login required).
-  if(window.location.pathname.indexOf('/tools/')>=0){
-    window.location.replace('../index.html');   // GitHub Pages: tools/expense.html -> ../index.html
-  } else {
-    showDeny('You have been logged out. Please log in again.');
-  }
+  if(window.location.pathname.indexOf('/tools/')>=0){ window.location.replace('../index.html'); }
+  else { showDeny('You have been logged out. Please log in again.'); }
 }
 
-/* ---- LOGIN GATE ---- */
+/* ---- Login gate ---- */
 function gateLogin(id){
   document.getElementById('lgErr').classList.add('hide');
   if(!id){ showLoginErr('Enter your Emp Id.'); return; }
   toast('Checking access…');
-  get({action:'login', id:id}).then(res=>{
+  get({action:'login',id:id}).then(res=>{
     if(!res.ok){
       var msg = res.error==='ACCESS_DENIED'
         ? ('Access Denied — '+(res.reason||'your Emp Id is not authorised.'))
-        : (res.error==='NO_ID' ? 'Emp Id missing.' : ('Error: '+res.error));
-      // If ERP-injected (loginView hidden), show full-page deny
-      if(document.getElementById('loginView').classList.contains('hide')) showDeny(msg);
-      else showLoginErr(msg);
+        : (res.error==='NO_ID'?'Emp Id missing.':('Error: '+res.error));
+      if(document.getElementById('loginView').classList.contains('hide')) showDeny(msg); else showLoginErr(msg);
       return;
     }
-    ME=res.user; CATS=res.cats; ROLE=res.role; ACTIVE_MONTH=res.activeMonth||'';
+    ME=res.user; CATS=res.cats; ROLE=res.role; MONTHS=res.months||{current:'',last:'',open:[]};
     document.getElementById('loginView').classList.add('hide');
     document.getElementById('denyView').classList.add('hide');
     document.getElementById('appView').classList.remove('hide');
     document.getElementById('logoutBtn').classList.remove('hide');
-    document.getElementById('whoBar').innerHTML =
+    document.getElementById('whoBar').innerHTML=
       '<b>'+esc(ME.Name)+'</b> · '+esc(ME.Id)+'<br>'+esc(ME.Designation)+
       ' · '+esc(ME.Project==='CLUSTER'?ME.Cluster:ME.Project)+
       (ROLE.isAdmin?' · <b>SUPER ADMIN</b>':(ROLE.isApprover1?' · Approver-1':''));
@@ -339,93 +335,117 @@ function showDeny(m){
   document.getElementById('denyView').classList.remove('hide');
   document.getElementById('denyMsg').textContent=m;
 }
-
 function isAdmin(){ return ROLE.isAdmin; }
 
 function setupUI(){
   updateMonthTag();
   buildTabs();
-  // Submit form: everyone who can submit (not admin) AND a month must be open
-  if(ROLE.canSubmit){
-    document.getElementById('formCard').classList.remove('hide');
-    document.getElementById('formOffice').textContent=ME.Office+' ('+ME.Id+')';
-    document.getElementById('formFlow').innerHTML='Approval chain: '+flowText();
-    buildCatInputs();
-    applyMonthGate();   // enable/disable submit depending on active month
-  }
+  // Submit form for everyone (admin bhi submit kar sakta)
+  document.getElementById('formCard').classList.remove('hide');
+  document.getElementById('formOffice').textContent=ME.Office+' ('+ME.Id+')';
+  document.getElementById('formFlow').innerHTML='Approval chain: '+flowText();
+  buildMonthPick();
+  buildCatInputs();
+  applyMonthGate();
   if(isAdmin()){
     document.getElementById('dash').classList.remove('hide');
     document.getElementById('monthAdmin').classList.remove('hide');
-    document.getElementById('monthInput').value = ACTIVE_MONTH || '';
+    document.getElementById('monthCurrent').value=MONTHS.current||'';
+    document.getElementById('monthLast').value=MONTHS.last||'';
+    updateOpenLabel();
     loadSummary();
   }
   showTab(isAdmin()?'all':'queue');
-}
-
-function updateMonthTag(){
-  var tag=document.getElementById('periodTag');
-  tag.textContent = ACTIVE_MONTH ? ACTIVE_MONTH : 'No month open';
-  tag.style.background = ACTIVE_MONTH ? '' : '#f8d7da';
-  tag.style.color = ACTIVE_MONTH ? '' : '#842029';
-}
-
-// If no active month, block the submit form for field users.
-function applyMonthGate(){
-  var open=!!ACTIVE_MONTH;
-  var card=document.getElementById('formCard');
-  var banner=document.getElementById('monthClosedBanner');
-  document.querySelectorAll('#catInputs input, #fRemark, #fPhoto').forEach(function(el){ el.disabled=!open; });
-  var subBtn=document.getElementById('submitBtn'); if(subBtn) subBtn.disabled=!open;
-  if(banner) banner.classList.toggle('hide', open);
-  var titleMonth=document.getElementById('formMonth');
-  if(titleMonth) titleMonth.textContent = open ? ('— '+ACTIVE_MONTH) : '';
 }
 
 function flowText(){
   return ME.Approver1 ? (ME.Id+' → '+ME.Approver1+' → '+SUPER_ADMIN+' (final)')
                       : (ME.Id+' → '+SUPER_ADMIN+' (direct final)');
 }
-
-function buildTabs(){
-  var t=document.getElementById('tabbar'); t.innerHTML='';
-  var tabs=[];
-  if(isAdmin()){
-    tabs=[['all','All Submissions'],['users','Users & Hierarchy']];
-  } else if(ROLE.isApprover1){
-    tabs=[['queue','My Queue'],['approvals','Approvals (my team)']];
-  } else {
-    tabs=[['queue','My Queue']];
-  }
-  tabs.forEach(([k,l])=>{
-    var b=document.createElement('button'); b.textContent=l;
-    b.onclick=()=>showTab(k); b.dataset.k=k; t.appendChild(b);
-  });
+function openMonthsText(){ return (MONTHS.open&&MONTHS.open.length)?MONTHS.open.join(' , '):''; }
+function updateMonthTag(){
+  var tag=document.getElementById('periodTag');
+  var txt=openMonthsText();
+  tag.textContent = txt || 'No month open';
+  tag.style.background = txt ? '' : '#f8d7da';
+  tag.style.color = txt ? '' : '#842029';
 }
-function showTab(k){
-  activeTab=k;
-  document.querySelectorAll('#tabbar button').forEach(b=>b.classList.toggle('active',b.dataset.k===k));
-  var showUsers=(k==='users');
-  document.getElementById('usersCard').classList.toggle('hide',!showUsers);
-  document.getElementById('listCard').classList.toggle('hide',showUsers);
-  if(showUsers){ loadUsers(); return; }
-  document.getElementById('listTitle').textContent=
-    k==='all'?'All Submissions (Admin)':k==='approvals'?'Approvals — My Team':'My Queue';
-  render();
+function updateOpenLabel(){
+  var el=document.getElementById('openMonthsLabel'); if(el) el.textContent=openMonthsText()||'None';
 }
 
+/* ---- month picker in the submit form ---- */
+function buildMonthPick(){
+  var sel=document.getElementById('monthPick'); sel.innerHTML='';
+  (MONTHS.open||[]).forEach(m=>{ var o=document.createElement('option'); o.value=m; o.textContent=m; sel.appendChild(o); });
+}
+function applyMonthGate(){
+  var open=(MONTHS.open&&MONTHS.open.length>0);
+  document.getElementById('noMonthBanner').classList.toggle('hide', open);
+  document.getElementById('formBody').classList.toggle('hide', !open);
+}
+
+/* ---- category inputs with per-field bill upload ---- */
 function buildCatInputs(){
+  BILLS={};
   var w=document.getElementById('catInputs'); w.innerHTML='';
-  CATS.forEach(c=>w.innerHTML+='<div><label>'+c+' (₹)</label>'+
-    '<input type="number" min="0" data-cat="'+c+'" oninput="recalc()"></div>');
+  CATS.forEach(function(c){
+    var billUI = c.bill
+      ? '<div class="filerow"><input type="file" accept="application/pdf" data-cat="'+esc(c.name)+'" onchange="onBillPick(this)" style="font-size:11px;padding:4px"><span class="fu" data-fu="'+esc(c.name)+'"></span></div>'
+      : '';
+    var tag = c.bill ? '<span class="billtag">BILL PDF</span>' : '<span class="billtag no">NO BILL</span>';
+    w.innerHTML +=
+      '<div class="catbox">'+
+        '<div class="cn"><span>'+esc(c.name)+'</span>'+tag+'</div>'+
+        '<input type="number" min="0" placeholder="Amount ₹" data-cat="'+esc(c.name)+'" oninput="recalc()">'+
+        billUI+
+      '</div>';
+  });
+  recalc();
 }
-function recalc(){var s=0;document.querySelectorAll('#catInputs input').forEach(i=>s+=Number(i.value)||0);
-  document.getElementById('fTotal').textContent='₹'+num(s);}
+function recalc(){
+  var s=0; document.querySelectorAll('#catInputs input[type=number]').forEach(i=>s+=Number(i.value)||0);
+  document.getElementById('fTotal').textContent='₹'+num(s);
+}
+
+/* Upload a picked PDF immediately, store returned URL in BILLS */
+function onBillPick(input){
+  var cat=input.dataset.cat;
+  var file=input.files&&input.files[0]; if(!file) return;
+  if(file.type!=='application/pdf'){ toast('Only PDF allowed'); input.value=''; return; }
+  if(file.size > 5*1024*1024){ toast('File too large (max 5MB)'); input.value=''; return; }
+  var span=document.querySelector('.fu[data-fu="'+cssEsc(cat)+'"]');
+  if(span) span.textContent=' uploading…';
+  var reader=new FileReader();
+  reader.onload=function(){
+    var b64=String(reader.result).split(',')[1];
+    post({action:'uploadBill',filename:file.name,dataBase64:b64}).then(res=>{
+      if(res.ok){ BILLS[cat]=res.url; if(span) span.innerHTML=' <a href="'+res.url+'" target="_blank">bill ✓</a>'; toast('Bill uploaded'); }
+      else { if(span) span.textContent=''; toast('Upload failed: '+(res.reason||res.error)); }
+    }).catch(()=>{ if(span) span.textContent=''; toast('Upload failed'); });
+  };
+  reader.readAsDataURL(file);
+}
+
+/* Prefill form if the picked month already has an editable entry */
+function prefillExisting(){
+  var m=document.getElementById('monthPick').value;
+  var mine=(CACHE||[]).filter(r=>up(r.SubmitterId)===up(ME.Id)&&r.Month===m&&r.Status!=='APPROVED')[0];
+  buildCatInputs();
+  if(mine){
+    var amt={}; try{ amt=JSON.parse(mine.Amounts||'{}'); }catch(e){}
+    var bl={};  try{ bl=JSON.parse(mine.Bills||'{}'); }catch(e){}
+    document.querySelectorAll('#catInputs input[type=number]').forEach(i=>{ if(amt[i.dataset.cat]!==undefined) i.value=amt[i.dataset.cat]; });
+    for(var k in bl){ if(bl[k]){ BILLS[k]=bl[k]; var span=document.querySelector('.fu[data-fu="'+cssEsc(k)+'"]'); if(span) span.innerHTML=' <a href="'+bl[k]+'" target="_blank">bill ✓</a>'; } }
+    document.getElementById('fRemark').value=mine.MiscRemark||'';
+    recalc();
+    toast('Loaded your existing '+m+' entry — you can add/update');
+  }
+}
 
 /* ---- API ---- */
-function post(p){return fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
-  body:JSON.stringify(p)}).then(r=>r.json());}
-function get(p){var q=Object.keys(p).map(k=>k+'='+encodeURIComponent(p[k])).join('&');
-  return fetch(API+'?'+q).then(r=>r.json());}
+function post(p){return fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(p)}).then(r=>r.json());}
+function get(p){var q=Object.keys(p).map(k=>k+'='+encodeURIComponent(p[k])).join('&');return fetch(API+'?'+q).then(r=>r.json());}
 
 function load(){
   toast('Loading…');
@@ -439,29 +459,49 @@ function load(){
 function loadSummary(){
   get({action:'summary'}).then(res=>{
     if(!res.ok)return; var s=res.data;
-    ACTIVE_MONTH = s.activeMonth||'';
-    updateMonthTag();
-    var lbl=document.getElementById('curMonthLabel'); if(lbl) lbl.textContent = ACTIVE_MONTH||'None (closed)';
+    MONTHS=s.months||MONTHS; updateMonthTag(); updateOpenLabel();
+    var byM=s.byMonth||{};
+    var monthKpis=Object.keys(byM).map(m=>kpi(m,'₹'+num(byM[m]))).join('');
     document.getElementById('kpis').innerHTML=
-      kpi('Active Month',ACTIVE_MONTH||'—')+
+      kpi('Open Months', openMonthsText()||'—')+
       kpi('Grand Total','₹'+num(s.grand))+kpi('Approved','₹'+num(s.approvedTotal))+
-      kpi('Pending Items',s.pendingCount)+kpi('MRI Total','₹'+num(s.byProject.MRI||0))+
-      kpi('Cluster Total','₹'+num(s.byProject.CLUSTER||0));
+      kpi('Pending Items',s.pendingCount)+
+      kpi('MRI Total','₹'+num(s.byProject.MRI||0))+kpi('Cluster Total','₹'+num(s.byProject.CLUSTER||0))+
+      monthKpis;
   });
 }
 function kpi(l,v){return '<div class="kpi"><div class="v">'+v+'</div><div class="l">'+l+'</div></div>';}
 
-/* ---- render expense list ---- */
+/* ---- tabs ---- */
+function buildTabs(){
+  var t=document.getElementById('tabbar'); t.innerHTML=''; var tabs=[];
+  if(isAdmin()) tabs=[['all','All Submissions'],['users','Users & Hierarchy']];
+  else if(ROLE.isApprover1) tabs=[['queue','My Queue'],['approvals','Approvals (my team)']];
+  else tabs=[['queue','My Queue']];
+  tabs.forEach(([k,l])=>{ var b=document.createElement('button'); b.textContent=l; b.onclick=()=>showTab(k); b.dataset.k=k; t.appendChild(b); });
+}
+function showTab(k){
+  activeTab=k;
+  document.querySelectorAll('#tabbar button').forEach(b=>b.classList.toggle('active',b.dataset.k===k));
+  var showUsers=(k==='users');
+  document.getElementById('usersCard').classList.toggle('hide',!showUsers);
+  document.getElementById('listCard').classList.toggle('hide',showUsers);
+  if(showUsers){ loadUsers(); return; }
+  document.getElementById('listTitle').textContent=
+    k==='all'?'All Submissions (Admin)':k==='approvals'?'Approvals — My Team':'My Queue';
+  render();
+}
+
+/* ---- render list ---- */
 function render(){
   var flt=document.getElementById('fltStatus').value;
   var rows=CACHE.slice().reverse();
-  // Approver-1 "approvals" tab = only items pending on me
   if(activeTab==='approvals') rows=rows.filter(r=>r.Status==='PENDING_AP1'&&up(r.NextApprover)===up(ME.Id));
   if(activeTab==='queue' && ROLE.isApprover1) rows=rows.filter(r=>up(r.SubmitterId)===up(ME.Id));
   if(flt) rows=rows.filter(r=>r.Status===flt);
   if(!rows.length){document.getElementById('tableWrap').innerHTML='<p class="muted">No records.</p>';return;}
   var admin=isAdmin();
-  var h='<table><tr><th>Office / Submitter</th><th>Project</th><th>Claimed</th><th>Final</th>'+
+  var h='<table><tr><th>Month</th><th>Office / Submitter</th><th>Project</th><th>Claimed</th><th>Final</th>'+
         '<th>Status</th><th>Chain / Comments</th><th>Action</th></tr>';
   rows.forEach(r=>{
     var act='—';
@@ -473,61 +513,64 @@ function render(){
     if(r.Ap1Comment) chain.push('<b>'+esc(r.Ap1Id)+':</b> '+esc(r.Ap1Comment));
     if(r.AdminRemark) chain.push('<b>Admin:</b> '+esc(r.AdminRemark));
     if(r.MiscRemark) chain.push('<i>'+esc(r.MiscRemark)+'</i>');
+    var bills=billLinks(r);
     h+='<tr>'+
+      '<td>'+esc(r.Month)+'</td>'+
       '<td>'+esc(r.OfficeName)+'<div class="muted">'+esc(r.SubmitterName)+' · '+esc(r.SubmitterId)+'</div></td>'+
       '<td>'+esc(r.Project)+(r.Cluster?'<div class="muted">'+esc(r.Cluster)+'</div>':'')+'</td>'+
       '<td class="amt">₹'+num(r.ClaimedTotal)+'</td>'+
       '<td class="amt">'+(r.FinalTotal!==''?'₹'+num(r.FinalTotal):'—')+'</td>'+
       '<td><span class="pill '+r.Status+'">'+label(r.Status)+'</span>'+
         (r.NextApprover?'<div class="muted">→ '+esc(r.NextApprover)+'</div>':'')+'</td>'+
-      '<td class="muted">'+(chain.join('<br>')||'—')+'</td>'+
+      '<td class="muted">'+(chain.join('<br>')||'—')+(bills?'<div>'+bills+'</div>':'')+'</td>'+
       '<td>'+act+'</td></tr>';
   });
   document.getElementById('tableWrap').innerHTML=h+'</table>';
 }
-
-/* ---- submit ---- */
-function submitExpense(){
-  if(!ACTIVE_MONTH){ toast('No month is open — submission is closed'); return; }
-  var amounts={},any=false;
-  document.querySelectorAll('#catInputs input').forEach(i=>{var v=Number(i.value)||0;amounts[i.dataset.cat]=v;if(v>0)any=true;});
-  if(!any){toast('Enter at least one amount');return;}
-  toast('Submitting…');
-  post({action:'submit',submitterId:ME.Id,amounts:amounts,
-    miscRemark:val('fRemark'),photoURL:val('fPhoto')})
-    .then(res=>{
-      if(res.ok){toast('Submitted ✓ '+res.month+' · Total ₹'+num(res.total));clearForm();load();}
-      else if(res.error==='MONTH_CLOSED'){ toast(res.reason||'Month is closed'); ACTIVE_MONTH=''; applyMonthGate(); updateMonthTag(); }
-      else if(res.error==='ALREADY_SUBMITTED'){ toast(res.reason||'Already submitted'); }
-      else toast('Error: '+res.error);
-    })
-    .catch(()=>{toast('Sent');clearForm();setTimeout(load,1200);});
+function billLinks(r){
+  var bl={}; try{ bl=JSON.parse(r.Bills||'{}'); }catch(e){}
+  var out=[]; for(var k in bl){ if(bl[k]) out.push('<a href="'+esc(bl[k])+'" target="_blank">'+esc(k)+' bill</a>'); }
+  return out.join(' · ');
 }
 
-/* ---- Approver-1 approve ---- */
-function openAp1(id){curId=id;var r=byId(id);
-  document.getElementById('ap1Info').innerHTML=infoBlock(r);
-  document.getElementById('ap1Comment').value=''; ap1Dlg.showModal();}
+/* ---- submit / update (partial) ---- */
+function submitExpense(){
+  if(!(MONTHS.open&&MONTHS.open.length)){ toast('No month is open — submission is closed'); return; }
+  var month=document.getElementById('monthPick').value;
+  var amounts={},any=false;
+  document.querySelectorAll('#catInputs input[type=number]').forEach(i=>{var v=Number(i.value)||0;amounts[i.dataset.cat]=v;if(v>0)any=true;});
+  if(!any){toast('Enter at least one amount');return;}
+  toast('Submitting…');
+  post({action:'submit',submitterId:ME.Id,month:month,amounts:amounts,bills:BILLS,miscRemark:val('fRemark')})
+    .then(res=>{
+      if(res.ok){ toast((res.updated?'Updated ✓ ':'Submitted ✓ ')+res.month+' · Total ₹'+num(res.total)); load(); }
+      else if(res.error==='MONTH_CLOSED'||res.error==='MONTH_NOT_OPEN'){ toast(res.reason||'Month is closed'); }
+      else toast('Error: '+res.error);
+    })
+    .catch(()=>{toast('Sent');setTimeout(load,1200);});
+}
+
+/* ---- Approver-1 ---- */
+function openAp1(id){curId=id;var r=byId(id);document.getElementById('ap1Info').innerHTML=infoBlock(r);document.getElementById('ap1Comment').value='';ap1Dlg.showModal();}
 function doAp1Approve(){
   post({action:'ap1approve',id:curId,approverId:ME.Id,comment:val('ap1Comment')})
     .then(res=>{ap1Dlg.close();toast(res.ok?'Approved → Admin ✓':'Error: '+res.error);setTimeout(load,900);})
     .catch(()=>{ap1Dlg.close();setTimeout(load,1200);});
 }
 
-/* ---- Admin final approve (edit amounts) ---- */
-function openAd(id){curId=id;var r=byId(id);
-  document.getElementById('adInfo').innerHTML=infoBlock(r);
-  var amounts=JSON.parse(r.Amounts||'{}'); var cats=r.Project==='CLUSTER'?CLU_CATS:MRI_CATS;
+/* ---- Admin final approve ---- */
+function openAd(id){
+  curId=id;var r=byId(id);document.getElementById('adInfo').innerHTML=infoBlock(r);
+  var amounts={};try{amounts=JSON.parse(r.Amounts||'{}');}catch(e){}
+  var cats=catsForProject(r.Project);
   var w=document.getElementById('adInputs');w.innerHTML='';
-  cats.forEach(c=>w.innerHTML+='<div><label>'+c+'</label>'+
-    '<input type="number" min="0" data-cat="'+c+'" value="'+(amounts[c]||0)+'" oninput="adRecalc()"></div>');
-  adRecalc(); document.getElementById('adRemark').value=''; adDlg.showModal();}
-function adRecalc(){var s=0;document.querySelectorAll('#adInputs input').forEach(i=>s+=Number(i.value)||0);
-  document.getElementById('adAuto').textContent='₹'+num(s);document.getElementById('adFinal').value=s;}
+  cats.forEach(c=>w.innerHTML+='<div><label>'+esc(c.name)+'</label><input type="number" min="0" data-cat="'+esc(c.name)+'" value="'+(amounts[c.name]||0)+'" oninput="adRecalc()"></div>');
+  adRecalc();document.getElementById('adRemark').value='';adDlg.showModal();
+}
+function adRecalc(){var s=0;document.querySelectorAll('#adInputs input').forEach(i=>s+=Number(i.value)||0);document.getElementById('adAuto').textContent='₹'+num(s);document.getElementById('adFinal').value=s;}
 function doApprove(){
   var amounts={};document.querySelectorAll('#adInputs input').forEach(i=>amounts[i.dataset.cat]=Number(i.value)||0);
-  post({action:'approve',id:curId,approverId:ME.Id,amounts:amounts,
-    finalTotal:document.getElementById('adFinal').value,remark:val('adRemark')})
+  post({action:'approve',id:curId,approverId:ME.Id,amounts:amounts,finalTotal:document.getElementById('adFinal').value,remark:val('adRemark')})
     .then(res=>{adDlg.close();toast(res.ok?'Final Approved ✓ ₹'+num(res.finalTotal):'Error: '+res.error);setTimeout(load,900);})
     .catch(()=>{adDlg.close();setTimeout(load,1200);});
 }
@@ -535,39 +578,26 @@ function doReject(){var remark=prompt('Reason for rejection:');if(remark===null)
   post({action:'reject',id:curId,approverId:ME.Id,remark:remark})
     .then(()=>{try{ap1Dlg.close();}catch(e){}try{adDlg.close();}catch(e){}toast('Rejected');setTimeout(load,900);});}
 
-/* ---- Admin: active month ---- */
-function saveMonth(){
-  var m=(document.getElementById('monthInput').value||'').trim().toUpperCase();
-  if(!m){ toast('Enter a month, e.g. JUN-2026'); return; }
-  if(!confirm('Set active month: '+m+' ?\nThe previous month will close automatically and its data will be hidden.')) return;
-  post({action:'setMonth',adminId:ME.Id,month:m}).then(res=>{
-    if(res.ok){ ACTIVE_MONTH=res.activeMonth||''; updateMonthTag();
-      document.getElementById('curMonthLabel').textContent=ACTIVE_MONTH||'None';
-      toast('Month open: '+ACTIVE_MONTH); load(); }
-    else toast('Error: '+res.error);
-  });
-}
-function closeMonth(){
-  if(!confirm('Close all months? After this, no one can submit until a new month is set.')) return;
-  post({action:'setMonth',adminId:ME.Id,month:''}).then(res=>{
-    if(res.ok){ ACTIVE_MONTH=''; updateMonthTag();
-      document.getElementById('curMonthLabel').textContent='None (closed)';
-      document.getElementById('monthInput').value='';
-      toast('All months closed'); load(); }
+/* ---- Admin: month control ---- */
+function saveMonth(slot){
+  var val=(document.getElementById(slot==='last'?'monthLast':'monthCurrent').value||'').trim().toUpperCase();
+  var msg = val ? ('Open '+slot+' month: '+val+' ?') : ('Close the '+slot+' month slot? Its data will be hidden.');
+  if(!confirm(msg)) return;
+  post({action:'setMonth',adminId:ME.Id,slot:slot,month:val}).then(res=>{
+    if(res.ok){ MONTHS=res.months||MONTHS; updateMonthTag(); updateOpenLabel(); buildMonthPick(); applyMonthGate();
+      document.getElementById('monthCurrent').value=MONTHS.current||'';
+      document.getElementById('monthLast').value=MONTHS.last||'';
+      toast('Saved'); load(); }
     else toast('Error: '+res.error);
   });
 }
 
 /* ---- Admin: Users management ---- */
 function loadUsers(){
-  get({action:'users',id:ME.Id}).then(res=>{
-    if(!res.ok){toast('Error: '+res.error);return;}
-    USERS=res.users||[]; renderUsers();
-  });
+  get({action:'users',id:ME.Id}).then(res=>{ if(!res.ok){toast('Error: '+res.error);return;} USERS=res.users||[]; renderUsers(); });
 }
 function renderUsers(){
-  var h='<table><tr><th>Emp Id</th><th>Name</th><th>Office</th><th>Project</th>'+
-    '<th>Designation</th><th>Approver-1</th><th>Active</th><th>Action</th></tr>';
+  var h='<table><tr><th>Emp Id</th><th>Name</th><th>Office</th><th>Project</th><th>Designation</th><th>Approver-1</th><th>Active</th><th>Action</th></tr>';
   USERS.forEach(u=>{
     h+='<tr>'+
       '<td><b>'+esc(u.Id)+'</b></td><td>'+esc(u.Name)+'</td><td>'+esc(u.Office)+'</td>'+
@@ -577,62 +607,48 @@ function renderUsers(){
       '<td>'+(up(u.Active)==='N'?'<span class="pill REJECTED">Inactive</span>':'<span class="pill APPROVED">Active</span>')+'</td>'+
       '<td>'+(up(u.Id)===SUPER_ADMIN?'<span class="muted">—</span>':
         '<button class="btn sm" onclick="openUserEdit(\''+u.Id+'\')">Edit</button> '+
-        '<button class="btn sm bad" onclick="removeUser(\''+u.Id+'\')">Remove</button>')+'</td>'+
-    '</tr>';
+        '<button class="btn sm bad" onclick="removeUser(\''+u.Id+'\')">Remove</button>')+'</td></tr>';
   });
   document.getElementById('usersWrap').innerHTML=h+'</table>';
 }
 function openUserAdd(){
   editUserId=null; document.getElementById('userDlgTitle').textContent='Add User';
   ['uId','uName','uOffice','uCluster','uApprover1'].forEach(i=>document.getElementById(i).value='');
-  document.getElementById('uProject').value='MRI';
-  document.getElementById('uDesig').value='SUPERVISOR';
-  document.getElementById('uActive').value='Y';
-  document.getElementById('uId').disabled=false;
-  userDlg.showModal();
+  document.getElementById('uProject').value='MRI'; document.getElementById('uDesig').value='SUPERVISOR';
+  document.getElementById('uActive').value='Y'; document.getElementById('uId').disabled=false; userDlg.showModal();
 }
 function openUserEdit(id){
   editUserId=id; var u=USERS.filter(x=>up(x.Id)===up(id))[0]; if(!u)return;
   document.getElementById('userDlgTitle').textContent='Edit User — '+id;
   document.getElementById('uId').value=u.Id; document.getElementById('uId').disabled=true;
   document.getElementById('uName').value=u.Name; document.getElementById('uOffice').value=u.Office;
-  document.getElementById('uProject').value=u.Project||'MRI';
-  document.getElementById('uCluster').value=u.Cluster||'';
-  document.getElementById('uDesig').value=u.Designation||'SUPERVISOR';
-  document.getElementById('uApprover1').value=u.Approver1||'';
-  document.getElementById('uActive').value=up(u.Active)==='N'?'N':'Y';
-  userDlg.showModal();
+  document.getElementById('uProject').value=u.Project||'MRI'; document.getElementById('uCluster').value=u.Cluster||'';
+  document.getElementById('uDesig').value=u.Designation||'SUPERVISOR'; document.getElementById('uApprover1').value=u.Approver1||'';
+  document.getElementById('uActive').value=up(u.Active)==='N'?'N':'Y'; userDlg.showModal();
 }
 function saveUser(){
-  var payload={
-    Id:val('uId').toUpperCase(),Name:val('uName'),Office:val('uOffice'),
+  var payload={ Id:val('uId').toUpperCase(),Name:val('uName'),Office:val('uOffice'),
     Project:document.getElementById('uProject').value,Cluster:val('uCluster'),
-    Designation:document.getElementById('uDesig').value,
-    Approver1:val('uApprover1').toUpperCase(),Active:document.getElementById('uActive').value
-  };
+    Designation:document.getElementById('uDesig').value,Approver1:val('uApprover1').toUpperCase(),
+    Active:document.getElementById('uActive').value };
   if(!payload.Id){toast('Emp Id required');return;}
-  if(editUserId){
-    post({action:'userEdit',adminId:ME.Id,id:editUserId,fields:payload})
-      .then(res=>{userDlg.close();toast(res.ok?'Updated ✓':'Error: '+res.error);loadUsers();});
-  } else {
-    post({action:'userAdd',adminId:ME.Id,user:payload})
-      .then(res=>{userDlg.close();toast(res.ok?'User added ✓':'Error: '+res.error);loadUsers();});
-  }
+  if(editUserId){ post({action:'userEdit',adminId:ME.Id,id:editUserId,fields:payload}).then(res=>{userDlg.close();toast(res.ok?'Updated ✓':'Error: '+res.error);loadUsers();}); }
+  else { post({action:'userAdd',adminId:ME.Id,user:payload}).then(res=>{userDlg.close();toast(res.ok?'User added ✓':'Error: '+res.error);loadUsers();}); }
 }
 function removeUser(id){
   if(!confirm('Remove '+id+'? (soft delete → inactive)'))return;
-  post({action:'userRemove',adminId:ME.Id,id:id})
-    .then(res=>{toast(res.ok?'Removed ✓':'Error: '+res.error);loadUsers();});
+  post({action:'userRemove',adminId:ME.Id,id:id}).then(res=>{toast(res.ok?'Removed ✓':'Error: '+res.error);loadUsers();});
 }
 
 /* ---- helpers ---- */
 function infoBlock(r){
-  var amounts=JSON.parse(r.Amounts||'{}'),parts=[];
-  for(var k in amounts) if(amounts[k]) parts.push(k+': ₹'+num(amounts[k]));
-  return '<div class="muted"><b>'+esc(r.OfficeName)+'</b> · '+esc(r.SubmitterName)+' ('+esc(r.SubmitterId)+')'+
+  var amounts={};try{amounts=JSON.parse(r.Amounts||'{}');}catch(e){}
+  var parts=[];for(var k in amounts) if(amounts[k]) parts.push(k+': ₹'+num(amounts[k]));
+  return '<div class="muted"><b>'+esc(r.OfficeName)+'</b> · '+esc(r.SubmitterName)+' ('+esc(r.SubmitterId)+') · '+esc(r.Month)+
     '<br>'+esc(r.Project)+(r.Cluster?' · '+esc(r.Cluster):'')+
     '<br>'+parts.join(' &nbsp;|&nbsp; ')+
     '<br>Claimed Total: <b>₹'+num(r.ClaimedTotal)+'</b>'+
+    (billLinks(r)?'<br>Bills: '+billLinks(r):'')+
     (r.MiscRemark?'<br>Remark: '+esc(r.MiscRemark):'')+
     (r.Ap1Comment?'<br>'+esc(r.Ap1Id)+' comment: '+esc(r.Ap1Comment):'')+'</div>';
 }
@@ -641,13 +657,10 @@ function byId(id){return CACHE.filter(r=>r.ID===id)[0];}
 function up(s){return String(s==null?'':s).toUpperCase();}
 function num(n){return Number(n||0).toLocaleString('en-IN');}
 function esc(s){return String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
-function label(s){return {PENDING_AP1:'Pending Approver-1',PENDING_ADMIN:'Pending Admin',
-  APPROVED:'Approved',REJECTED:'Rejected'}[s]||s;}
-function clearForm(){document.querySelectorAll('#catInputs input').forEach(i=>i.value='');
-  ['fRemark','fPhoto'].forEach(i=>document.getElementById(i).value='');recalc();}
+function cssEsc(s){return String(s).replace(/"/g,'\\"');}
+function label(s){return {PENDING_AP1:'Pending Approver-1',PENDING_ADMIN:'Pending Admin',APPROVED:'Approved',REJECTED:'Rejected'}[s]||s;}
 var ap1Dlg=document.getElementById('ap1Dlg'),adDlg=document.getElementById('adDlg'),userDlg=document.getElementById('userDlg');
-function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');
-  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1900);}
+function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1900);}
 </script>
 </body>
 </html>
