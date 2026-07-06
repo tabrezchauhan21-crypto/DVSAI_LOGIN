@@ -62,7 +62,7 @@
 </head>
 <body>
 <header>
-  <h1>⚡ DVVNL Office Expense Approval <span class="tag" id="periodTag">—</span></h1>
+  <h1>⚡ DVVNL Office Expense Approval <span class="tag" id="periodTag" style="background:rgba(255,255,255,.22);color:#fff;border:1px solid rgba(255,255,255,.4)">—</span></h1>
   <div style="display:flex;align-items:center;gap:12px">
     <div class="who" id="whoBar"></div>
     <button id="logoutBtn" class="hide" onclick="doLogout()"
@@ -100,12 +100,12 @@
     <div class="muted" style="margin-bottom:10px">You can keep two months open together: the current month and the last month. Type a month like <b>JUNE-2026</b> and open it. Leave blank &amp; save to close that slot. Closed month data is hidden.</div>
     <div class="monthslot">
       <span class="lbl">Current month</span>
-      <input id="monthCurrent" placeholder="e.g. JUNE-2026" style="width:160px;text-transform:uppercase">
+      <input id="monthCurrent" type="month" style="width:180px">
       <button class="btn sm ok" onclick="saveMonth('current')">Save</button>
     </div>
     <div class="monthslot">
       <span class="lbl">Last month</span>
-      <input id="monthLast" placeholder="e.g. MAY-2026" style="width:160px;text-transform:uppercase">
+      <input id="monthLast" type="month" style="width:180px">
       <button class="btn sm ok" onclick="saveMonth('last')">Save</button>
     </div>
     <div class="muted" style="margin-top:6px">Currently open: <b id="openMonthsLabel">None</b></div>
@@ -239,19 +239,36 @@ var SUPER_ADMIN = 'AB293';
 var MRI_CATS = [
   {name:'Water',bill:true},{name:'Sweeper Salary',bill:true},{name:'Cleaning Material',bill:true},
   {name:'Courier By Bus',bill:true},{name:'Courier By DTDC',bill:true},
-  {name:'TA',bill:false},{name:'DA',bill:false},{name:'Misc',bill:true}
+  {name:'TA',bill:false,note:'travel'},{name:'DA',bill:false,note:'visit'},{name:'Misc',bill:true}
 ];
 var CLU_CATS = [
   {name:'Office Refreshment (Tea)',bill:false},{name:'Stationary',bill:true},{name:'Water',bill:true},
   {name:'Sweeper Salary',bill:true},{name:'Cleaning Material',bill:true},
   {name:'Courier By Bus',bill:true},{name:'Courier By DTDC',bill:true},
-  {name:'TA',bill:false},{name:'DA',bill:false},{name:'Misc',bill:true}
+  {name:'TA',bill:false,note:'travel'},{name:'DA',bill:false,note:'visit'},{name:'Misc',bill:true}
 ];
 function catsForProject(p){ return p==='CLUSTER'?CLU_CATS:MRI_CATS; }
+
+/* Month format helpers.
+   Picker gives 'YYYY-MM' (e.g. 2026-06). We store/display as 'JUNE-2026'. */
+var MONTH_NAMES=['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
+function pickerToLabel(v){ // '2026-06' -> 'JUNE-2026'
+  if(!v) return '';
+  var p=v.split('-'); if(p.length<2) return v.toUpperCase();
+  var mi=parseInt(p[1],10)-1; if(mi<0||mi>11) return v.toUpperCase();
+  return MONTH_NAMES[mi]+'-'+p[0];
+}
+function labelToPicker(lbl){ // 'JUNE-2026' -> '2026-06'
+  if(!lbl) return '';
+  var p=String(lbl).toUpperCase().split('-'); if(p.length<2) return '';
+  var mi=MONTH_NAMES.indexOf(p[0]); if(mi<0) return '';
+  return p[1]+'-'+String(mi+1).padStart(2,'0');
+}
 
 var ME=null, CATS=[], ROLE={}, CACHE=[], USERS=[], MONTHS={current:'',last:'',open:[]};
 var curId=null, editUserId=null, activeTab='queue', CURRENT_TS='';
 var BILLS={};   // { catName: url } collected during form fill
+var NOTES={};   // { catName: text } for TA/DA travel/visit details
 
 /* ---- ERP hook ---- */
 function initExpenseTool(empId){ gateLogin((empId||'').toUpperCase()); }
@@ -350,8 +367,8 @@ function setupUI(){
   if(isAdmin()){
     document.getElementById('dash').classList.remove('hide');
     document.getElementById('monthAdmin').classList.remove('hide');
-    document.getElementById('monthCurrent').value=MONTHS.current||'';
-    document.getElementById('monthLast').value=MONTHS.last||'';
+    document.getElementById('monthCurrent').value=labelToPicker(MONTHS.current);
+    document.getElementById('monthLast').value=labelToPicker(MONTHS.last);
     updateOpenLabel();
     loadSummary();
   }
@@ -367,8 +384,8 @@ function updateMonthTag(){
   var tag=document.getElementById('periodTag');
   var txt=openMonthsText();
   tag.textContent = txt || 'No month open';
-  tag.style.background = txt ? '' : '#f8d7da';
-  tag.style.color = txt ? '' : '#842029';
+  if(txt){ tag.style.background='rgba(255,255,255,.22)'; tag.style.color='#fff'; }
+  else   { tag.style.background='#f8d7da'; tag.style.color='#842029'; }
 }
 function updateOpenLabel(){
   var el=document.getElementById('openMonthsLabel'); if(el) el.textContent=openMonthsText()||'None';
@@ -387,22 +404,27 @@ function applyMonthGate(){
 
 /* ---- category inputs with per-field bill upload ---- */
 function buildCatInputs(){
-  BILLS={};
+  BILLS={}; NOTES={};
   var w=document.getElementById('catInputs'); w.innerHTML='';
   CATS.forEach(function(c){
     var billUI = c.bill
       ? '<div class="filerow"><input type="file" accept="application/pdf" data-cat="'+esc(c.name)+'" onchange="onBillPick(this)" style="font-size:11px;padding:4px"><span class="fu" data-fu="'+esc(c.name)+'"></span></div>'
       : '';
-    var tag = c.bill ? '<span class="billtag">BILL PDF</span>' : '<span class="billtag no">NO BILL</span>';
+    var noteUI = c.note
+      ? '<textarea data-note="'+esc(c.name)+'" oninput="onNote(this)" placeholder="'+(c.note==='travel'?'From – To and how you travelled (e.g. Agra → Mathura by bus, 60 km)':'Visit / meeting detail (where & why)')+'" style="margin-top:6px;min-height:44px;font-size:12px"></textarea>'
+      : '';
+    var tag = c.bill ? '<span class="billtag">BILL PDF</span>'
+            : (c.note ? '<span class="billtag" style="background:#e2f0d9;color:#2f6f2f">DETAIL</span>' : '<span class="billtag no">NO BILL</span>');
     w.innerHTML +=
       '<div class="catbox">'+
         '<div class="cn"><span>'+esc(c.name)+'</span>'+tag+'</div>'+
         '<input type="number" min="0" placeholder="Amount ₹" data-cat="'+esc(c.name)+'" oninput="recalc()">'+
-        billUI+
+        noteUI+ billUI+
       '</div>';
   });
   recalc();
 }
+function onNote(t){ var c=t.dataset.note; var v=t.value.trim(); if(v) NOTES[c]=v; else delete NOTES[c]; }
 function recalc(){
   var s=0; document.querySelectorAll('#catInputs input[type=number]').forEach(i=>s+=Number(i.value)||0);
   document.getElementById('fTotal').textContent='₹'+num(s);
@@ -435,7 +457,9 @@ function prefillExisting(){
   if(mine){
     var amt={}; try{ amt=JSON.parse(mine.Amounts||'{}'); }catch(e){}
     var bl={};  try{ bl=JSON.parse(mine.Bills||'{}'); }catch(e){}
+    var nt={};  try{ nt=JSON.parse(mine.Notes||'{}'); }catch(e){}
     document.querySelectorAll('#catInputs input[type=number]').forEach(i=>{ if(amt[i.dataset.cat]!==undefined) i.value=amt[i.dataset.cat]; });
+    document.querySelectorAll('#catInputs textarea[data-note]').forEach(t=>{ if(nt[t.dataset.note]!==undefined){ t.value=nt[t.dataset.note]; NOTES[t.dataset.note]=nt[t.dataset.note]; } });
     for(var k in bl){ if(bl[k]){ BILLS[k]=bl[k]; var span=document.querySelector('.fu[data-fu="'+cssEsc(k)+'"]'); if(span) span.innerHTML=' <a href="'+bl[k]+'" target="_blank">bill ✓</a>'; } }
     document.getElementById('fRemark').value=mine.MiscRemark||'';
     recalc();
@@ -541,7 +565,7 @@ function submitExpense(){
   document.querySelectorAll('#catInputs input[type=number]').forEach(i=>{var v=Number(i.value)||0;amounts[i.dataset.cat]=v;if(v>0)any=true;});
   if(!any){toast('Enter at least one amount');return;}
   toast('Submitting…');
-  post({action:'submit',submitterId:ME.Id,month:month,amounts:amounts,bills:BILLS,miscRemark:val('fRemark')})
+  post({action:'submit',submitterId:ME.Id,month:month,amounts:amounts,bills:BILLS,notes:NOTES,miscRemark:val('fRemark')})
     .then(res=>{
       if(res.ok){ toast((res.updated?'Updated ✓ ':'Submitted ✓ ')+res.month+' · Total ₹'+num(res.total)); load(); }
       else if(res.error==='MONTH_CLOSED'||res.error==='MONTH_NOT_OPEN'){ toast(res.reason||'Month is closed'); }
@@ -580,13 +604,14 @@ function doReject(){var remark=prompt('Reason for rejection:');if(remark===null)
 
 /* ---- Admin: month control ---- */
 function saveMonth(slot){
-  var val=(document.getElementById(slot==='last'?'monthLast':'monthCurrent').value||'').trim().toUpperCase();
-  var msg = val ? ('Open '+slot+' month: '+val+' ?') : ('Close the '+slot+' month slot? Its data will be hidden.');
+  var raw=(document.getElementById(slot==='last'?'monthLast':'monthCurrent').value||'').trim();
+  var lbl=pickerToLabel(raw);   // '' if cleared -> closes the slot
+  var msg = lbl ? ('Open '+slot+' month: '+lbl+' ?') : ('Close the '+slot+' month slot? Its data will be hidden.');
   if(!confirm(msg)) return;
-  post({action:'setMonth',adminId:ME.Id,slot:slot,month:val}).then(res=>{
+  post({action:'setMonth',adminId:ME.Id,slot:slot,month:lbl}).then(res=>{
     if(res.ok){ MONTHS=res.months||MONTHS; updateMonthTag(); updateOpenLabel(); buildMonthPick(); applyMonthGate();
-      document.getElementById('monthCurrent').value=MONTHS.current||'';
-      document.getElementById('monthLast').value=MONTHS.last||'';
+      document.getElementById('monthCurrent').value=labelToPicker(MONTHS.current);
+      document.getElementById('monthLast').value=labelToPicker(MONTHS.last);
       toast('Saved'); load(); }
     else toast('Error: '+res.error);
   });
@@ -643,10 +668,13 @@ function removeUser(id){
 /* ---- helpers ---- */
 function infoBlock(r){
   var amounts={};try{amounts=JSON.parse(r.Amounts||'{}');}catch(e){}
+  var notes={};try{notes=JSON.parse(r.Notes||'{}');}catch(e){}
   var parts=[];for(var k in amounts) if(amounts[k]) parts.push(k+': ₹'+num(amounts[k]));
+  var noteLines=[];for(var nk in notes) if(notes[nk]) noteLines.push('<b>'+esc(nk)+':</b> '+esc(notes[nk]));
   return '<div class="muted"><b>'+esc(r.OfficeName)+'</b> · '+esc(r.SubmitterName)+' ('+esc(r.SubmitterId)+') · '+esc(r.Month)+
     '<br>'+esc(r.Project)+(r.Cluster?' · '+esc(r.Cluster):'')+
     '<br>'+parts.join(' &nbsp;|&nbsp; ')+
+    (noteLines.length?'<br>'+noteLines.join('<br>'):'')+
     '<br>Claimed Total: <b>₹'+num(r.ClaimedTotal)+'</b>'+
     (billLinks(r)?'<br>Bills: '+billLinks(r):'')+
     (r.MiscRemark?'<br>Remark: '+esc(r.MiscRemark):'')+
