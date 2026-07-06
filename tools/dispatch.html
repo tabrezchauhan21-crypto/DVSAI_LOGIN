@@ -527,6 +527,18 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:13px;border-t
           </select>
         </div>
 
+        <!-- Employee identity: always visible once a designation is picked -->
+        <div class="two-col">
+          <div class="field">
+            <label class="flabel">Employee Name <span class="req">*</span></label>
+            <input type="text" id="employee_name" placeholder="Type employee's full name…" oninput="buildSubmitTo()"/>
+          </div>
+          <div class="field">
+            <label class="flabel">Employee ID <span class="req">*</span></label>
+            <input type="text" id="employee_id" placeholder="Type employee ID…" oninput="buildSubmitTo()"/>
+          </div>
+        </div>
+
         <!-- Zone Manager: only Zone -->
         <div class="field reveal-box" id="emp_field_zone">
           <label class="flabel">Zone <span class="req">*</span></label>
@@ -968,6 +980,8 @@ function switchLevel(level) {
   document.getElementById('submit-trail').textContent = 'Select level above to choose recipient';
   if (level === 'employee') {
     document.getElementById('employee_desig').value = '';
+    document.getElementById('employee_name').value = '';
+    document.getElementById('employee_id').value = '';
     document.querySelectorAll('#pane-employee .reveal-box').forEach(el => el.classList.remove('show'));
   }
 }
@@ -997,19 +1011,22 @@ function buildSubmitTo() {
     else { document.getElementById('sdo_desig_other').classList.remove('show'); }
     if (loc) { val = loc + (d ? ' (' + d + ')' : ''); trail = 'SDO → ' + val; }
   } else if (_currentLevel === 'employee') {
-    const d = v('employee_desig');
+    const d       = v('employee_desig');
+    const empName = v('employee_name').trim();
+    const empId   = v('employee_id').trim();
+    const idTag   = (empName && empId) ? (empName + ' (ID: ' + empId + ')') : '';
     if (d === 'Zone Manager') {
       const z = v('employee_zone_sel');
-      if (z) { val = 'Zone Manager – Zone ' + z; trail = 'Employee → Zone: ' + z + ' → Zone Manager'; }
+      if (z && idTag) { val = idTag + ' – Zone Manager – Zone ' + z; trail = 'Employee → ' + idTag + ' → Zone: ' + z + ' → Zone Manager'; }
     } else if (d === 'Circle Manager') {
       const z = v('employee_zone_sel2'), c = v('employee_circle_sel');
-      if (z && c) { val = 'Circle Manager – ' + c + ' (Zone: ' + z + ')'; trail = 'Employee → Zone: ' + z + ' → ' + c + ' → Circle Manager'; }
+      if (z && c && idTag) { val = idTag + ' – Circle Manager – ' + c + ' (Zone: ' + z + ')'; trail = 'Employee → ' + idTag + ' → Zone: ' + z + ' → ' + c + ' → Circle Manager'; }
     } else if (d === 'Supervisor') {
       const z = v('employee_zone_sel3'), c = v('employee_circle_sel3'), dv = v('employee_div_sel');
-      if (z && c && dv) { val = 'Supervisor – ' + dv + ' (' + c + ', Zone: ' + z + ')'; trail = 'Employee → Zone: ' + z + ' → ' + c + ' → ' + dv + ' → Supervisor'; }
+      if (z && c && dv && idTag) { val = idTag + ' – Supervisor – ' + dv + ' (' + c + ', Zone: ' + z + ')'; trail = 'Employee → ' + idTag + ' → Zone: ' + z + ' → ' + c + ' → ' + dv + ' → Supervisor'; }
     } else if (d === 'Meter Reader') {
       const z = v('employee_zone_sel4'), c = v('employee_circle_sel4'), dv = v('employee_div_sel4'), area = v('employee_area');
-      if (z && c && dv && area) { val = 'Meter Reader – ' + area + ' (' + dv + ', ' + c + ', Zone: ' + z + ')'; trail = 'Employee → Zone: ' + z + ' → ' + c + ' → ' + dv + ' → ' + area + ' → Meter Reader'; }
+      if (z && c && dv && area && idTag) { val = idTag + ' – Meter Reader – ' + area + ' (' + dv + ', ' + c + ', Zone: ' + z + ')'; trail = 'Employee → ' + idTag + ' → Zone: ' + z + ' → ' + c + ' → ' + dv + ' → ' + area + ' → Meter Reader'; }
     }
   }
   document.getElementById('submit_to').value = val;
