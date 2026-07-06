@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DVVNL Office Expense Approval</title>
+<style>
+  :root{--brand:#0b5394;--brand2:#134f8a;--ok:#1e7e34;--bad:#b02a37;--bg:#f4f6f9;
+    --card:#fff;--line:#e2e6ec;--ink:#1c2733}
+  *{box-sizing:border-box;font-family:Segoe UI,Roboto,Arial,sans-serif}
+  body{margin:0;background:var(--bg);color:var(--ink)}
+  header{background:linear-gradient(90deg,var(--brand),var(--brand2));color:#fff;
+    padding:12px 18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+  header h1{font-size:16px;margin:0;font-weight:600}
+  header .who{font-size:12.5px;opacity:.95;text-align:right}
+  .wrap{max-width:1180px;margin:16px auto;padding:0 12px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px}
+  h3{margin:0 0 10px}
+  label{display:block;font-size:12.5px;margin:8px 0 3px;font-weight:600;color:#33475b}
+  input,select,textarea{width:100%;padding:9px;border:1px solid #cfd6df;border-radius:8px;font-size:14px}
+  textarea{resize:vertical;min-height:56px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+  .btn{background:var(--brand);color:#fff;border:0;padding:10px 16px;border-radius:8px;font-size:14px;cursor:pointer;margin-top:12px}
+  .btn.ok{background:var(--ok)}.btn.bad{background:var(--bad)}.btn.grey{background:#6b7784}
+  .btn.sm{padding:5px 10px;margin:0;font-size:12px}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th,td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+  th{background:#eef2f7;position:sticky;top:0}
+  .pill{padding:2px 8px;border-radius:20px;font-size:10.5px;font-weight:700;white-space:nowrap}
+  .PENDING_AP1{background:#fff3cd;color:#8a6d00}.PENDING_ADMIN{background:#cfe2ff;color:#084298}
+  .APPROVED{background:#d1e7dd;color:#0f5132}.REJECTED{background:#f8d7da;color:#842029}
+  .muted{color:#6b7784;font-size:11.5px}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:14px}
+  .kpi{background:#fff;border:1px solid var(--line);border-left:4px solid var(--brand);border-radius:10px;padding:12px}
+  .kpi .v{font-size:22px;font-weight:800}.kpi .l{font-size:12px;color:#6b7784}
+  .amt{font-weight:700;text-align:right}
+  .center{max-width:400px;margin:56px auto;text-align:center}
+  dialog{border:0;border-radius:12px;padding:0;width:min(640px,94vw)}
+  dialog .dlg{padding:18px;max-height:86vh;overflow:auto}
+  .hide{display:none}
+  .sub{font-size:11px;font-weight:700;letter-spacing:.5px;color:#6b7784;margin:14px 0 6px;text-transform:uppercase}
+  .tabbar{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+  .tabbar button{border:1px solid var(--line);background:#fff;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:14px;margin:0}
+  .tabbar button.active{background:var(--brand);color:#fff;border-color:var(--brand)}
+  .tag{display:inline-block;background:#eef2f7;border-radius:6px;padding:1px 7px;font-size:11px;margin-left:6px}
+  .flow{font-size:11px;color:#6b7784}
+  .err{background:#f8d7da;color:#842029;border:1px solid #f1aeb5;border-radius:10px;padding:16px;font-weight:600}
+  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#1c2733;color:#fff;
+    padding:10px 18px;border-radius:8px;font-size:13px;opacity:0;transition:.3s;z-index:99}
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+<header>
+  <h1>⚡ DVVNL Office Expense Approval <span class="tag" id="periodTag">MAY-2026</span></h1>
+  <div class="who" id="whoBar"></div>
+</header>
+
+<!-- LOGIN / GATE (standalone). ERP passes id automatically. -->
+<div class="wrap center" id="loginView">
+  <div class="card">
+    <h3>Sign in (Emp Id)</h3>
+    <input id="lgId" placeholder="Enter your Emp Id" style="text-transform:uppercase;text-align:center">
+    <button class="btn" onclick="doLogin()">Enter</button>
+    <div id="lgErr" class="err hide" style="margin-top:12px"></div>
+    <p class="muted" style="margin-top:10px">Staff Portal se aane par yeh apne aap login ho jata hai
+      (token se). Yeh manual box sirf standalone testing ke liye hai.</p>
+  </div>
+</div>
+
+<!-- ACCESS DENIED -->
+<div class="wrap center hide" id="denyView">
+  <div class="card">
+    <div class="err" id="denyMsg">Access Denied</div>
+    <button class="btn grey" onclick="location.href='../index.html'">← Back to Staff Portal</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="wrap hide" id="appView">
+  <div class="tabbar" id="tabbar"></div>
+
+  <!-- Admin dashboard KPIs -->
+  <div id="dash" class="hide"><div class="kpis" id="kpis"></div></div>
+
+  <!-- Submit form -->
+  <div class="card hide" id="formCard">
+    <h3>Submit Expense — <span id="formOffice"></span></h3>
+    <div class="flow" id="formFlow"></div>
+    <div class="grid" id="catInputs" style="margin-top:10px"></div>
+    <label>Misc Remark</label>
+    <input id="fRemark" placeholder="e.g. AIR COOLER / 490 COMPUTER REPAIR">
+    <label>Photo / Bill URL (optional)</label>
+    <input id="fPhoto" placeholder="Drive / OneDrive link">
+    <div style="display:flex;gap:12px;align-items:center;margin-top:10px">
+      <div style="font-size:15px">Auto Total: <b id="fTotal">₹0</b></div>
+      <button class="btn" onclick="submitExpense()">Submit for Approval</button>
+    </div>
+  </div>
+
+  <!-- Expense list -->
+  <div class="card" id="listCard">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <h3 style="margin:0" id="listTitle">My Queue</h3>
+      <div>
+        <select id="fltStatus" onchange="render()" style="width:auto;display:inline-block">
+          <option value="">All statuses</option>
+          <option value="PENDING_AP1">Pending Approver-1</option>
+          <option value="PENDING_ADMIN">Pending Admin</option>
+          <option value="APPROVED">Approved</option>
+          <option value="REJECTED">Rejected</option>
+        </select>
+        <button class="btn sm" onclick="load()">↻ Refresh</button>
+      </div>
+    </div>
+    <div id="tableWrap" style="overflow:auto;margin-top:10px;max-height:70vh"></div>
+  </div>
+
+  <!-- Admin: Users management -->
+  <div class="card hide" id="usersCard">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h3 style="margin:0">User & Hierarchy Management</h3>
+      <button class="btn sm ok" onclick="openUserAdd()">+ Add User</button>
+    </div>
+    <div id="usersWrap" style="overflow:auto;margin-top:10px;max-height:70vh"></div>
+  </div>
+</div>
+
+<!-- Approver-1 dialog: approve + comment (NO edit) -->
+<dialog id="ap1Dlg"><div class="dlg">
+  <h3>Approve — forward to Final Approver (AB293)</h3>
+  <div id="ap1Info"></div>
+  <p class="muted">Aap amount edit nahi kar sakte. Koi issue ho to comment likhein — woh final approver ko dikhega.</p>
+  <label>Comment / Suggestion (optional)</label>
+  <textarea id="ap1Comment" placeholder="e.g. Courier bill verify kiya. TA thoda zyada lag raha hai."></textarea>
+  <div style="display:flex;gap:8px;margin-top:12px">
+    <button class="btn ok" onclick="doAp1Approve()">Approve ✓</button>
+    <button class="btn bad" onclick="doReject()">Reject</button>
+    <button class="btn grey" onclick="ap1Dlg.close()">Cancel</button>
+  </div>
+</div></dialog>
+
+<!-- Admin approve dialog: edit amounts + final -->
+<dialog id="adDlg"><div class="dlg">
+  <h3>Final Approve — Admin (AB293)</h3>
+  <div id="adInfo"></div>
+  <div class="sub">Category Amounts (editable)</div>
+  <div class="grid" id="adInputs"></div>
+  <div style="display:flex;gap:12px;align-items:center;margin-top:10px;flex-wrap:wrap">
+    <div>Auto Total: <b id="adAuto">₹0</b></div>
+    <div style="flex:1"><label style="margin:0">Final Total (override)</label>
+      <input id="adFinal" type="number" min="0"></div>
+  </div>
+  <label>Admin Remark</label>
+  <textarea id="adRemark" placeholder="Approval note"></textarea>
+  <div style="display:flex;gap:8px;margin-top:12px">
+    <button class="btn ok" onclick="doApprove()">Final Approve ✓</button>
+    <button class="btn bad" onclick="doReject()">Reject</button>
+    <button class="btn grey" onclick="adDlg.close()">Cancel</button>
+  </div>
+</div></dialog>
+
+<!-- Admin user add/edit dialog -->
+<dialog id="userDlg"><div class="dlg">
+  <h3 id="userDlgTitle">Add User</h3>
+  <div class="grid">
+    <div><label>Emp Id</label><input id="uId" style="text-transform:uppercase"></div>
+    <div><label>Name</label><input id="uName"></div>
+    <div><label>Office</label><input id="uOffice"></div>
+    <div><label>Project</label>
+      <select id="uProject"><option>MRI</option><option>CLUSTER</option></select></div>
+    <div><label>Cluster (if any)</label><input id="uCluster" placeholder="CLUSTER-4 / CLUSTER-15"></div>
+    <div><label>Designation</label>
+      <select id="uDesig">
+        <option>SUPERVISOR</option><option>CIRCLE INCHARGE</option>
+        <option>ASST. ZONE MANAGER</option><option>ZONE MANAGER</option><option>CLUSTER HEAD</option>
+      </select></div>
+    <div><label>Approver-1 (Emp Id, blank=AB293 direct)</label>
+      <input id="uApprover1" style="text-transform:uppercase"></div>
+    <div><label>Active</label>
+      <select id="uActive"><option>Y</option><option>N</option></select></div>
+  </div>
+  <div style="display:flex;gap:8px;margin-top:12px">
+    <button class="btn ok" onclick="saveUser()">Save</button>
+    <button class="btn grey" onclick="userDlg.close()">Cancel</button>
+  </div>
+</div></dialog>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ====== CONFIG ====== */
+var API = 'https://script.google.com/macros/s/AKfycbzEvjsIeVu_rJTdjqEJYIOGmZPBpNFmKYiFxXg2SLui8QzJU8x7vGPr18Pw1BsdxU-h/exec';
+var MONTH = 'MAY-2026';
+var SUPER_ADMIN = 'AB293';
+
+var MRI_CATS = ['Water','Sweeper+Cleaning','Courier By Bus','Courier By DTDC','TA','DA','Misc'];
+var CLU_CATS = ['Office Refreshment (Tea)','Stationary','Water','Sweeper+Cleaning',
+                'Courier By Bus','Courier By DTDC','TA','DA','Misc'];
+
+var ME=null, CATS=[], ROLE={}, CACHE=[], USERS=[], curId=null, editUserId=null, activeTab='queue';
+
+/* ---- ERP hook after dvsai_login ---- */
+function initExpenseTool(empId){ gateLogin((empId||'').toUpperCase()); }
+window.initExpenseTool = initExpenseTool;
+
+function doLogin(){ gateLogin((document.getElementById('lgId').value||'').trim().toUpperCase()); }
+
+/* ---- DVSAI session token auto-login ----
+   DVSAI_LOGIN builds: btoa(encodeURIComponent(JSON.stringify({empId,name,project,zone,email,ts})))
+   and passes it as ?token=... . We decode it, pull the Emp Id, and gate-login
+   automatically so the user does NOT log in twice. */
+function decodeDvsaiToken(token){
+  try{ return JSON.parse(decodeURIComponent(atob(token))); }
+  catch(e){ return null; }
+}
+function bootFromToken(){
+  var params=new URLSearchParams(window.location.search);
+  var token=params.get('token');
+  if(!token) return false;
+  var sess=decodeDvsaiToken(token);
+  if(!sess || !sess.empId){ showDeny('Invalid session token. Please log in via the Staff Portal.'); return true; }
+  // optional freshness check: token older than 12h -> ask to re-login from portal
+  if(sess.ts && (Date.now()-Number(sess.ts) > 12*60*60*1000)){
+    showDeny('Session expired. Please open this tool again from the Staff Portal.'); return true;
+  }
+  document.getElementById('loginView').classList.add('hide');  // hide manual login, auto-login instead
+  gateLogin(String(sess.empId).toUpperCase());
+  return true;
+}
+// On load: if a DVSAI token is present, auto-login; else show manual login (standalone testing).
+window.addEventListener('DOMContentLoaded', function(){ bootFromToken(); });
+
+/* ---- LOGIN GATE ---- */
+function gateLogin(id){
+  document.getElementById('lgErr').classList.add('hide');
+  if(!id){ showLoginErr('Emp Id daaliye.'); return; }
+  toast('Checking access…');
+  get({action:'login', id:id}).then(res=>{
+    if(!res.ok){
+      var msg = res.error==='ACCESS_DENIED'
+        ? ('Access Denied — '+(res.reason||'aapki Emp Id authorised nahi hai.'))
+        : (res.error==='NO_ID' ? 'Emp Id missing.' : ('Error: '+res.error));
+      // If ERP-injected (loginView hidden), show full-page deny
+      if(document.getElementById('loginView').classList.contains('hide')) showDeny(msg);
+      else showLoginErr(msg);
+      return;
+    }
+    ME=res.user; CATS=res.cats; ROLE=res.role;
+    document.getElementById('loginView').classList.add('hide');
+    document.getElementById('denyView').classList.add('hide');
+    document.getElementById('appView').classList.remove('hide');
+    document.getElementById('whoBar').innerHTML =
+      '<b>'+esc(ME.Name)+'</b> · '+esc(ME.Id)+'<br>'+esc(ME.Designation)+
+      ' · '+esc(ME.Project==='CLUSTER'?ME.Cluster:ME.Project)+
+      (ROLE.isAdmin?' · <b>SUPER ADMIN</b>':(ROLE.isApprover1?' · Approver-1':''));
+    setupUI();
+    load();
+  }).catch(()=>{
+    var m='Network error — API URL check karein.';
+    if(document.getElementById('loginView').classList.contains('hide')) showDeny(m); else showLoginErr(m);
+  });
+}
+function showLoginErr(m){ var e=document.getElementById('lgErr'); e.textContent=m; e.classList.remove('hide'); }
+function showDeny(m){
+  document.getElementById('loginView').classList.add('hide');
+  document.getElementById('appView').classList.add('hide');
+  document.getElementById('denyView').classList.remove('hide');
+  document.getElementById('denyMsg').textContent=m;
+}
+
+function isAdmin(){ return ROLE.isAdmin; }
+
+function setupUI(){
+  document.getElementById('periodTag').textContent=MONTH;
+  buildTabs();
+  // Submit form: everyone who can submit (not admin)
+  if(ROLE.canSubmit){
+    document.getElementById('formCard').classList.remove('hide');
+    document.getElementById('formOffice').textContent=ME.Office+' ('+ME.Id+')';
+    document.getElementById('formFlow').innerHTML='Approval chain: '+flowText();
+    buildCatInputs();
+  }
+  if(isAdmin()){ document.getElementById('dash').classList.remove('hide'); loadSummary(); }
+  showTab(isAdmin()?'all':'queue');
+}
+
+function flowText(){
+  return ME.Approver1 ? (ME.Id+' → '+ME.Approver1+' → '+SUPER_ADMIN+' (final)')
+                      : (ME.Id+' → '+SUPER_ADMIN+' (direct final)');
+}
+
+function buildTabs(){
+  var t=document.getElementById('tabbar'); t.innerHTML='';
+  var tabs=[];
+  if(isAdmin()){
+    tabs=[['all','All Submissions'],['users','Users & Hierarchy']];
+  } else if(ROLE.isApprover1){
+    tabs=[['queue','My Queue'],['approvals','Approvals (my team)']];
+  } else {
+    tabs=[['queue','My Queue']];
+  }
+  tabs.forEach(([k,l])=>{
+    var b=document.createElement('button'); b.textContent=l;
+    b.onclick=()=>showTab(k); b.dataset.k=k; t.appendChild(b);
+  });
+}
+function showTab(k){
+  activeTab=k;
+  document.querySelectorAll('#tabbar button').forEach(b=>b.classList.toggle('active',b.dataset.k===k));
+  var showUsers=(k==='users');
+  document.getElementById('usersCard').classList.toggle('hide',!showUsers);
+  document.getElementById('listCard').classList.toggle('hide',showUsers);
+  if(showUsers){ loadUsers(); return; }
+  document.getElementById('listTitle').textContent=
+    k==='all'?'All Submissions (Admin)':k==='approvals'?'Approvals — My Team':'My Queue';
+  render();
+}
+
+function buildCatInputs(){
+  var w=document.getElementById('catInputs'); w.innerHTML='';
+  CATS.forEach(c=>w.innerHTML+='<div><label>'+c+' (₹)</label>'+
+    '<input type="number" min="0" data-cat="'+c+'" oninput="recalc()"></div>');
+}
+function recalc(){var s=0;document.querySelectorAll('#catInputs input').forEach(i=>s+=Number(i.value)||0);
+  document.getElementById('fTotal').textContent='₹'+num(s);}
+
+/* ---- API ---- */
+function post(p){return fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
+  body:JSON.stringify(p)}).then(r=>r.json());}
+function get(p){var q=Object.keys(p).map(k=>k+'='+encodeURIComponent(p[k])).join('&');
+  return fetch(API+'?'+q).then(r=>r.json());}
+
+function load(){
+  toast('Loading…');
+  get({action:'queue',id:ME.Id}).then(res=>{
+    if(!res.ok){toast('Error: '+res.error);return;}
+    CACHE=res.data||[]; if(activeTab!=='users') render();
+    if(isAdmin()) loadSummary();
+    toast('Updated');
+  }).catch(()=>toast('Network error'));
+}
+function loadSummary(){
+  get({action:'summary',month:MONTH}).then(res=>{
+    if(!res.ok)return; var s=res.data;
+    document.getElementById('kpis').innerHTML=
+      kpi('Grand Total','₹'+num(s.grand))+kpi('Approved','₹'+num(s.approvedTotal))+
+      kpi('Pending Items',s.pendingCount)+kpi('MRI Total','₹'+num(s.byProject.MRI||0))+
+      kpi('Cluster Total','₹'+num(s.byProject.CLUSTER||0))+kpi('Submissions',s.count);
+  });
+}
+function kpi(l,v){return '<div class="kpi"><div class="v">'+v+'</div><div class="l">'+l+'</div></div>';}
+
+/* ---- render expense list ---- */
+function render(){
+  var flt=document.getElementById('fltStatus').value;
+  var rows=CACHE.slice().reverse();
+  // Approver-1 "approvals" tab = only items pending on me
+  if(activeTab==='approvals') rows=rows.filter(r=>r.Status==='PENDING_AP1'&&up(r.NextApprover)===up(ME.Id));
+  if(activeTab==='queue' && ROLE.isApprover1) rows=rows.filter(r=>up(r.SubmitterId)===up(ME.Id));
+  if(flt) rows=rows.filter(r=>r.Status===flt);
+  if(!rows.length){document.getElementById('tableWrap').innerHTML='<p class="muted">No records.</p>';return;}
+  var admin=isAdmin();
+  var h='<table><tr><th>Office / Submitter</th><th>Project</th><th>Claimed</th><th>Final</th>'+
+        '<th>Status</th><th>Chain / Comments</th><th>Action</th></tr>';
+  rows.forEach(r=>{
+    var act='—';
+    if(!admin && r.Status==='PENDING_AP1' && up(r.NextApprover)===up(ME.Id))
+      act='<button class="btn sm" onclick="openAp1(\''+r.ID+'\')">Approve</button>';
+    if(admin && r.Status==='PENDING_ADMIN')
+      act='<button class="btn sm ok" onclick="openAd(\''+r.ID+'\')">Final Approve</button>';
+    var chain=[];
+    if(r.Ap1Comment) chain.push('<b>'+esc(r.Ap1Id)+':</b> '+esc(r.Ap1Comment));
+    if(r.AdminRemark) chain.push('<b>Admin:</b> '+esc(r.AdminRemark));
+    if(r.MiscRemark) chain.push('<i>'+esc(r.MiscRemark)+'</i>');
+    h+='<tr>'+
+      '<td>'+esc(r.OfficeName)+'<div class="muted">'+esc(r.SubmitterName)+' · '+esc(r.SubmitterId)+'</div></td>'+
+      '<td>'+esc(r.Project)+(r.Cluster?'<div class="muted">'+esc(r.Cluster)+'</div>':'')+'</td>'+
+      '<td class="amt">₹'+num(r.ClaimedTotal)+'</td>'+
+      '<td class="amt">'+(r.FinalTotal!==''?'₹'+num(r.FinalTotal):'—')+'</td>'+
+      '<td><span class="pill '+r.Status+'">'+label(r.Status)+'</span>'+
+        (r.NextApprover?'<div class="muted">→ '+esc(r.NextApprover)+'</div>':'')+'</td>'+
+      '<td class="muted">'+(chain.join('<br>')||'—')+'</td>'+
+      '<td>'+act+'</td></tr>';
+  });
+  document.getElementById('tableWrap').innerHTML=h+'</table>';
+}
+
+/* ---- submit ---- */
+function submitExpense(){
+  var amounts={},any=false;
+  document.querySelectorAll('#catInputs input').forEach(i=>{var v=Number(i.value)||0;amounts[i.dataset.cat]=v;if(v>0)any=true;});
+  if(!any){toast('Kam se kam ek amount daaliye');return;}
+  toast('Submitting…');
+  post({action:'submit',submitterId:ME.Id,month:MONTH,amounts:amounts,
+    miscRemark:val('fRemark'),photoURL:val('fPhoto')})
+    .then(res=>{if(res.ok){toast('Submitted ✓ Total ₹'+num(res.total));clearForm();load();}else toast('Error: '+res.error);})
+    .catch(()=>{toast('Sent');clearForm();setTimeout(load,1200);});
+}
+
+/* ---- Approver-1 approve ---- */
+function openAp1(id){curId=id;var r=byId(id);
+  document.getElementById('ap1Info').innerHTML=infoBlock(r);
+  document.getElementById('ap1Comment').value=''; ap1Dlg.showModal();}
+function doAp1Approve(){
+  post({action:'ap1approve',id:curId,approverId:ME.Id,comment:val('ap1Comment')})
+    .then(res=>{ap1Dlg.close();toast(res.ok?'Approved → Admin ✓':'Error: '+res.error);setTimeout(load,900);})
+    .catch(()=>{ap1Dlg.close();setTimeout(load,1200);});
+}
+
+/* ---- Admin final approve (edit amounts) ---- */
+function openAd(id){curId=id;var r=byId(id);
+  document.getElementById('adInfo').innerHTML=infoBlock(r);
+  var amounts=JSON.parse(r.Amounts||'{}'); var cats=r.Project==='CLUSTER'?CLU_CATS:MRI_CATS;
+  var w=document.getElementById('adInputs');w.innerHTML='';
+  cats.forEach(c=>w.innerHTML+='<div><label>'+c+'</label>'+
+    '<input type="number" min="0" data-cat="'+c+'" value="'+(amounts[c]||0)+'" oninput="adRecalc()"></div>');
+  adRecalc(); document.getElementById('adRemark').value=''; adDlg.showModal();}
+function adRecalc(){var s=0;document.querySelectorAll('#adInputs input').forEach(i=>s+=Number(i.value)||0);
+  document.getElementById('adAuto').textContent='₹'+num(s);document.getElementById('adFinal').value=s;}
+function doApprove(){
+  var amounts={};document.querySelectorAll('#adInputs input').forEach(i=>amounts[i.dataset.cat]=Number(i.value)||0);
+  post({action:'approve',id:curId,approverId:ME.Id,amounts:amounts,
+    finalTotal:document.getElementById('adFinal').value,remark:val('adRemark')})
+    .then(res=>{adDlg.close();toast(res.ok?'Final Approved ✓ ₹'+num(res.finalTotal):'Error: '+res.error);setTimeout(load,900);})
+    .catch(()=>{adDlg.close();setTimeout(load,1200);});
+}
+function doReject(){var remark=prompt('Reason for rejection:');if(remark===null)return;
+  post({action:'reject',id:curId,approverId:ME.Id,remark:remark})
+    .then(()=>{try{ap1Dlg.close();}catch(e){}try{adDlg.close();}catch(e){}toast('Rejected');setTimeout(load,900);});}
+
+/* ---- Admin: Users management ---- */
+function loadUsers(){
+  get({action:'users',id:ME.Id}).then(res=>{
+    if(!res.ok){toast('Error: '+res.error);return;}
+    USERS=res.users||[]; renderUsers();
+  });
+}
+function renderUsers(){
+  var h='<table><tr><th>Emp Id</th><th>Name</th><th>Office</th><th>Project</th>'+
+    '<th>Designation</th><th>Approver-1</th><th>Active</th><th>Action</th></tr>';
+  USERS.forEach(u=>{
+    h+='<tr>'+
+      '<td><b>'+esc(u.Id)+'</b></td><td>'+esc(u.Name)+'</td><td>'+esc(u.Office)+'</td>'+
+      '<td>'+esc(u.Project)+(u.Cluster?'<div class="muted">'+esc(u.Cluster)+'</div>':'')+'</td>'+
+      '<td>'+esc(u.Designation)+'</td>'+
+      '<td>'+(u.Approver1?esc(u.Approver1):'<span class="muted">AB293 (direct)</span>')+'</td>'+
+      '<td>'+(up(u.Active)==='N'?'<span class="pill REJECTED">Inactive</span>':'<span class="pill APPROVED">Active</span>')+'</td>'+
+      '<td>'+(up(u.Id)===SUPER_ADMIN?'<span class="muted">—</span>':
+        '<button class="btn sm" onclick="openUserEdit(\''+u.Id+'\')">Edit</button> '+
+        '<button class="btn sm bad" onclick="removeUser(\''+u.Id+'\')">Remove</button>')+'</td>'+
+    '</tr>';
+  });
+  document.getElementById('usersWrap').innerHTML=h+'</table>';
+}
+function openUserAdd(){
+  editUserId=null; document.getElementById('userDlgTitle').textContent='Add User';
+  ['uId','uName','uOffice','uCluster','uApprover1'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('uProject').value='MRI';
+  document.getElementById('uDesig').value='SUPERVISOR';
+  document.getElementById('uActive').value='Y';
+  document.getElementById('uId').disabled=false;
+  userDlg.showModal();
+}
+function openUserEdit(id){
+  editUserId=id; var u=USERS.filter(x=>up(x.Id)===up(id))[0]; if(!u)return;
+  document.getElementById('userDlgTitle').textContent='Edit User — '+id;
+  document.getElementById('uId').value=u.Id; document.getElementById('uId').disabled=true;
+  document.getElementById('uName').value=u.Name; document.getElementById('uOffice').value=u.Office;
+  document.getElementById('uProject').value=u.Project||'MRI';
+  document.getElementById('uCluster').value=u.Cluster||'';
+  document.getElementById('uDesig').value=u.Designation||'SUPERVISOR';
+  document.getElementById('uApprover1').value=u.Approver1||'';
+  document.getElementById('uActive').value=up(u.Active)==='N'?'N':'Y';
+  userDlg.showModal();
+}
+function saveUser(){
+  var payload={
+    Id:val('uId').toUpperCase(),Name:val('uName'),Office:val('uOffice'),
+    Project:document.getElementById('uProject').value,Cluster:val('uCluster'),
+    Designation:document.getElementById('uDesig').value,
+    Approver1:val('uApprover1').toUpperCase(),Active:document.getElementById('uActive').value
+  };
+  if(!payload.Id){toast('Emp Id required');return;}
+  if(editUserId){
+    post({action:'userEdit',adminId:ME.Id,id:editUserId,fields:payload})
+      .then(res=>{userDlg.close();toast(res.ok?'Updated ✓':'Error: '+res.error);loadUsers();});
+  } else {
+    post({action:'userAdd',adminId:ME.Id,user:payload})
+      .then(res=>{userDlg.close();toast(res.ok?'User added ✓':'Error: '+res.error);loadUsers();});
+  }
+}
+function removeUser(id){
+  if(!confirm(id+' ko remove karein? (soft delete → inactive)'))return;
+  post({action:'userRemove',adminId:ME.Id,id:id})
+    .then(res=>{toast(res.ok?'Removed ✓':'Error: '+res.error);loadUsers();});
+}
+
+/* ---- helpers ---- */
+function infoBlock(r){
+  var amounts=JSON.parse(r.Amounts||'{}'),parts=[];
+  for(var k in amounts) if(amounts[k]) parts.push(k+': ₹'+num(amounts[k]));
+  return '<div class="muted"><b>'+esc(r.OfficeName)+'</b> · '+esc(r.SubmitterName)+' ('+esc(r.SubmitterId)+')'+
+    '<br>'+esc(r.Project)+(r.Cluster?' · '+esc(r.Cluster):'')+
+    '<br>'+parts.join(' &nbsp;|&nbsp; ')+
+    '<br>Claimed Total: <b>₹'+num(r.ClaimedTotal)+'</b>'+
+    (r.MiscRemark?'<br>Remark: '+esc(r.MiscRemark):'')+
+    (r.Ap1Comment?'<br>'+esc(r.Ap1Id)+' comment: '+esc(r.Ap1Comment):'')+'</div>';
+}
+function val(id){return document.getElementById(id).value.trim();}
+function byId(id){return CACHE.filter(r=>r.ID===id)[0];}
+function up(s){return String(s==null?'':s).toUpperCase();}
+function num(n){return Number(n||0).toLocaleString('en-IN');}
+function esc(s){return String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function label(s){return {PENDING_AP1:'Pending Approver-1',PENDING_ADMIN:'Pending Admin',
+  APPROVED:'Approved',REJECTED:'Rejected'}[s]||s;}
+function clearForm(){document.querySelectorAll('#catInputs input').forEach(i=>i.value='');
+  ['fRemark','fPhoto'].forEach(i=>document.getElementById(i).value='');recalc();}
+var ap1Dlg=document.getElementById('ap1Dlg'),adDlg=document.getElementById('adDlg'),userDlg=document.getElementById('userDlg');
+function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1900);}
+</script>
+</body>
+</html>
