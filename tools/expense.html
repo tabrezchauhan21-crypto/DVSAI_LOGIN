@@ -52,7 +52,7 @@
 </head>
 <body>
 <header>
-  <h1>⚡ DVVNL Office Expense Approval <span class="tag" id="periodTag">MAY-2026</span></h1>
+  <h1>⚡ DVVNL Office Expense Approval <span class="tag" id="periodTag">—</span></h1>
   <div style="display:flex;align-items:center;gap:12px">
     <div class="who" id="whoBar"></div>
     <button id="logoutBtn" class="hide" onclick="doLogout()"
@@ -68,8 +68,8 @@
     <input id="lgId" placeholder="Enter your Emp Id" style="text-transform:uppercase;text-align:center">
     <button class="btn" onclick="doLogin()">Enter</button>
     <div id="lgErr" class="err hide" style="margin-top:12px"></div>
-    <p class="muted" style="margin-top:10px">Staff Portal se aane par yeh apne aap login ho jata hai
-      (token se). Yeh manual box sirf standalone testing ke liye hai.</p>
+    <p class="muted" style="margin-top:10px">When opened from the Staff Portal, this logs in
+      automatically (via token). This manual box is only for standalone testing.</p>
   </div>
 </div>
 
@@ -85,13 +85,32 @@
 <div class="wrap hide" id="appView">
   <div class="tabbar" id="tabbar"></div>
 
+  <!-- Admin: active month control -->
+  <div id="monthAdmin" class="card hide">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+      <div>
+        <h3 style="margin:0">Active Submission Month</h3>
+        <div class="muted">Only this month stays open for submission. Setting a new month automatically closes the previous one. Closed month data is also hidden.</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input id="monthInput" placeholder="e.g. JUN-2026" style="width:150px;text-transform:uppercase">
+        <button class="btn sm ok" onclick="saveMonth()">Set / Open</button>
+        <button class="btn sm bad" onclick="closeMonth()">Close All</button>
+      </div>
+    </div>
+    <div class="muted" style="margin-top:8px">Currently open: <b id="curMonthLabel">—</b></div>
+  </div>
+
   <!-- Admin dashboard KPIs -->
   <div id="dash" class="hide"><div class="kpis" id="kpis"></div></div>
 
   <!-- Submit form -->
   <div class="card hide" id="formCard">
-    <h3>Submit Expense — <span id="formOffice"></span></h3>
+    <h3>Submit Expense — <span id="formOffice"></span> <span id="formMonth" style="color:#0b5394"></span></h3>
     <div class="flow" id="formFlow"></div>
+    <div id="monthClosedBanner" class="err hide" style="margin-top:10px">
+      No submission month is currently open. Submission is closed — you can add entries once the admin opens a month.
+    </div>
     <div class="grid" id="catInputs" style="margin-top:10px"></div>
     <label>Misc Remark</label>
     <input id="fRemark" placeholder="e.g. AIR COOLER / 490 COMPUTER REPAIR">
@@ -99,7 +118,7 @@
     <input id="fPhoto" placeholder="Drive / OneDrive link">
     <div style="display:flex;gap:12px;align-items:center;margin-top:10px">
       <div style="font-size:15px">Auto Total: <b id="fTotal">₹0</b></div>
-      <button class="btn" onclick="submitExpense()">Submit for Approval</button>
+      <button class="btn" id="submitBtn" onclick="submitExpense()">Submit for Approval</button>
     </div>
   </div>
 
@@ -135,7 +154,7 @@
 <dialog id="ap1Dlg"><div class="dlg">
   <h3>Approve — forward to Final Approver (AB293)</h3>
   <div id="ap1Info"></div>
-  <p class="muted">Aap amount edit nahi kar sakte. Koi issue ho to comment likhein — woh final approver ko dikhega.</p>
+  <p class="muted">You cannot edit amounts. If there is any issue, add a comment — it will be shown to the final approver.</p>
   <label>Comment / Suggestion (optional)</label>
   <textarea id="ap1Comment" placeholder="e.g. Courier bill verify kiya. TA thoda zyada lag raha hai."></textarea>
   <div style="display:flex;gap:8px;margin-top:12px">
@@ -195,8 +214,8 @@
 
 <script>
 /* ====== CONFIG ====== */
-var API = 'https://script.google.com/macros/s/AKfycbzEvjsIeVu_rJTdjqEJYIOGmZPBpNFmKYiFxXg2SLui8QzJU8x7vGPr18Pw1BsdxU-h/exec';
-var MONTH = 'MAY-2026';
+var API = 'https://script.google.com/macros/s/AKfycbx0NSar1iAJ2Co3z0SP48iisI0HydhEKUyn-5OEdzzXiDJ5jit5nmg-sO1jN74YQ6WGow/exec';
+var ACTIVE_MONTH = '';   // set from server on login/getMonth; '' = no month open
 var SUPER_ADMIN = 'AB293';
 
 var MRI_CATS = ['Water','Sweeper+Cleaning','Courier By Bus','Courier By DTDC','TA','DA','Misc'];
@@ -204,6 +223,7 @@ var CLU_CATS = ['Office Refreshment (Tea)','Stationary','Water','Sweeper+Cleanin
                 'Courier By Bus','Courier By DTDC','TA','DA','Misc'];
 
 var ME=null, CATS=[], ROLE={}, CACHE=[], USERS=[], curId=null, editUserId=null, activeTab='queue';
+var CURRENT_TS='';   // timestamp of the active DVSAI token (for per-token logout)
 
 /* ---- ERP hook after dvsai_login ---- */
 function initExpenseTool(empId){ gateLogin((empId||'').toUpperCase()); }
@@ -223,17 +243,24 @@ function bootFromToken(){
   var params=new URLSearchParams(window.location.search);
   var token=params.get('token');
   if(!token) return false;
-  // If user logged out in this browser tab session, do NOT auto-login on back/refresh.
-  if(sessionStorage.getItem('expenseLoggedOut')==='1'){
-    showDeny('Aap log out ho chuke hain. Dobara access ke liye Staff Portal se login karein.');
+  var sess=decodeDvsaiToken(token);
+  if(!sess || !sess.empId){ showDeny('Invalid session. Please log in again from the Staff Portal.'); return true; }
+  // Per-token logout: only block if THIS exact token was logged out (back/refresh),
+  // not when a fresh login produced a new token.
+  var loggedOutTs = sessionStorage.getItem('expenseLoggedOutTs') || '';
+  if(loggedOutTs && String(sess.ts)===loggedOutTs){
+    showDeny('You have been logged out. Please log in again from the Staff Portal.');
     return true;
   }
-  var sess=decodeDvsaiToken(token);
-  if(!sess || !sess.empId){ showDeny('Invalid session token. Please log in via the Staff Portal.'); return true; }
+  // A fresh/different token has arrived -> clear any old logout flag.
+  if(loggedOutTs && String(sess.ts)!==loggedOutTs){
+    sessionStorage.removeItem('expenseLoggedOutTs');
+  }
   // freshness check: token older than 12h -> ask to re-login from portal
   if(sess.ts && (Date.now()-Number(sess.ts) > 12*60*60*1000)){
     showDeny('Session expired. Please open this tool again from the Staff Portal.'); return true;
   }
+  CURRENT_TS = String(sess.ts||'');
   document.getElementById('loginView').classList.add('hide');  // hide manual login, auto-login instead
   gateLogin(String(sess.empId).toUpperCase());
   return true;
@@ -241,12 +268,13 @@ function bootFromToken(){
 // On load: if a DVSAI token is present, auto-login; else show manual login (standalone testing).
 window.addEventListener('DOMContentLoaded', function(){ bootFromToken(); });
 
-// Back/forward cache guard: agar page bfcache se wapas aaye (back button) aur user
-// logged out tha, to session wapas na khule.
+// Back/forward cache guard: if page returns from bfcache (back button) and THIS token
+// was logged out, do not reopen the session.
 window.addEventListener('pageshow', function(ev){
-  if(sessionStorage.getItem('expenseLoggedOut')==='1'){
+  var loggedOutTs = sessionStorage.getItem('expenseLoggedOutTs') || '';
+  if(loggedOutTs && CURRENT_TS && loggedOutTs===CURRENT_TS){
     clearSessionUI();
-    showDeny('Aap log out ho chuke hain. Dobara access ke liye Staff Portal se login karein.');
+    showDeny('You have been logged out. Please log in again from the Staff Portal.');
   }
 });
 
@@ -258,39 +286,37 @@ function clearSessionUI(){
   document.getElementById('whoBar').innerHTML='';
 }
 function doLogout(){
-  if(!confirm('Log out karein?')) return;
-  // 1) mark logged-out for this browser-tab session (survives back/refresh)
-  sessionStorage.setItem('expenseLoggedOut','1');
-  // 2) clear in-memory session + UI
+  if(!confirm('Log out?')) return;
+  // Mark THIS token (by its timestamp) as logged-out, so back/refresh won't reopen it,
+  // but a fresh login from the portal (new timestamp) will work normally.
+  if(CURRENT_TS) sessionStorage.setItem('expenseLoggedOutTs', CURRENT_TS);
   clearSessionUI();
-  // 3) remove the token from the URL so it can't be reused on refresh/back
+  // Remove the token from the URL so it can't be reused on refresh/back.
   try{ history.replaceState(null,'',window.location.pathname); }catch(e){}
-  // 4) send back to Staff Portal (fresh login required)
-  var params=new URLSearchParams(window.location.search);
-  if(params.get('token')!==null || window.location.pathname.indexOf('/tools/')>=0){
+  // Send back to the Staff Portal (fresh login required).
+  if(window.location.pathname.indexOf('/tools/')>=0){
     window.location.replace('../index.html');   // GitHub Pages: tools/expense.html -> ../index.html
   } else {
-    // standalone: show the deny/login screen
-    showDeny('Aap log out ho chuke hain. Dobara login karein.');
+    showDeny('You have been logged out. Please log in again.');
   }
 }
 
 /* ---- LOGIN GATE ---- */
 function gateLogin(id){
   document.getElementById('lgErr').classList.add('hide');
-  if(!id){ showLoginErr('Emp Id daaliye.'); return; }
+  if(!id){ showLoginErr('Enter your Emp Id.'); return; }
   toast('Checking access…');
   get({action:'login', id:id}).then(res=>{
     if(!res.ok){
       var msg = res.error==='ACCESS_DENIED'
-        ? ('Access Denied — '+(res.reason||'aapki Emp Id authorised nahi hai.'))
+        ? ('Access Denied — '+(res.reason||'your Emp Id is not authorised.'))
         : (res.error==='NO_ID' ? 'Emp Id missing.' : ('Error: '+res.error));
       // If ERP-injected (loginView hidden), show full-page deny
       if(document.getElementById('loginView').classList.contains('hide')) showDeny(msg);
       else showLoginErr(msg);
       return;
     }
-    ME=res.user; CATS=res.cats; ROLE=res.role;
+    ME=res.user; CATS=res.cats; ROLE=res.role; ACTIVE_MONTH=res.activeMonth||'';
     document.getElementById('loginView').classList.add('hide');
     document.getElementById('denyView').classList.add('hide');
     document.getElementById('appView').classList.remove('hide');
@@ -302,7 +328,7 @@ function gateLogin(id){
     setupUI();
     load();
   }).catch(()=>{
-    var m='Network error — API URL check karein.';
+    var m='Network error — please check the API URL.';
     if(document.getElementById('loginView').classList.contains('hide')) showDeny(m); else showLoginErr(m);
   });
 }
@@ -317,17 +343,42 @@ function showDeny(m){
 function isAdmin(){ return ROLE.isAdmin; }
 
 function setupUI(){
-  document.getElementById('periodTag').textContent=MONTH;
+  updateMonthTag();
   buildTabs();
-  // Submit form: everyone who can submit (not admin)
+  // Submit form: everyone who can submit (not admin) AND a month must be open
   if(ROLE.canSubmit){
     document.getElementById('formCard').classList.remove('hide');
     document.getElementById('formOffice').textContent=ME.Office+' ('+ME.Id+')';
     document.getElementById('formFlow').innerHTML='Approval chain: '+flowText();
     buildCatInputs();
+    applyMonthGate();   // enable/disable submit depending on active month
   }
-  if(isAdmin()){ document.getElementById('dash').classList.remove('hide'); loadSummary(); }
+  if(isAdmin()){
+    document.getElementById('dash').classList.remove('hide');
+    document.getElementById('monthAdmin').classList.remove('hide');
+    document.getElementById('monthInput').value = ACTIVE_MONTH || '';
+    loadSummary();
+  }
   showTab(isAdmin()?'all':'queue');
+}
+
+function updateMonthTag(){
+  var tag=document.getElementById('periodTag');
+  tag.textContent = ACTIVE_MONTH ? ACTIVE_MONTH : 'No month open';
+  tag.style.background = ACTIVE_MONTH ? '' : '#f8d7da';
+  tag.style.color = ACTIVE_MONTH ? '' : '#842029';
+}
+
+// If no active month, block the submit form for field users.
+function applyMonthGate(){
+  var open=!!ACTIVE_MONTH;
+  var card=document.getElementById('formCard');
+  var banner=document.getElementById('monthClosedBanner');
+  document.querySelectorAll('#catInputs input, #fRemark, #fPhoto').forEach(function(el){ el.disabled=!open; });
+  var subBtn=document.getElementById('submitBtn'); if(subBtn) subBtn.disabled=!open;
+  if(banner) banner.classList.toggle('hide', open);
+  var titleMonth=document.getElementById('formMonth');
+  if(titleMonth) titleMonth.textContent = open ? ('— '+ACTIVE_MONTH) : '';
 }
 
 function flowText(){
@@ -386,12 +437,16 @@ function load(){
   }).catch(()=>toast('Network error'));
 }
 function loadSummary(){
-  get({action:'summary',month:MONTH}).then(res=>{
+  get({action:'summary'}).then(res=>{
     if(!res.ok)return; var s=res.data;
+    ACTIVE_MONTH = s.activeMonth||'';
+    updateMonthTag();
+    var lbl=document.getElementById('curMonthLabel'); if(lbl) lbl.textContent = ACTIVE_MONTH||'None (closed)';
     document.getElementById('kpis').innerHTML=
+      kpi('Active Month',ACTIVE_MONTH||'—')+
       kpi('Grand Total','₹'+num(s.grand))+kpi('Approved','₹'+num(s.approvedTotal))+
       kpi('Pending Items',s.pendingCount)+kpi('MRI Total','₹'+num(s.byProject.MRI||0))+
-      kpi('Cluster Total','₹'+num(s.byProject.CLUSTER||0))+kpi('Submissions',s.count);
+      kpi('Cluster Total','₹'+num(s.byProject.CLUSTER||0));
   });
 }
 function kpi(l,v){return '<div class="kpi"><div class="v">'+v+'</div><div class="l">'+l+'</div></div>';}
@@ -433,13 +488,19 @@ function render(){
 
 /* ---- submit ---- */
 function submitExpense(){
+  if(!ACTIVE_MONTH){ toast('No month is open — submission is closed'); return; }
   var amounts={},any=false;
   document.querySelectorAll('#catInputs input').forEach(i=>{var v=Number(i.value)||0;amounts[i.dataset.cat]=v;if(v>0)any=true;});
-  if(!any){toast('Kam se kam ek amount daaliye');return;}
+  if(!any){toast('Enter at least one amount');return;}
   toast('Submitting…');
-  post({action:'submit',submitterId:ME.Id,month:MONTH,amounts:amounts,
+  post({action:'submit',submitterId:ME.Id,amounts:amounts,
     miscRemark:val('fRemark'),photoURL:val('fPhoto')})
-    .then(res=>{if(res.ok){toast('Submitted ✓ Total ₹'+num(res.total));clearForm();load();}else toast('Error: '+res.error);})
+    .then(res=>{
+      if(res.ok){toast('Submitted ✓ '+res.month+' · Total ₹'+num(res.total));clearForm();load();}
+      else if(res.error==='MONTH_CLOSED'){ toast(res.reason||'Month is closed'); ACTIVE_MONTH=''; applyMonthGate(); updateMonthTag(); }
+      else if(res.error==='ALREADY_SUBMITTED'){ toast(res.reason||'Already submitted'); }
+      else toast('Error: '+res.error);
+    })
     .catch(()=>{toast('Sent');clearForm();setTimeout(load,1200);});
 }
 
@@ -473,6 +534,29 @@ function doApprove(){
 function doReject(){var remark=prompt('Reason for rejection:');if(remark===null)return;
   post({action:'reject',id:curId,approverId:ME.Id,remark:remark})
     .then(()=>{try{ap1Dlg.close();}catch(e){}try{adDlg.close();}catch(e){}toast('Rejected');setTimeout(load,900);});}
+
+/* ---- Admin: active month ---- */
+function saveMonth(){
+  var m=(document.getElementById('monthInput').value||'').trim().toUpperCase();
+  if(!m){ toast('Enter a month, e.g. JUN-2026'); return; }
+  if(!confirm('Set active month: '+m+' ?\nThe previous month will close automatically and its data will be hidden.')) return;
+  post({action:'setMonth',adminId:ME.Id,month:m}).then(res=>{
+    if(res.ok){ ACTIVE_MONTH=res.activeMonth||''; updateMonthTag();
+      document.getElementById('curMonthLabel').textContent=ACTIVE_MONTH||'None';
+      toast('Month open: '+ACTIVE_MONTH); load(); }
+    else toast('Error: '+res.error);
+  });
+}
+function closeMonth(){
+  if(!confirm('Close all months? After this, no one can submit until a new month is set.')) return;
+  post({action:'setMonth',adminId:ME.Id,month:''}).then(res=>{
+    if(res.ok){ ACTIVE_MONTH=''; updateMonthTag();
+      document.getElementById('curMonthLabel').textContent='None (closed)';
+      document.getElementById('monthInput').value='';
+      toast('All months closed'); load(); }
+    else toast('Error: '+res.error);
+  });
+}
 
 /* ---- Admin: Users management ---- */
 function loadUsers(){
@@ -536,7 +620,7 @@ function saveUser(){
   }
 }
 function removeUser(id){
-  if(!confirm(id+' ko remove karein? (soft delete → inactive)'))return;
+  if(!confirm('Remove '+id+'? (soft delete → inactive)'))return;
   post({action:'userRemove',adminId:ME.Id,id:id})
     .then(res=>{toast(res.ok?'Removed ✓':'Error: '+res.error);loadUsers();});
 }
