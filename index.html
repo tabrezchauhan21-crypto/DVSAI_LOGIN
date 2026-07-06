@@ -264,6 +264,7 @@
   .tool-tile.annexure{ background:#1f4e79; }
   .tool-tile.mridata{ background:#26215c; }
   .tool-tile.billedunbilled{ background:#4b1528; }
+  .tool-tile.expense{ background:#134f3a; }
   .tool-icon{
     font-size:24px;
     line-height:1;
@@ -278,6 +279,7 @@
   .tool-tile.annexure .tool-name{ color:#e6f1fb; }
   .tool-tile.mridata .tool-name{ color:#eeedfe; }
   .tool-tile.billedunbilled .tool-name{ color:#fbeaf0; }
+  .tool-tile.expense .tool-name{ color:#dff5ec; }
   .tool-sub{
     font-size:11px;
     line-height:1.4;
@@ -287,6 +289,7 @@
   .tool-tile.annexure .tool-sub{ color:#85b7eb; }
   .tool-tile.mridata .tool-sub{ color:#afa9ec; }
   .tool-tile.billedunbilled .tool-sub{ color:#ed93b1; }
+  .tool-tile.expense .tool-sub{ color:#8fd9bd; }
   .logout{
     border:1.5px solid var(--line);
     background:#fff;
@@ -614,6 +617,13 @@
               <div class="tool-sub">View Daily Billed &amp; Unbilled Raw File</div>
             </div>
           </a>
+          <a href="#" class="tool-tile expense" id="tileExpense">
+            <div class="tool-icon">🧾</div>
+            <div>
+              <div class="tool-name">Office Expense Approval</div>
+              <div class="tool-sub">Submit &amp; Approve Field Office Expenses (MRI &amp; Cluster Billing)</div>
+            </div>
+          </a>
         </div>
 
         <button class="logout" id="logoutBtn">Log out</button>
@@ -711,8 +721,6 @@
 <script>
 /* ============================================================
    Set this to your deployed Google Apps Script Web App URL
-   (Deploy > New deployment > Web app > Execute as: Me > Who has
-   access: Anyone). See README for full setup steps.
    ============================================================ */
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzk0G5KZ_ssFHvoR8kQhDCiDhY_Ka2q6HKwKaTDzD0BQQIkioyrXkQrspflLFzSyaSS/exec";
 
@@ -809,7 +817,7 @@ document.getElementById('backToLoginLink').addEventListener('click', (e) => {
   tabLogin.click();
 });
 
-// ---------- forgot password: step 1 (request code) ----------
+// ---------- forgot password: step 1 ----------
 let fpEmpIdInFlight = '';
 
 document.getElementById('forgotStep1Form').addEventListener('submit', async (e) => {
@@ -819,10 +827,7 @@ document.getElementById('forgotStep1Form').addEventListener('submit', async (e) 
   clearMsg(msg);
 
   const empId = document.getElementById('fpEmpId').value.trim().toUpperCase();
-  if (!empId){
-    showMsg(msg, 'Enter your Employee ID', 'bad');
-    return;
-  }
+  if (!empId){ showMsg(msg, 'Enter your Employee ID', 'bad'); return; }
 
   btn.disabled = true; btn.textContent = 'Sending…';
   try{
@@ -833,17 +838,12 @@ document.getElementById('forgotStep1Form').addEventListener('submit', async (e) 
       document.getElementById('forgotStep1Form').style.display = 'none';
       document.getElementById('forgotStep2Form').style.display = 'block';
       document.getElementById('forgotSub').textContent = 'Enter the 6-digit code and choose a new password.';
-    } else {
-      showMsg(msg, result.message || 'Could not send code', 'bad');
-    }
-  } catch(err){
-    showMsg(msg, err.message, 'bad');
-  } finally {
-    btn.disabled = false; btn.textContent = 'Send code';
-  }
+    } else { showMsg(msg, result.message || 'Could not send code', 'bad'); }
+  } catch(err){ showMsg(msg, err.message, 'bad'); }
+  finally { btn.disabled = false; btn.textContent = 'Send code'; }
 });
 
-// ---------- forgot password: step 2 (verify + set new password) ----------
+// ---------- forgot password: step 2 ----------
 document.getElementById('forgotStep2Form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const msg = document.getElementById('forgotMsg2');
@@ -855,40 +855,24 @@ document.getElementById('forgotStep2Form').addEventListener('submit', async (e) 
   const newPassword = document.getElementById('fpNewPassword').value;
   const confirm = document.getElementById('fpConfirm').value;
 
-  if (!/^\d{6}$/.test(otp)){
-    showMsg(msg, 'Enter the 6-digit code from your email', 'bad');
-    return;
-  }
-  if (newPassword.length < 6){
-    document.getElementById('fpNewPasswordHint').textContent = 'Password must be at least 6 characters';
-    return;
-  }
-  if (newPassword !== confirm){
-    showMsg(msg, 'Passwords do not match', 'bad');
-    return;
-  }
+  if (!/^\d{6}$/.test(otp)){ showMsg(msg, 'Enter the 6-digit code from your email', 'bad'); return; }
+  if (newPassword.length < 6){ document.getElementById('fpNewPasswordHint').textContent = 'Password must be at least 6 characters'; return; }
+  if (newPassword !== confirm){ showMsg(msg, 'Passwords do not match', 'bad'); return; }
 
   btn.disabled = true; btn.textContent = 'Resetting…';
   try{
     const newPasswordHash = await sha256(newPassword);
-    const result = await callScript({
-      action: 'forgotPasswordReset', empId: fpEmpIdInFlight, otp, newPasswordHash
-    });
+    const result = await callScript({ action: 'forgotPasswordReset', empId: fpEmpIdInFlight, otp, newPasswordHash });
     if (result.success){
       showMsg(msg, 'Password reset — you can log in now.', 'good');
       document.getElementById('forgotStep2Form').reset();
       setTimeout(() => tabLogin.click(), 900);
-    } else {
-      showMsg(msg, result.message || 'Reset failed', 'bad');
-    }
-  } catch(err){
-    showMsg(msg, err.message, 'bad');
-  } finally {
-    btn.disabled = false; btn.textContent = 'Reset password';
-  }
+    } else { showMsg(msg, result.message || 'Reset failed', 'bad'); }
+  } catch(err){ showMsg(msg, err.message, 'bad'); }
+  finally { btn.disabled = false; btn.textContent = 'Reset password'; }
 });
 
-// ---------- change password (logged-in user) ----------
+// ---------- change password ----------
 document.getElementById('showChangePwLink').addEventListener('click', (e) => {
   e.preventDefault();
   const form = document.getElementById('changePwForm');
@@ -906,54 +890,27 @@ document.getElementById('changePwForm').addEventListener('submit', async (e) => 
   const newPw = document.getElementById('cpNew').value;
   const confirm = document.getElementById('cpConfirm').value;
 
-  if (newPw.length < 6){
-    document.getElementById('cpNewHint').textContent = 'Password must be at least 6 characters';
-    return;
-  }
-  if (newPw !== confirm){
-    showMsg(msg, 'Passwords do not match', 'bad');
-    return;
-  }
+  if (newPw.length < 6){ document.getElementById('cpNewHint').textContent = 'Password must be at least 6 characters'; return; }
+  if (newPw !== confirm){ showMsg(msg, 'Passwords do not match', 'bad'); return; }
 
   btn.disabled = true; btn.textContent = 'Updating…';
   try{
     const currentPasswordHash = await sha256(current);
     const newPasswordHash = await sha256(newPw);
-    const result = await callScript({
-      action: 'changePassword',
-      empId: currentUser.empId,
-      currentPasswordHash,
-      newPasswordHash
-    });
-    if (result.success){
-      showMsg(msg, 'Password updated.', 'good');
-      document.getElementById('changePwForm').reset();
-    } else {
-      showMsg(msg, result.message || 'Could not update password', 'bad');
-    }
-  } catch(err){
-    showMsg(msg, err.message, 'bad');
-  } finally {
-    btn.disabled = false; btn.textContent = 'Update password';
-  }
+    const result = await callScript({ action: 'changePassword', empId: currentUser.empId, currentPasswordHash, newPasswordHash });
+    if (result.success){ showMsg(msg, 'Password updated.', 'good'); document.getElementById('changePwForm').reset(); }
+    else { showMsg(msg, result.message || 'Could not update password', 'bad'); }
+  } catch(err){ showMsg(msg, err.message, 'bad'); }
+  finally { btn.disabled = false; btn.textContent = 'Update password'; }
 });
 
-// ---------- session (in-memory only — resets on page reload) ----------
+// ---------- session ----------
 let currentUser = null;
 
-// Builds a simple token carrying who's logged in, so tool pages in the
-// same repo can recognize the session without asking the person to log in
-// twice. NOT cryptographically signed — same trust model as the rest of
-// this system (front-end only, no tamper-proofing). Good enough for an
-// internal tool, not for anything that needs real security guarantees.
 function buildSessionToken(user){
   const payload = {
-    empId: user.empId,
-    name: user.name,
-    project: user.project,
-    zone: user.zone,
-    email: user.email,
-    ts: Date.now()
+    empId: user.empId, name: user.name, project: user.project,
+    zone: user.zone, email: user.email, ts: Date.now()
   };
   return btoa(encodeURIComponent(JSON.stringify(payload)));
 }
@@ -970,17 +927,15 @@ function showDash(user){
   const token = buildSessionToken(user);
   document.getElementById('tileDispatch').href = 'tools/dispatch.html?token=' + token;
   document.getElementById('tileElectricity').href = 'tools/electricity.html?token=' + token;
+  document.getElementById('tileExpense').href = 'tools/expense.html?token=' + token;
 }
 
 document.getElementById('logoutBtn').addEventListener('click', async () => {
   const btn = document.getElementById('logoutBtn');
   const empId = currentUser ? currentUser.empId : '';
   btn.disabled = true;
-  try{
-    await callScript({ action: 'logout', empId, name: currentUser ? currentUser.name : '' });
-  } catch(err){
-    // Logging out client-side regardless, even if the server call fails.
-  }
+  try{ await callScript({ action: 'logout', empId, name: currentUser ? currentUser.name : '' }); }
+  catch(err){}
   sessionStorage.setItem('staffPortalLogoutAt', String(Date.now()));
   currentUser = null;
   document.getElementById('dashView').classList.remove('active');
@@ -991,9 +946,7 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
 
 // ---------- signup ----------
 const suMobile = document.getElementById('suMobile');
-suMobile.addEventListener('input', () => {
-  suMobile.value = suMobile.value.replace(/\D/g,'').slice(0,10);
-});
+suMobile.addEventListener('input', () => { suMobile.value = suMobile.value.replace(/\D/g,'').slice(0,10); });
 
 document.getElementById('signupForm').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -1014,34 +967,13 @@ document.getElementById('signupForm').addEventListener('submit', async (e) => {
   document.getElementById('suEmailHint').textContent = '';
   document.getElementById('suPasswordHint').textContent = '';
 
-  if (!project){
-    showMsg(msg, 'Please select a project', 'bad');
-    return;
-  }
-  if (!zone){
-    showMsg(msg, 'Please select a zone', 'bad');
-    return;
-  }
-  if (!/^[6-9]\d{9}$/.test(mobile)){
-    document.getElementById('suMobileHint').textContent = 'Enter a valid 10-digit mobile number';
-    return;
-  }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
-    document.getElementById('suEmailHint').textContent = 'Enter a valid email address';
-    return;
-  }
-  if (password.length < 6){
-    document.getElementById('suPasswordHint').textContent = 'Password must be at least 6 characters';
-    return;
-  }
-  if (password !== confirm){
-    showMsg(msg, 'Passwords do not match', 'bad');
-    return;
-  }
-  if (!name || !empId){
-    showMsg(msg, 'Please fill in all fields', 'bad');
-    return;
-  }
+  if (!project){ showMsg(msg, 'Please select a project', 'bad'); return; }
+  if (!zone){ showMsg(msg, 'Please select a zone', 'bad'); return; }
+  if (!/^[6-9]\d{9}$/.test(mobile)){ document.getElementById('suMobileHint').textContent = 'Enter a valid 10-digit mobile number'; return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ document.getElementById('suEmailHint').textContent = 'Enter a valid email address'; return; }
+  if (password.length < 6){ document.getElementById('suPasswordHint').textContent = 'Password must be at least 6 characters'; return; }
+  if (password !== confirm){ showMsg(msg, 'Passwords do not match', 'bad'); return; }
+  if (!name || !empId){ showMsg(msg, 'Please fill in all fields', 'bad'); return; }
 
   btn.disabled = true; btn.textContent = 'Creating…';
   try{
@@ -1053,14 +985,9 @@ document.getElementById('signupForm').addEventListener('submit', async (e) => {
       suZone.disabled = true;
       suZone.innerHTML = '<option value="" disabled selected>Select project first</option>';
       setTimeout(() => tabLogin.click(), 900);
-    } else {
-      showMsg(msg, result.message || 'Signup failed', 'bad');
-    }
-  } catch(err){
-    showMsg(msg, err.message, 'bad');
-  } finally {
-    btn.disabled = false; btn.textContent = 'Create account';
-  }
+    } else { showMsg(msg, result.message || 'Signup failed', 'bad'); }
+  } catch(err){ showMsg(msg, err.message, 'bad'); }
+  finally { btn.disabled = false; btn.textContent = 'Create account'; }
 });
 
 // ---------- login ----------
@@ -1073,10 +1000,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
   const empId = document.getElementById('loginEmpId').value.trim().toUpperCase();
   const password = document.getElementById('loginPassword').value;
 
-  if (!empId || !password){
-    showMsg(msg, 'Enter your Employee ID and password', 'bad');
-    return;
-  }
+  if (!empId || !password){ showMsg(msg, 'Enter your Employee ID and password', 'bad'); return; }
 
   btn.disabled = true; btn.textContent = 'Logging in…';
   try{
@@ -1084,14 +1008,9 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     const result = await callScript({ action:'login', empId, passwordHash });
     if (result.success){
       showDash({ name: result.name, project: result.project, zone: result.zone, empId: result.empId, email: result.email });
-    } else {
-      showMsg(msg, result.message || 'Invalid Employee ID or password', 'bad');
-    }
-  } catch(err){
-    showMsg(msg, err.message, 'bad');
-  } finally {
-    btn.disabled = false; btn.textContent = 'Log in';
-  }
+    } else { showMsg(msg, result.message || 'Invalid Employee ID or password', 'bad'); }
+  } catch(err){ showMsg(msg, err.message, 'bad'); }
+  finally { btn.disabled = false; btn.textContent = 'Log in'; }
 });
 
 // ---------- admin ----------
@@ -1111,9 +1030,7 @@ function formatWhen(iso){
     const d = new Date(iso);
     return d.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'2-digit' }) + ' ' +
            d.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
-  } catch(e){
-    return iso || '';
-  }
+  } catch(e){ return iso || ''; }
 }
 
 document.getElementById('adminLoginForm').addEventListener('submit', async (e) => {
@@ -1123,10 +1040,7 @@ document.getElementById('adminLoginForm').addEventListener('submit', async (e) =
   clearMsg(msg);
 
   const password = document.getElementById('adminPassword').value;
-  if (!password){
-    showMsg(msg, 'Enter the admin password', 'bad');
-    return;
-  }
+  if (!password){ showMsg(msg, 'Enter the admin password', 'bad'); return; }
 
   btn.disabled = true; btn.textContent = 'Checking…';
   try{
@@ -1136,14 +1050,9 @@ document.getElementById('adminLoginForm').addEventListener('submit', async (e) =
       adminPasswordHash = hash;
       document.getElementById('adminPassword').value = '';
       showAdminDashboard();
-    } else {
-      showMsg(msg, result.message || 'Incorrect admin password', 'bad');
-    }
-  } catch(err){
-    showMsg(msg, err.message, 'bad');
-  } finally {
-    btn.disabled = false; btn.textContent = 'Log in';
-  }
+    } else { showMsg(msg, result.message || 'Incorrect admin password', 'bad'); }
+  } catch(err){ showMsg(msg, err.message, 'bad'); }
+  finally { btn.disabled = false; btn.textContent = 'Log in'; }
 });
 
 async function showAdminDashboard(){
@@ -1153,9 +1062,7 @@ async function showAdminDashboard(){
 }
 
 document.getElementById('adminLogoutBtn').addEventListener('click', () => {
-  adminPasswordHash = null;
-  adminUsersCache = [];
-  adminLogCache = [];
+  adminPasswordHash = null; adminUsersCache = []; adminLogCache = [];
   document.getElementById('adminShell').style.display = 'none';
   document.getElementById('shell').style.display = 'block';
   tabLogin.click();
@@ -1195,10 +1102,7 @@ function renderAdminUsers(){
     return true;
   });
 
-  if (filtered.length === 0){
-    body.innerHTML = '<tr><td colspan="8"><div class="admin-empty">No matching staff.</div></td></tr>';
-    return;
-  }
+  if (filtered.length === 0){ body.innerHTML = '<tr><td colspan="8"><div class="admin-empty">No matching staff.</div></td></tr>'; return; }
 
   body.innerHTML = filtered.map(u => `
     <tr>
@@ -1229,10 +1133,7 @@ function renderAdminLog(){
     return true;
   });
 
-  if (filtered.length === 0){
-    body.innerHTML = '<tr><td colspan="6"><div class="admin-empty">No matching activity.</div></td></tr>';
-    return;
-  }
+  if (filtered.length === 0){ body.innerHTML = '<tr><td colspan="6"><div class="admin-empty">No matching activity.</div></td></tr>'; return; }
 
   body.innerHTML = filtered.map(r => `
     <tr class="log-row ${r.action === 'LOGIN_FAILED' ? 'failed' : ''}">
@@ -1253,12 +1154,8 @@ async function deleteAdminUser(empId){
     if (result.success){
       adminUsersCache = adminUsersCache.filter(u => u.empId !== empId);
       renderAdminUsers();
-    } else {
-      alert(result.message || 'Could not remove user');
-    }
-  } catch(err){
-    alert(err.message);
-  }
+    } else { alert(result.message || 'Could not remove user'); }
+  } catch(err){ alert(err.message); }
 }
 
 document.getElementById('adminUserSearch').addEventListener('input', renderAdminUsers);
