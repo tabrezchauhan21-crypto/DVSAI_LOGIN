@@ -56,6 +56,13 @@
   .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#1c2733;color:#fff;
     padding:10px 18px;border-radius:8px;font-size:13px;opacity:0;transition:.3s;z-index:99}
   .toast.show{opacity:1}
+  /* spinner */
+  .spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.4);
+    border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:6px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .loadwrap{display:flex;align-items:center;gap:10px;justify-content:center;padding:24px;color:#6b7784;font-size:13px}
+  .loadwrap .spin{border:2px solid #cfd6df;border-top-color:var(--brand);width:22px;height:22px}
+  .btn.busy{opacity:.7;cursor:progress}
   .monthslot{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
   .monthslot .lbl{font-size:12px;font-weight:700;color:#33475b;min-width:110px}
 </style>
@@ -101,12 +108,12 @@
     <div class="monthslot">
       <span class="lbl">Current month</span>
       <input id="monthCurrent" type="month" style="width:180px">
-      <button class="btn sm ok" onclick="saveMonth('current')">Save</button>
+      <button class="btn sm ok" onclick="saveMonth('current',this)">Save</button>
     </div>
     <div class="monthslot">
       <span class="lbl">Last month</span>
       <input id="monthLast" type="month" style="width:180px">
-      <button class="btn sm ok" onclick="saveMonth('last')">Save</button>
+      <button class="btn sm ok" onclick="saveMonth('last',this)">Save</button>
     </div>
     <div class="muted" style="margin-top:6px">Currently open: <b id="openMonthsLabel">None</b></div>
   </div>
@@ -135,7 +142,7 @@
 
       <div style="display:flex;gap:12px;align-items:center;margin-top:12px">
         <div style="font-size:15px">Auto Total: <b id="fTotal">₹0</b></div>
-        <button class="btn" id="submitBtn" onclick="submitExpense()">Submit / Update</button>
+        <button class="btn" id="submitBtn" onclick="submitExpense(this)">Submit / Update</button>
       </div>
     </div>
   </div>
@@ -176,7 +183,7 @@
   <label>Comment / Suggestion (optional)</label>
   <textarea id="ap1Comment" placeholder="e.g. Courier bill verified. TA looks a bit high."></textarea>
   <div style="display:flex;gap:8px;margin-top:12px">
-    <button class="btn ok" onclick="doAp1Approve()">Approve ✓</button>
+    <button class="btn ok" onclick="doAp1Approve(this)">Approve ✓</button>
     <button class="btn bad" onclick="doReject()">Reject</button>
     <button class="btn grey" onclick="ap1Dlg.close()">Cancel</button>
   </div>
@@ -196,7 +203,7 @@
   <label>Admin Remark</label>
   <textarea id="adRemark" placeholder="Approval note"></textarea>
   <div style="display:flex;gap:8px;margin-top:12px">
-    <button class="btn ok" onclick="doApprove()">Final Approve ✓</button>
+    <button class="btn ok" onclick="doApprove(this)">Final Approve ✓</button>
     <button class="btn bad" onclick="doReject()">Reject</button>
     <button class="btn grey" onclick="adDlg.close()">Cancel</button>
   </div>
@@ -223,7 +230,7 @@
       <select id="uActive"><option>Y</option><option>N</option></select></div>
   </div>
   <div style="display:flex;gap:8px;margin-top:12px">
-    <button class="btn ok" onclick="saveUser()">Save</button>
+    <button class="btn ok" id="saveUserBtn" onclick="saveUser(this)">Save</button>
     <button class="btn grey" onclick="userDlg.close()">Cancel</button>
   </div>
 </div></dialog>
@@ -472,13 +479,12 @@ function post(p){return fetch(API,{method:'POST',headers:{'Content-Type':'text/p
 function get(p){var q=Object.keys(p).map(k=>k+'='+encodeURIComponent(p[k])).join('&');return fetch(API+'?'+q).then(r=>r.json());}
 
 function load(){
-  toast('Loading…');
+  if(activeTab!=='users') showLoading('tableWrap','Loading submissions…');
   get({action:'queue',id:ME.Id}).then(res=>{
     if(!res.ok){toast('Error: '+res.error);return;}
     CACHE=res.data||[]; if(activeTab!=='users') render();
     if(isAdmin()) loadSummary();
-    toast('Updated');
-  }).catch(()=>toast('Network error'));
+  }).catch(()=>{ if(activeTab!=='users') showLoading('tableWrap','Network error'); toast('Network error'); });
 }
 function loadSummary(){
   get({action:'summary'}).then(res=>{
@@ -558,28 +564,30 @@ function billLinks(r){
 }
 
 /* ---- submit / update (partial) ---- */
-function submitExpense(){
+function submitExpense(btn){
   if(!(MONTHS.open&&MONTHS.open.length)){ toast('No month is open — submission is closed'); return; }
   var month=document.getElementById('monthPick').value;
   var amounts={},any=false;
   document.querySelectorAll('#catInputs input[type=number]').forEach(i=>{var v=Number(i.value)||0;amounts[i.dataset.cat]=v;if(v>0)any=true;});
   if(!any){toast('Enter at least one amount');return;}
-  toast('Submitting…');
+  setBusy(btn,true,'Submitting…');
   post({action:'submit',submitterId:ME.Id,month:month,amounts:amounts,bills:BILLS,notes:NOTES,miscRemark:val('fRemark')})
     .then(res=>{
+      setBusy(btn,false);
       if(res.ok){ toast((res.updated?'Updated ✓ ':'Submitted ✓ ')+res.month+' · Total ₹'+num(res.total)); load(); }
       else if(res.error==='MONTH_CLOSED'||res.error==='MONTH_NOT_OPEN'){ toast(res.reason||'Month is closed'); }
       else toast('Error: '+res.error);
     })
-    .catch(()=>{toast('Sent');setTimeout(load,1200);});
+    .catch(()=>{setBusy(btn,false);toast('Sent');setTimeout(load,1200);});
 }
 
 /* ---- Approver-1 ---- */
 function openAp1(id){curId=id;var r=byId(id);document.getElementById('ap1Info').innerHTML=infoBlock(r);document.getElementById('ap1Comment').value='';ap1Dlg.showModal();}
-function doAp1Approve(){
+function doAp1Approve(btn){
+  setBusy(btn,true,'Approving…');
   post({action:'ap1approve',id:curId,approverId:ME.Id,comment:val('ap1Comment')})
-    .then(res=>{ap1Dlg.close();toast(res.ok?'Approved → Admin ✓':'Error: '+res.error);setTimeout(load,900);})
-    .catch(()=>{ap1Dlg.close();setTimeout(load,1200);});
+    .then(res=>{setBusy(btn,false);ap1Dlg.close();toast(res.ok?'Approved → Admin ✓':'Error: '+res.error);setTimeout(load,600);})
+    .catch(()=>{setBusy(btn,false);ap1Dlg.close();setTimeout(load,1200);});
 }
 
 /* ---- Admin final approve ---- */
@@ -592,34 +600,38 @@ function openAd(id){
   adRecalc();document.getElementById('adRemark').value='';adDlg.showModal();
 }
 function adRecalc(){var s=0;document.querySelectorAll('#adInputs input').forEach(i=>s+=Number(i.value)||0);document.getElementById('adAuto').textContent='₹'+num(s);document.getElementById('adFinal').value=s;}
-function doApprove(){
+function doApprove(btn){
   var amounts={};document.querySelectorAll('#adInputs input').forEach(i=>amounts[i.dataset.cat]=Number(i.value)||0);
+  setBusy(btn,true,'Approving…');
   post({action:'approve',id:curId,approverId:ME.Id,amounts:amounts,finalTotal:document.getElementById('adFinal').value,remark:val('adRemark')})
-    .then(res=>{adDlg.close();toast(res.ok?'Final Approved ✓ ₹'+num(res.finalTotal):'Error: '+res.error);setTimeout(load,900);})
-    .catch(()=>{adDlg.close();setTimeout(load,1200);});
+    .then(res=>{setBusy(btn,false);adDlg.close();toast(res.ok?'Final Approved ✓ ₹'+num(res.finalTotal):'Error: '+res.error);setTimeout(load,600);})
+    .catch(()=>{setBusy(btn,false);adDlg.close();setTimeout(load,1200);});
 }
 function doReject(){var remark=prompt('Reason for rejection:');if(remark===null)return;
   post({action:'reject',id:curId,approverId:ME.Id,remark:remark})
     .then(()=>{try{ap1Dlg.close();}catch(e){}try{adDlg.close();}catch(e){}toast('Rejected');setTimeout(load,900);});}
 
 /* ---- Admin: month control ---- */
-function saveMonth(slot){
+function saveMonth(slot,btn){
   var raw=(document.getElementById(slot==='last'?'monthLast':'monthCurrent').value||'').trim();
   var lbl=pickerToLabel(raw);   // '' if cleared -> closes the slot
   var msg = lbl ? ('Open '+slot+' month: '+lbl+' ?') : ('Close the '+slot+' month slot? Its data will be hidden.');
   if(!confirm(msg)) return;
+  setBusy(btn,true,'Saving…');
   post({action:'setMonth',adminId:ME.Id,slot:slot,month:lbl}).then(res=>{
+    setBusy(btn,false);
     if(res.ok){ MONTHS=res.months||MONTHS; updateMonthTag(); updateOpenLabel(); buildMonthPick(); applyMonthGate();
       document.getElementById('monthCurrent').value=labelToPicker(MONTHS.current);
       document.getElementById('monthLast').value=labelToPicker(MONTHS.last);
       toast('Saved'); load(); }
     else toast('Error: '+res.error);
-  });
+  }).catch(()=>{setBusy(btn,false);toast('Network error');});
 }
 
 /* ---- Admin: Users management ---- */
 function loadUsers(){
-  get({action:'users',id:ME.Id}).then(res=>{ if(!res.ok){toast('Error: '+res.error);return;} USERS=res.users||[]; renderUsers(); });
+  showLoading('usersWrap','Loading users…');
+  get({action:'users',id:ME.Id}).then(res=>{ if(!res.ok){toast('Error: '+res.error);showLoading('usersWrap','Could not load');return;} USERS=res.users||[]; renderUsers(); }).catch(()=>{showLoading('usersWrap','Network error');});
 }
 function renderUsers(){
   var h='<table><tr><th>Emp Id</th><th>Name</th><th>Office</th><th>Project</th><th>Designation</th><th>Approver-1</th><th>Active</th><th>Action</th></tr>';
@@ -651,14 +663,24 @@ function openUserEdit(id){
   document.getElementById('uDesig').value=u.Designation||'SUPERVISOR'; document.getElementById('uApprover1').value=u.Approver1||'';
   document.getElementById('uActive').value=up(u.Active)==='N'?'N':'Y'; userDlg.showModal();
 }
-function saveUser(){
+function saveUser(btn){
   var payload={ Id:val('uId').toUpperCase(),Name:val('uName'),Office:val('uOffice'),
     Project:document.getElementById('uProject').value,Cluster:val('uCluster'),
     Designation:document.getElementById('uDesig').value,Approver1:val('uApprover1').toUpperCase(),
     Active:document.getElementById('uActive').value };
   if(!payload.Id){toast('Emp Id required');return;}
-  if(editUserId){ post({action:'userEdit',adminId:ME.Id,id:editUserId,fields:payload}).then(res=>{userDlg.close();toast(res.ok?'Updated ✓':'Error: '+res.error);loadUsers();}); }
-  else { post({action:'userAdd',adminId:ME.Id,user:payload}).then(res=>{userDlg.close();toast(res.ok?'User added ✓':'Error: '+res.error);loadUsers();}); }
+  setBusy(btn,true,'Saving…');
+  if(editUserId){
+    post({action:'userEdit',adminId:ME.Id,id:editUserId,fields:payload}).then(res=>{
+      setBusy(btn,false); userDlg.close(); toast(res.ok?'Updated ✓':'Error: '+res.error); loadUsers();
+    }).catch(()=>{setBusy(btn,false);toast('Network error');});
+  } else {
+    post({action:'userAdd',adminId:ME.Id,user:payload}).then(res=>{
+      setBusy(btn,false);
+      if(res.ok){ userDlg.close(); toast('User added ✓'); loadUsers(); }
+      else { toast(res.error==='Id already exists' ? ('Emp Id '+payload.Id+' already exists') : ('Error: '+res.error)); }
+    }).catch(()=>{setBusy(btn,false);toast('Network error');});
+  }
 }
 function removeUser(id){
   if(!confirm('Remove '+id+'? (soft delete → inactive)'))return;
@@ -689,6 +711,25 @@ function cssEsc(s){return String(s).replace(/"/g,'\\"');}
 function label(s){return {PENDING_AP1:'Pending Approver-1',PENDING_ADMIN:'Pending Admin',APPROVED:'Approved',REJECTED:'Rejected'}[s]||s;}
 var ap1Dlg=document.getElementById('ap1Dlg'),adDlg=document.getElementById('adDlg'),userDlg=document.getElementById('userDlg');
 function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1900);}
+
+/* ---- busy / loading helpers ---- */
+// Disable a button and show a spinner while an async action runs.
+function setBusy(btn, busy, busyLabel){
+  if(!btn) return;
+  if(busy){
+    btn._label = btn._label!==undefined ? btn._label : btn.innerHTML;
+    btn.disabled = true; btn.classList.add('busy');
+    btn.innerHTML = '<span class="spin"></span>'+(busyLabel||'Please wait…');
+  } else {
+    btn.disabled = false; btn.classList.remove('busy');
+    if(btn._label!==undefined){ btn.innerHTML = btn._label; btn._label=undefined; }
+  }
+}
+// Show a loading spinner inside a table container while data loads.
+function showLoading(elId, msg){
+  var el=document.getElementById(elId);
+  if(el) el.innerHTML='<div class="loadwrap"><span class="spin"></span>'+(msg||'Loading…')+'</div>';
+}
 </script>
 </body>
 </html>
