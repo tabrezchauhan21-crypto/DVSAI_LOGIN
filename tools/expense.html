@@ -4,9 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DVVNL Office Expense Approval</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   :root{--brand:#0b5394;--brand2:#134f8a;--ok:#1e7e34;--bad:#b02a37;--bg:#f4f6f9;
-    --card:#fff;--line:#e2e6ec;--ink:#1c2733}
+    --card:#fff;--line:#e2e6ec;--ink:#1c2733;--gold:#c9962c}
   *{box-sizing:border-box;font-family:Segoe UI,Roboto,Arial,sans-serif}
   body{margin:0;background:var(--bg);color:var(--ink)}
   header{background:linear-gradient(90deg,var(--brand),var(--brand2));color:#fff;
@@ -18,19 +19,23 @@
   h3{margin:0 0 10px}
   label{display:block;font-size:12.5px;margin:8px 0 3px;font-weight:600;color:#33475b}
   input,select,textarea{width:100%;padding:9px;border:1px solid #cfd6df;border-radius:8px;font-size:14px}
-  textarea{resize:vertical;min-height:56px}
-  .catgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
-  .catbox{border:1px solid var(--line);border-radius:10px;padding:10px;background:#fbfcfd}
-  .catbox .cn{font-size:12.5px;font-weight:700;color:#33475b;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center}
-  .billtag{font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:10px;background:#cfe2ff;color:#084298}
+  textarea{resize:vertical;min-height:44px}
+  .catgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+  .catbox{border:1px solid var(--line);border-radius:12px;padding:12px;background:linear-gradient(180deg,#fff,#fafbfc)}
+  .catbox .cn{font-size:13px;font-weight:700;color:#243b53;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:6px}
+  .catbox .ic{display:inline-flex;align-items:center;gap:6px}
+  .catbox .emoji{font-size:16px}
+  .billtag{font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:10px;background:#cfe2ff;color:#084298;white-space:nowrap}
   .billtag.no{background:#e9ecef;color:#6b7784}
+  .billtag.detail{background:#e2f0d9;color:#2f6f2f}
   .filerow{margin-top:6px;font-size:11px}
   .filerow a{color:var(--brand);font-weight:600}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
   .btn{background:var(--brand);color:#fff;border:0;padding:10px 16px;border-radius:8px;font-size:14px;cursor:pointer;margin-top:12px}
-  .btn.ok{background:var(--ok)}.btn.bad{background:var(--bad)}.btn.grey{background:#6b7784}
+  .btn.ok{background:var(--ok)}.btn.bad{background:var(--bad)}.btn.grey{background:#6b7784}.btn.gold{background:var(--gold)}
   .btn.sm{padding:5px 10px;margin:0;font-size:12px}
   .btn:disabled{opacity:.5;cursor:not-allowed}
+  .btn.busy{opacity:.7;cursor:progress}
   table{width:100%;border-collapse:collapse;font-size:12.5px}
   th,td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
   th{background:#eef2f7;position:sticky;top:0}
@@ -53,39 +58,30 @@
   .tag{display:inline-block;background:#eef2f7;border-radius:6px;padding:1px 7px;font-size:11px;margin-left:6px}
   .flow{font-size:11px;color:#6b7784}
   .err{background:#f8d7da;color:#842029;border:1px solid #f1aeb5;border-radius:10px;padding:16px;font-weight:600}
+  .trip{border:1px solid var(--line);border-radius:8px;padding:8px;margin-bottom:6px;background:#fff}
   .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#1c2733;color:#fff;
     padding:10px 18px;border-radius:8px;font-size:13px;opacity:0;transition:.3s;z-index:99}
   .toast.show{opacity:1}
-  /* spinner */
   .spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.4);
     border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:6px}
   @keyframes sp{to{transform:rotate(360deg)}}
   .loadwrap{display:flex;align-items:center;gap:10px;justify-content:center;padding:24px;color:#6b7784;font-size:13px}
   .loadwrap .spin{border:2px solid #cfd6df;border-top-color:var(--brand);width:22px;height:22px}
-  .btn.busy{opacity:.7;cursor:progress}
-  /* mobile friendly */
+  .chartcard{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px}
+  .chartgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
   @media (max-width:640px){
     .wrap{padding:0 8px;margin:10px auto}
-    header{padding:10px 12px}
-    header h1{font-size:14px}
-    header .who{font-size:11px}
-    .catgrid{grid-template-columns:1fr}
-    .kpis{grid-template-columns:1fr 1fr}
-    .card{padding:12px}
-    table{font-size:11.5px}
-    th,td{padding:5px 6px}
-    .monthslot{flex-direction:column;align-items:stretch}
-    .monthslot .lbl{min-width:0}
-    dialog{width:96vw}
-    .tabbar button{flex:1}
+    header{padding:10px 12px}header h1{font-size:14px}header .who{font-size:11px}
+    .catgrid{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}
+    .card{padding:12px}table{font-size:11.5px}th,td{padding:5px 6px}
+    .chartgrid{grid-template-columns:1fr}
+    dialog{width:96vw}.tabbar button{flex:1;font-size:12px;padding:8px 6px}
   }
-  .monthslot{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
-  .monthslot .lbl{font-size:12px;font-weight:700;color:#33475b;min-width:110px}
 </style>
 </head>
 <body>
 <header>
-  <h1>⚡ DVVNL Office Expense Approval <span class="tag" id="periodTag" style="background:rgba(255,255,255,.22);color:#fff;border:1px solid rgba(255,255,255,.4)">—</span><span style="font-size:9px;opacity:.6;margin-left:6px">v4-TA</span></h1>
+  <h1>⚡ DVVNL Office Expense Approval <span class="tag" id="periodTag" style="background:rgba(255,255,255,.22);color:#fff;border:1px solid rgba(255,255,255,.4)">—</span><span style="font-size:9px;opacity:.6;margin-left:6px">v5</span></h1>
   <div style="display:flex;align-items:center;gap:12px">
     <div class="who" id="whoBar"></div>
     <button id="logoutBtn" class="hide" onclick="doLogout()"
@@ -94,7 +90,6 @@
   </div>
 </header>
 
-<!-- LOGIN / GATE (standalone) -->
 <div class="wrap center" id="loginView">
   <div class="card">
     <h3>Sign in (Emp Id)</h3>
@@ -105,7 +100,6 @@
   </div>
 </div>
 
-<!-- ACCESS DENIED -->
 <div class="wrap center hide" id="denyView">
   <div class="card">
     <div class="err" id="denyMsg">Access Denied</div>
@@ -113,25 +107,30 @@
   </div>
 </div>
 
-<!-- APP -->
 <div class="wrap hide" id="appView">
   <div class="tabbar" id="tabbar"></div>
 
   <!-- Admin: month control -->
   <div id="monthAdmin" class="card hide">
     <h3 style="margin:0 0 4px">Open Submission Months</h3>
-    <div class="muted" style="margin-bottom:10px">You can keep two months open together: the current month and the last month. Type a month like <b>JUNE-2026</b> and open it. Leave blank &amp; save to close that slot. Closed month data is hidden.</div>
-    <div class="monthslot">
-      <span class="lbl">Current month</span>
+    <div class="muted" style="margin-bottom:10px">Keep two months open together (current + last). Pick a month and Save. Clear &amp; Save to close a slot. Closed month data is hidden. You can Archive a closed month to keep the sheet fast.</div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+      <span style="font-size:12px;font-weight:700;min-width:110px">Current month</span>
       <input id="monthCurrent" type="month" style="width:180px">
       <button class="btn sm ok" onclick="saveMonth('current',this)">Save</button>
     </div>
-    <div class="monthslot">
-      <span class="lbl">Last month</span>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+      <span style="font-size:12px;font-weight:700;min-width:110px">Last month</span>
       <input id="monthLast" type="month" style="width:180px">
       <button class="btn sm ok" onclick="saveMonth('last',this)">Save</button>
     </div>
-    <div class="muted" style="margin-top:6px">Currently open: <b id="openMonthsLabel">None</b></div>
+    <div class="muted">Currently open: <b id="openMonthsLabel">None</b></div>
+    <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <span style="font-size:12px;font-weight:700">Archive a month:</span>
+      <input id="archiveMonth" type="month" style="width:170px">
+      <button class="btn sm gold" onclick="doArchive(this)">Archive</button>
+      <span class="muted">(month must be closed first)</span>
+    </div>
   </div>
 
   <!-- Admin dashboard KPIs -->
@@ -141,25 +140,37 @@
   <div class="card hide" id="formCard">
     <h3>Submit Expense — <span id="formOffice"></span></h3>
     <div class="flow" id="formFlow"></div>
-
-    <div id="noMonthBanner" class="err hide" style="margin-top:10px">
-      No submission month is open. You can add entries once the admin opens a month.
-    </div>
-
+    <div id="noMonthBanner" class="err hide" style="margin-top:10px">No submission month is open. You can add entries once the admin opens a month.</div>
     <div id="formBody" style="margin-top:10px">
       <label>Submission month</label>
       <select id="monthPick" onchange="prefillExisting()" style="max-width:220px"></select>
-      <div class="muted" style="margin:6px 0">You can submit partially and add more later in the same month. Amounts and bills you add will be merged.</div>
-
+      <div class="muted" style="margin:6px 0">You can submit partially and add more later in the same month. Amounts, bills, trips will be merged.</div>
       <div class="catgrid" id="catInputs" style="margin-top:8px"></div>
-
       <label style="margin-top:12px">Misc Remark</label>
       <input id="fRemark" placeholder="e.g. AIR COOLER / 490 COMPUTER REPAIR">
-
       <div style="display:flex;gap:12px;align-items:center;margin-top:12px">
         <div style="font-size:15px">Auto Total: <b id="fTotal">₹0</b></div>
         <button class="btn" id="submitBtn" onclick="submitExpense(this)">Submit / Update</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Analytics (admin) -->
+  <div class="card hide" id="analyticsCard">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <h3 style="margin:0">Analytics</h3>
+      <button class="btn sm" onclick="loadAnalytics()">↻ Refresh</button>
+    </div>
+    <div id="anaWrap"><div class="loadwrap"><span class="spin"></span>Loading…</div></div>
+  </div>
+
+  <!-- Export (admin) -->
+  <div class="card hide" id="exportCard">
+    <h3 style="margin:0 0 8px">Monthly Export</h3>
+    <div class="muted" style="margin-bottom:8px">Download a full month in the DVVNL office-expense layout (Excel-friendly CSV, separate for MRI &amp; Cluster).</div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <input id="exportMonthPick" type="month" style="width:180px">
+      <button class="btn sm ok" onclick="doExport(this)">Download CSV</button>
     </div>
   </div>
 
@@ -181,7 +192,7 @@
     <div id="tableWrap" style="overflow:auto;margin-top:10px;max-height:70vh"></div>
   </div>
 
-  <!-- Admin: Users management -->
+  <!-- Admin: Users -->
   <div class="card hide" id="usersCard">
     <div style="display:flex;justify-content:space-between;align-items:center">
       <h3 style="margin:0">User &amp; Hierarchy Management</h3>
@@ -213,8 +224,7 @@
   <div class="grid" id="adInputs"></div>
   <div style="display:flex;gap:12px;align-items:center;margin-top:10px;flex-wrap:wrap">
     <div>Auto Total: <b id="adAuto">₹0</b></div>
-    <div style="flex:1"><label style="margin:0">Final Total (override)</label>
-      <input id="adFinal" type="number" min="0"></div>
+    <div style="flex:1"><label style="margin:0">Final Total (override)</label><input id="adFinal" type="number" min="0"></div>
   </div>
   <label>Admin Remark</label>
   <textarea id="adRemark" placeholder="Approval note"></textarea>
@@ -225,25 +235,20 @@
   </div>
 </div></dialog>
 
-<!-- Admin user add/edit dialog -->
+<!-- User add/edit dialog -->
 <dialog id="userDlg"><div class="dlg">
   <h3 id="userDlgTitle">Add User</h3>
   <div class="grid">
     <div><label>Emp Id</label><input id="uId" style="text-transform:uppercase"></div>
     <div><label>Name</label><input id="uName"></div>
     <div><label>Office</label><input id="uOffice"></div>
-    <div><label>Project</label>
-      <select id="uProject"><option>MRI</option><option>CLUSTER</option></select></div>
+    <div><label>Project</label><select id="uProject"><option>MRI</option><option>CLUSTER</option></select></div>
     <div><label>Cluster (if any)</label><input id="uCluster" placeholder="CLUSTER-4 / CLUSTER-15"></div>
     <div><label>Designation</label>
-      <select id="uDesig">
-        <option>SUPERVISOR</option><option>CIRCLE INCHARGE</option>
-        <option>ASST. ZONE MANAGER</option><option>ZONE MANAGER</option><option>CLUSTER HEAD</option>
-      </select></div>
-    <div><label>Approver-1 (Emp Id, blank = AB293 direct)</label>
-      <input id="uApprover1" style="text-transform:uppercase"></div>
-    <div><label>Active</label>
-      <select id="uActive"><option>Y</option><option>N</option></select></div>
+      <select id="uDesig"><option>SUPERVISOR</option><option>CIRCLE INCHARGE</option><option>ASST. ZONE MANAGER</option><option>ZONE MANAGER</option><option>CLUSTER HEAD</option></select></div>
+    <div><label>Approver-1 (blank = AB293)</label><input id="uApprover1" style="text-transform:uppercase"></div>
+    <div><label>Email (for notifications)</label><input id="uEmail" type="email"></div>
+    <div><label>Active</label><select id="uActive"><option>Y</option><option>N</option></select></div>
   </div>
   <div style="display:flex;gap:8px;margin-top:12px">
     <button class="btn ok" id="saveUserBtn" onclick="saveUser(this)">Save</button>
@@ -252,105 +257,79 @@
 </div></dialog>
 
 <div class="toast" id="toast"></div>
-
 <script>
 /* ====== CONFIG ====== */
 var API = 'https://script.google.com/macros/s/AKfycbx0NSar1iAJ2Co3z0SP48iisI0HydhEKUyn-5OEdzzXiDJ5jit5nmg-sO1jN74YQ6WGow/exec';
 var SUPER_ADMIN = 'AB293';
+var BIKE_RATE = 3;
 
-/* Category definitions with bill flags (mirror of backend) */
-var MRI_CATS = [
+/* category icons */
+var ICON={'Water':'💧','Sweeper Salary':'🧹','Cleaning Material':'🧴','Courier By Bus':'🚌',
+  'Courier By DTDC':'📦','TA':'🧭','DA':'🏨','Misc':'🧾','Office Refreshment (Tea)':'☕','Stationary':'✏️'};
+
+/* categories with flags: bill(PDF/img required), trips(TA), datrips(DA) */
+var MRI_CATS=[
   {name:'Water',bill:true},{name:'Sweeper Salary',bill:true},{name:'Cleaning Material',bill:true},
   {name:'Courier By Bus',bill:true},{name:'Courier By DTDC',bill:true},
-  {name:'TA',bill:false,trips:true},{name:'DA',bill:false,note:'visit'},{name:'Misc',bill:true}
+  {name:'TA',bill:false,trips:true},{name:'DA',bill:false,datrips:true},{name:'Misc',bill:true}
 ];
-var CLU_CATS = [
+var CLU_CATS=[
   {name:'Office Refreshment (Tea)',bill:false},{name:'Stationary',bill:true},{name:'Water',bill:true},
   {name:'Sweeper Salary',bill:true},{name:'Cleaning Material',bill:true},
   {name:'Courier By Bus',bill:true},{name:'Courier By DTDC',bill:true},
-  {name:'TA',bill:false,trips:true},{name:'DA',bill:false,note:'visit'},{name:'Misc',bill:true}
+  {name:'TA',bill:false,trips:true},{name:'DA',bill:false,datrips:true},{name:'Misc',bill:true}
 ];
-var BIKE_RATE=3;   // ₹ per km
 function catsForProject(p){ return p==='CLUSTER'?CLU_CATS:MRI_CATS; }
 
-/* Month format helpers.
-   Picker gives 'YYYY-MM' (e.g. 2026-06). We store/display as 'JUNE-2026'. */
-var MONTH_NAMES=['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
-function pickerToLabel(v){ // '2026-06' -> 'JUNE-2026'
-  if(!v) return '';
-  var p=v.split('-'); if(p.length<2) return v.toUpperCase();
-  var mi=parseInt(p[1],10)-1; if(mi<0||mi>11) return v.toUpperCase();
-  return MONTH_NAMES[mi]+'-'+p[0];
-}
-function labelToPicker(lbl){ // 'JUNE-2026' -> '2026-06'
-  if(!lbl) return '';
-  var p=String(lbl).toUpperCase().split('-'); if(p.length<2) return '';
-  var mi=MONTH_NAMES.indexOf(p[0]); if(mi<0) return '';
-  return p[1]+'-'+String(mi+1).padStart(2,'0');
-}
+var ME=null,CATS=[],ROLE={},CACHE=[],USERS=[],MONTHS={current:'',last:'',open:[]};
+var curId=null,editUserId=null,activeTab='queue',CURRENT_TS='',TOKEN='';
+var BILLS={},NOTES={},TRIPS=[],DATRIPS=[];
+var anaChart1=null,anaChart2=null,anaChart3=null;
 
-var ME=null, CATS=[], ROLE={}, CACHE=[], USERS=[], MONTHS={current:'',last:'',open:[]};
-var curId=null, editUserId=null, activeTab='queue', CURRENT_TS='';
-var BILLS={};   // { catName: url } collected during form fill
-var NOTES={};   // { catName: text } for DA visit details
-var TRIPS=[];   // TA trips: [{mode,from,to,km,amount,ticketUrl}]
-
-/* ---- ERP hook ---- */
+/* ---- token / login ---- */
 function initExpenseTool(empId){ gateLogin((empId||'').toUpperCase()); }
-window.initExpenseTool = initExpenseTool;
+window.initExpenseTool=initExpenseTool;
 function doLogin(){ gateLogin((document.getElementById('lgId').value||'').trim().toUpperCase()); }
-
-/* ---- DVSAI token auto-login ---- */
-function decodeDvsaiToken(token){ try{ return JSON.parse(decodeURIComponent(atob(token))); }catch(e){ return null; } }
+function decodeDvsaiToken(t){ try{return JSON.parse(decodeURIComponent(atob(t)));}catch(e){return null;} }
 function bootFromToken(){
-  var params=new URLSearchParams(window.location.search);
-  var token=params.get('token');
-  if(!token) return false;
-  var sess=decodeDvsaiToken(token);
-  if(!sess || !sess.empId){ showDeny('Invalid session. Please log in again from the Staff Portal.'); return true; }
-  var loggedOutTs=sessionStorage.getItem('expenseLoggedOutTs')||'';
-  if(loggedOutTs && String(sess.ts)===loggedOutTs){ showDeny('You have been logged out. Please log in again from the Staff Portal.'); return true; }
-  if(loggedOutTs && String(sess.ts)!==loggedOutTs){ sessionStorage.removeItem('expenseLoggedOutTs'); }
-  if(sess.ts && (Date.now()-Number(sess.ts) > 12*60*60*1000)){ showDeny('Session expired. Please open this tool again from the Staff Portal.'); return true; }
-  CURRENT_TS=String(sess.ts||'');
+  var p=new URLSearchParams(window.location.search); var t=p.get('token'); if(!t) return false;
+  TOKEN=t;
+  var s=decodeDvsaiToken(t);
+  if(!s||!s.empId){ showDeny('Invalid session. Please log in again from the Staff Portal.'); return true; }
+  var lo=sessionStorage.getItem('expenseLoggedOutTs')||'';
+  if(lo&&String(s.ts)===lo){ showDeny('You have been logged out. Please log in again from the Staff Portal.'); return true; }
+  if(lo&&String(s.ts)!==lo) sessionStorage.removeItem('expenseLoggedOutTs');
+  if(s.ts&&(Date.now()-Number(s.ts)>12*60*60*1000)){ showDeny('Session expired. Please open this tool again from the Staff Portal.'); return true; }
+  CURRENT_TS=String(s.ts||'');
   document.getElementById('loginView').classList.add('hide');
-  gateLogin(String(sess.empId).toUpperCase());
+  gateLogin(String(s.empId).toUpperCase());
   return true;
 }
-window.addEventListener('DOMContentLoaded', function(){ bootFromToken(); });
-window.addEventListener('pageshow', function(){
-  var loggedOutTs=sessionStorage.getItem('expenseLoggedOutTs')||'';
-  if(loggedOutTs && CURRENT_TS && loggedOutTs===CURRENT_TS){
-    clearSessionUI(); showDeny('You have been logged out. Please log in again from the Staff Portal.');
-  }
+window.addEventListener('DOMContentLoaded',function(){ bootFromToken(); });
+window.addEventListener('pageshow',function(){
+  var lo=sessionStorage.getItem('expenseLoggedOutTs')||'';
+  if(lo&&CURRENT_TS&&lo===CURRENT_TS){ clearSessionUI(); showDeny('You have been logged out. Please log in again from the Staff Portal.'); }
 });
-
-/* ---- Logout ---- */
-function clearSessionUI(){
-  ME=null;CATS=[];ROLE={};CACHE=[];USERS=[];
+function clearSessionUI(){ ME=null;CATS=[];ROLE={};CACHE=[];USERS=[];
   document.getElementById('appView').classList.add('hide');
   document.getElementById('logoutBtn').classList.add('hide');
-  document.getElementById('whoBar').innerHTML='';
-}
+  document.getElementById('whoBar').innerHTML=''; }
 function doLogout(){
   if(!confirm('Log out?')) return;
   if(CURRENT_TS) sessionStorage.setItem('expenseLoggedOutTs',CURRENT_TS);
   clearSessionUI();
   try{ history.replaceState(null,'',window.location.pathname); }catch(e){}
-  if(window.location.pathname.indexOf('/tools/')>=0){ window.location.replace('../index.html'); }
-  else { showDeny('You have been logged out. Please log in again.'); }
+  if(window.location.pathname.indexOf('/tools/')>=0) window.location.replace('../index.html');
+  else showDeny('You have been logged out. Please log in again.');
 }
-
-/* ---- Login gate ---- */
 function gateLogin(id){
   document.getElementById('lgErr').classList.add('hide');
   if(!id){ showLoginErr('Enter your Emp Id.'); return; }
   toast('Checking access…');
   get({action:'login',id:id}).then(res=>{
     if(!res.ok){
-      var msg = res.error==='ACCESS_DENIED'
-        ? ('Access Denied — '+(res.reason||'your Emp Id is not authorised.'))
-        : (res.error==='NO_ID'?'Emp Id missing.':('Error: '+res.error));
+      var msg=res.error==='ACCESS_DENIED'?('Access Denied — '+(res.reason||'your Emp Id is not authorised.'))
+        :(res.error==='NO_ID'?'Emp Id missing.':('Error: '+res.error));
       if(document.getElementById('loginView').classList.contains('hide')) showDeny(msg); else showLoginErr(msg);
       return;
     }
@@ -359,507 +338,398 @@ function gateLogin(id){
     document.getElementById('denyView').classList.add('hide');
     document.getElementById('appView').classList.remove('hide');
     document.getElementById('logoutBtn').classList.remove('hide');
-    document.getElementById('whoBar').innerHTML=
-      '<b>'+esc(ME.Name)+'</b> · '+esc(ME.Id)+'<br>'+esc(ME.Designation)+
-      ' · '+esc(ME.Project==='CLUSTER'?ME.Cluster:ME.Project)+
-      (ROLE.isAdmin?' · <b>SUPER ADMIN</b>':(ROLE.isApprover1?' · Approver-1':''));
-    setupUI();
-    load();
-  }).catch(()=>{
-    var m='Network error — please check the API URL.';
-    if(document.getElementById('loginView').classList.contains('hide')) showDeny(m); else showLoginErr(m);
-  });
+    document.getElementById('whoBar').innerHTML='<b>'+esc(ME.Name)+'</b> · '+esc(ME.Id)+'<br>'+esc(ME.Designation)+
+      ' · '+esc(ME.Project==='CLUSTER'?ME.Cluster:ME.Project)+(ROLE.isAdmin?' · <b>SUPER ADMIN</b>':(ROLE.isApprover1?' · Approver-1':''));
+    setupUI(); load();
+  }).catch(()=>{ var m='Network error — please check the API URL.';
+    if(document.getElementById('loginView').classList.contains('hide')) showDeny(m); else showLoginErr(m); });
 }
 function showLoginErr(m){ var e=document.getElementById('lgErr'); e.textContent=m; e.classList.remove('hide'); }
-function showDeny(m){
-  document.getElementById('loginView').classList.add('hide');
+function showDeny(m){ document.getElementById('loginView').classList.add('hide');
   document.getElementById('appView').classList.add('hide');
   document.getElementById('denyView').classList.remove('hide');
-  document.getElementById('denyMsg').textContent=m;
-}
+  document.getElementById('denyMsg').textContent=m; }
 function isAdmin(){ return ROLE.isAdmin; }
 
+/* ---- setup ---- */
 function setupUI(){
-  updateMonthTag();
-  buildTabs();
-  // Submit form for everyone (admin bhi submit kar sakta)
+  updateMonthTag(); buildTabs();
   document.getElementById('formCard').classList.remove('hide');
   document.getElementById('formOffice').textContent=ME.Office+' ('+ME.Id+')';
   document.getElementById('formFlow').innerHTML='Approval chain: '+flowText();
-  buildMonthPick();
-  buildCatInputs();
-  applyMonthGate();
+  buildMonthPick(); buildCatInputs(); applyMonthGate();
   if(isAdmin()){
     document.getElementById('dash').classList.remove('hide');
     document.getElementById('monthAdmin').classList.remove('hide');
     document.getElementById('monthCurrent').value=labelToPicker(MONTHS.current);
     document.getElementById('monthLast').value=labelToPicker(MONTHS.last);
-    updateOpenLabel();
-    loadSummary();
+    updateOpenLabel(); loadSummary();
   }
   showTab(isAdmin()?'all':'queue');
 }
-
-function flowText(){
-  return ME.Approver1 ? (ME.Id+' → '+ME.Approver1+' → '+SUPER_ADMIN+' (final)')
-                      : (ME.Id+' → '+SUPER_ADMIN+' (direct final)');
-}
+function flowText(){ return ME.Approver1?(ME.Id+' → '+ME.Approver1+' → '+SUPER_ADMIN+' (final)'):(ME.Id+' → '+SUPER_ADMIN+' (direct final)'); }
 function openMonthsText(){ return (MONTHS.open&&MONTHS.open.length)?MONTHS.open.join(' , '):''; }
-function updateMonthTag(){
-  var tag=document.getElementById('periodTag');
-  var txt=openMonthsText();
-  tag.textContent = txt || 'No month open';
-  if(txt){ tag.style.background='rgba(255,255,255,.22)'; tag.style.color='#fff'; }
-  else   { tag.style.background='#f8d7da'; tag.style.color='#842029'; }
-}
-function updateOpenLabel(){
-  var el=document.getElementById('openMonthsLabel'); if(el) el.textContent=openMonthsText()||'None';
-}
+function updateMonthTag(){ var tag=document.getElementById('periodTag'); var t=openMonthsText();
+  tag.textContent=t||'No month open';
+  if(t){tag.style.background='rgba(255,255,255,.22)';tag.style.color='#fff';}else{tag.style.background='#f8d7da';tag.style.color='#842029';} }
+function updateOpenLabel(){ var el=document.getElementById('openMonthsLabel'); if(el) el.textContent=openMonthsText()||'None'; }
 
-/* ---- month picker in the submit form ---- */
-function buildMonthPick(){
-  var sel=document.getElementById('monthPick'); sel.innerHTML='';
-  (MONTHS.open||[]).forEach(m=>{ var o=document.createElement('option'); o.value=m; o.textContent=m; sel.appendChild(o); });
-}
-function applyMonthGate(){
-  var open=(MONTHS.open&&MONTHS.open.length>0);
-  document.getElementById('noMonthBanner').classList.toggle('hide', open);
-  document.getElementById('formBody').classList.toggle('hide', !open);
-}
+/* month format */
+var MN=['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
+function pickerToLabel(v){ if(!v) return ''; var p=v.split('-'); if(p.length<2) return v.toUpperCase(); var mi=parseInt(p[1],10)-1; if(mi<0||mi>11) return v.toUpperCase(); return MN[mi]+'-'+p[0]; }
+function labelToPicker(l){ if(!l) return ''; var p=String(l).toUpperCase().split('-'); if(p.length<2) return ''; var mi=MN.indexOf(p[0]); if(mi<0) return ''; return p[1]+'-'+String(mi+1).padStart(2,'0'); }
+
+function buildMonthPick(){ var s=document.getElementById('monthPick'); s.innerHTML='';
+  (MONTHS.open||[]).forEach(m=>{ var o=document.createElement('option'); o.value=m; o.textContent=m; s.appendChild(o); }); }
+function applyMonthGate(){ var open=(MONTHS.open&&MONTHS.open.length>0);
+  document.getElementById('noMonthBanner').classList.toggle('hide',open);
+  document.getElementById('formBody').classList.toggle('hide',!open); }
 
 /* ---- category inputs ---- */
 function buildCatInputs(){
-  BILLS={}; NOTES={}; TRIPS=[];
+  BILLS={};NOTES={};TRIPS=[];DATRIPS=[];
   var w=document.getElementById('catInputs'); w.innerHTML='';
   CATS.forEach(function(c){
-    if(c.trips){ w.innerHTML += taBox(c); return; }   // TA gets a trip builder
-    var billUI = c.bill
-      ? '<div class="filerow"><input type="file" accept="application/pdf,image/*" capture="environment" data-cat="'+esc(c.name)+'" onchange="onBillPick(this)" style="font-size:11px;padding:4px"><span class="fu" data-fu="'+esc(c.name)+'"></span></div>'
-      : '';
-    var noteUI = c.note
-      ? '<textarea data-note="'+esc(c.name)+'" oninput="onNote(this)" placeholder="Visit / meeting detail (where & why)" style="margin-top:6px;min-height:44px;font-size:12px"></textarea>'
-      : '';
-    var tag = c.bill ? '<span class="billtag">BILL *</span>'
-            : (c.note ? '<span class="billtag" style="background:#e2f0d9;color:#2f6f2f">DETAIL</span>' : '<span class="billtag no">NO BILL</span>');
-    w.innerHTML +=
-      '<div class="catbox">'+
-        '<div class="cn"><span>'+esc(c.name)+'</span>'+tag+'</div>'+
-        '<input type="number" min="0" placeholder="Amount ₹" data-cat="'+esc(c.name)+'" oninput="recalc()">'+
-        noteUI+ billUI+
-      '</div>';
+    if(c.trips){ w.innerHTML+=taBox(c); return; }
+    if(c.datrips){ w.innerHTML+=daBox(c); return; }
+    var em=ICON[c.name]||'•';
+    var billUI=c.bill?'<div class="filerow"><input type="file" accept="application/pdf,image/*" capture="environment" data-cat="'+esc(c.name)+'" onchange="onBillPick(this)" style="font-size:11px;padding:4px"><span class="fu" data-fu="'+esc(c.name)+'"></span></div>':'';
+    var tag=c.bill?'<span class="billtag">BILL *</span>':'<span class="billtag no">NO BILL</span>';
+    w.innerHTML+='<div class="catbox"><div class="cn"><span class="ic"><span class="emoji">'+em+'</span>'+esc(c.name)+'</span>'+tag+'</div>'+
+      '<input type="number" min="0" placeholder="Amount ₹" data-cat="'+esc(c.name)+'" oninput="recalc()">'+billUI+'</div>';
   });
-  renderTrips();
-  recalc();
+  renderTrips(); renderDatrips(); recalc();
 }
 
-/* TA box (spans full width) */
-function taBox(c){
-  return '<div class="catbox" style="grid-column:1/-1">'+
-    '<div class="cn"><span>TA — Travel Allowance</span><span class="billtag" style="background:#e2f0d9;color:#2f6f2f">TRIPS</span></div>'+
-    '<div class="muted" style="margin-bottom:6px">Add each trip. Bike: KM × ₹'+BIKE_RATE+' auto. Bus: ticket amount + ticket photo.</div>'+
-    '<div id="tripList"></div>'+
-    '<button type="button" class="btn sm" onclick="addTrip()" style="margin-top:4px">+ Add Trip</button>'+
-    '<div style="margin-top:6px;font-size:13px">TA Total: <b id="taTotal">₹0</b></div>'+
-  '</div>';
-}
-function addTrip(){ TRIPS.push({mode:'bike',from:'',to:'',km:'',amount:0,ticketUrl:''}); renderTrips(); recalc(); }
+/* TA box */
+function taBox(c){ return '<div class="catbox" style="grid-column:1/-1"><div class="cn"><span class="ic"><span class="emoji">🧭</span>TA — Travel Allowance</span><span class="billtag detail">TRIPS</span></div>'+
+  '<div class="muted" style="margin-bottom:6px">Add each trip with date. Bike: KM × ₹'+BIKE_RATE+' auto. Bus: ticket amount + ticket photo.</div>'+
+  '<div id="tripList"></div><button type="button" class="btn sm" onclick="addTrip()" style="margin-top:4px">+ Add Trip</button>'+
+  '<div style="margin-top:6px;font-size:13px">TA Total: <b id="taTotal">₹0</b></div></div>'; }
+function addTrip(){ TRIPS.push({date:'',mode:'bike',from:'',to:'',km:'',amount:0,ticketUrl:''}); renderTrips(); recalc(); }
 function removeTrip(i){ TRIPS.splice(i,1); renderTrips(); recalc(); }
-function renderTrips(){
-  var box=document.getElementById('tripList'); if(!box) return;
+function renderTrips(){ var box=document.getElementById('tripList'); if(!box) return;
   if(!TRIPS.length){ box.innerHTML='<div class="muted">No trips added.</div>'; setTaTotal(); return; }
   var h='';
-  TRIPS.forEach(function(t,i){
-    var bike=(t.mode==='bike');
-    h+='<div style="border:1px solid var(--line);border-radius:8px;padding:8px;margin-bottom:6px;background:#fff">'+
-      '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'+
-        '<select onchange="tripSet('+i+',\'mode\',this.value)" style="width:auto">'+
-          '<option value="bike"'+(bike?' selected':'')+'>Bike</option>'+
-          '<option value="bus"'+(!bike?' selected':'')+'>Bus</option>'+
-        '</select>'+
-        '<input placeholder="From" value="'+esc(t.from)+'" oninput="tripSet('+i+',\'from\',this.value)" style="flex:1;min-width:90px">'+
-        '<input placeholder="To" value="'+esc(t.to)+'" oninput="tripSet('+i+',\'to\',this.value)" style="flex:1;min-width:90px">'+
-        '<button type="button" class="btn sm bad" onclick="removeTrip('+i+')" style="margin:0">✕</button>'+
-      '</div>'+
-      (bike
-        ? '<div style="display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap">'+
-            '<input type="number" min="0" placeholder="KM" value="'+(t.km||'')+'" oninput="tripSet('+i+',\'km\',this.value)" style="width:110px">'+
-            '<span class="muted">× ₹'+BIKE_RATE+' = <b>₹'+num(t.amount)+'</b></span>'+
-          '</div>'
-        : '<div style="display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap">'+
-            '<input type="number" min="0" placeholder="Ticket amount ₹" value="'+(t.amount||'')+'" oninput="tripSet('+i+',\'amount\',this.value)" style="width:150px">'+
-            '<input type="file" accept="application/pdf,image/*" capture="environment" onchange="tripTicket('+i+',this)" style="font-size:11px">'+
-            '<span class="fu" id="tk'+i+'">'+(t.ticketUrl?'<a href="'+t.ticketUrl+'" target="_blank">ticket ✓</a>':'')+'</span>'+
-          '</div>')+
-    '</div>';
+  TRIPS.forEach(function(t,i){ var bike=(t.mode==='bike');
+    h+='<div class="trip"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'+
+      '<input type="date" value="'+esc(t.date)+'" onchange="tripSet('+i+',\'date\',this.value)" style="width:150px">'+
+      '<select onchange="tripSet('+i+',\'mode\',this.value)" style="width:auto"><option value="bike"'+(bike?' selected':'')+'>Bike</option><option value="bus"'+(!bike?' selected':'')+'>Bus</option></select>'+
+      '<input placeholder="From" value="'+esc(t.from)+'" oninput="tripSet('+i+',\'from\',this.value)" style="flex:1;min-width:80px">'+
+      '<input placeholder="To" value="'+esc(t.to)+'" oninput="tripSet('+i+',\'to\',this.value)" style="flex:1;min-width:80px">'+
+      '<button type="button" class="btn sm bad" onclick="removeTrip('+i+')" style="margin:0">✕</button></div>'+
+      (bike?'<div style="display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap"><input type="number" min="0" placeholder="KM" value="'+(t.km||'')+'" oninput="tripSet('+i+',\'km\',this.value)" style="width:110px"><span class="muted">× ₹'+BIKE_RATE+' = <b>₹'+num(t.amount)+'</b></span></div>'
+        :'<div style="display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap"><input type="number" min="0" placeholder="Ticket ₹" value="'+(t.amount||'')+'" oninput="tripSet('+i+',\'amount\',this.value)" style="width:130px"><input type="file" accept="application/pdf,image/*" capture="environment" onchange="tripTicket('+i+',this)" style="font-size:11px"><span class="fu" id="tk'+i+'">'+(t.ticketUrl?'<a href="'+t.ticketUrl+'" target="_blank">ticket ✓</a>':'')+'</span></div>')+'</div>';
   });
-  box.innerHTML=h; setTaTotal();
-}
-function tripSet(i,key,val){
-  TRIPS[i][key]=val;
-  if(key==='mode'){ TRIPS[i].amount = (val==='bike') ? (Number(TRIPS[i].km)||0)*BIKE_RATE : 0; renderTrips(); }
-  if(key==='km'){ TRIPS[i].amount=(Number(val)||0)*BIKE_RATE; renderTrips(); }
-  if(key==='amount'){ TRIPS[i].amount=Number(val)||0; }
-  setTaTotal(); recalc();
-}
+  box.innerHTML=h; setTaTotal(); }
+function tripSet(i,k,v){ TRIPS[i][k]=v;
+  if(k==='mode'){ TRIPS[i].amount=(v==='bike')?(Number(TRIPS[i].km)||0)*BIKE_RATE:0; renderTrips(); }
+  if(k==='km'){ TRIPS[i].amount=(Number(v)||0)*BIKE_RATE; renderTrips(); }
+  if(k==='amount'){ TRIPS[i].amount=Number(v)||0; }
+  setTaTotal(); recalc(); }
 function taTotal(){ var s=0; TRIPS.forEach(t=>s+=Number(t.amount)||0); return s; }
 function setTaTotal(){ var e=document.getElementById('taTotal'); if(e) e.textContent='₹'+num(taTotal()); }
-function tripTicket(i,input){
-  var file=input.files&&input.files[0]; if(!file) return;
-  if(file.size>5*1024*1024){ toast('File too large (max 5MB)'); input.value=''; return; }
+function tripTicket(i,input){ var f=input.files&&input.files[0]; if(!f) return;
+  if(f.size>5*1024*1024){ toast('File too large (max 5MB)'); input.value=''; return; }
   var span=document.getElementById('tk'+i); if(span) span.textContent=' uploading…';
-  var reader=new FileReader();
-  reader.onload=function(){
-    var b64=String(reader.result).split(',')[1];
-    post({action:'uploadBill',filename:file.name,mime:file.type,dataBase64:b64}).then(res=>{
+  var r=new FileReader(); r.onload=function(){ var b64=String(r.result).split(',')[1];
+    post({action:'uploadBill',filename:f.name,mime:f.type,dataBase64:b64}).then(res=>{
       if(res.ok){ TRIPS[i].ticketUrl=res.url; if(span) span.innerHTML=' <a href="'+res.url+'" target="_blank">ticket ✓</a>'; toast('Ticket uploaded'); }
-      else { if(span) span.textContent=''; toast('Upload failed: '+(res.reason||res.error)); }
-    }).catch(()=>{ if(span) span.textContent=''; toast('Upload failed'); });
-  };
-  reader.readAsDataURL(file);
-}
-function onNote(t){ var c=t.dataset.note; var v=t.value.trim(); if(v) NOTES[c]=v; else delete NOTES[c]; }
-function recalc(){
-  var s=0; document.querySelectorAll('#catInputs input[type=number][data-cat]').forEach(i=>s+=Number(i.value)||0);
-  s+=taTotal();
-  document.getElementById('fTotal').textContent='₹'+num(s);
-}
+      else{ if(span) span.textContent=''; toast('Upload failed: '+(res.reason||res.error)); } }).catch(()=>{ if(span) span.textContent=''; toast('Upload failed'); }); };
+  r.readAsDataURL(f); }
 
-/* Upload a picked PDF immediately, store returned URL in BILLS */
-function onBillPick(input){
-  var cat=input.dataset.cat;
-  var file=input.files&&input.files[0]; if(!file) return;
-  var okType=(file.type==='application/pdf'||file.type==='image/jpeg'||file.type==='image/png'||file.type==='image/jpg');
-  if(!okType){ toast('Only PDF or image (JPG/PNG) allowed'); input.value=''; return; }
-  if(file.size > 5*1024*1024){ toast('File too large (max 5MB)'); input.value=''; return; }
-  var span=document.querySelector('.fu[data-fu="'+cssEsc(cat)+'"]');
-  if(span) span.textContent=' uploading…';
-  var reader=new FileReader();
-  reader.onload=function(){
-    var b64=String(reader.result).split(',')[1];
-    post({action:'uploadBill',filename:file.name,mime:file.type,dataBase64:b64}).then(res=>{
+/* DA box (trip-like: date + place + amount, multiple) */
+function daBox(c){ return '<div class="catbox" style="grid-column:1/-1"><div class="cn"><span class="ic"><span class="emoji">🏨</span>DA — Daily Allowance</span><span class="billtag detail">ENTRIES</span></div>'+
+  '<div class="muted" style="margin-bottom:6px">Add each DA entry with date, place/visit and amount.</div>'+
+  '<div id="daList"></div><button type="button" class="btn sm" onclick="addDa()" style="margin-top:4px">+ Add DA</button>'+
+  '<div style="margin-top:6px;font-size:13px">DA Total: <b id="daTotal">₹0</b></div></div>'; }
+function addDa(){ DATRIPS.push({date:'',place:'',detail:'',amount:0}); renderDatrips(); recalc(); }
+function removeDa(i){ DATRIPS.splice(i,1); renderDatrips(); recalc(); }
+function renderDatrips(){ var box=document.getElementById('daList'); if(!box) return;
+  if(!DATRIPS.length){ box.innerHTML='<div class="muted">No DA entries added.</div>'; setDaTotal(); return; }
+  var h='';
+  DATRIPS.forEach(function(d,i){
+    h+='<div class="trip"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'+
+      '<input type="date" value="'+esc(d.date)+'" onchange="daSet('+i+',\'date\',this.value)" style="width:150px">'+
+      '<input placeholder="Place / Visit" value="'+esc(d.place)+'" oninput="daSet('+i+',\'place\',this.value)" style="flex:1;min-width:110px">'+
+      '<input type="number" min="0" placeholder="Amount ₹" value="'+(d.amount||'')+'" oninput="daSet('+i+',\'amount\',this.value)" style="width:130px">'+
+      '<button type="button" class="btn sm bad" onclick="removeDa('+i+')" style="margin:0">✕</button></div>'+
+      '<input placeholder="Detail (why / meeting)" value="'+esc(d.detail)+'" oninput="daSet('+i+',\'detail\',this.value)" style="margin-top:6px">'+
+      '</div>';
+  });
+  box.innerHTML=h; setDaTotal(); }
+function daSet(i,k,v){ DATRIPS[i][k]=(k==='amount')?(Number(v)||0):v; setDaTotal(); recalc(); }
+function daTotal(){ var s=0; DATRIPS.forEach(d=>s+=Number(d.amount)||0); return s; }
+function setDaTotal(){ var e=document.getElementById('daTotal'); if(e) e.textContent='₹'+num(daTotal()); }
+
+function onBillPick(input){ var cat=input.dataset.cat; var f=input.files&&input.files[0]; if(!f) return;
+  var ok=(f.type==='application/pdf'||f.type==='image/jpeg'||f.type==='image/png'||f.type==='image/jpg');
+  if(!ok){ toast('Only PDF or image (JPG/PNG) allowed'); input.value=''; return; }
+  if(f.size>5*1024*1024){ toast('File too large (max 5MB)'); input.value=''; return; }
+  var span=document.querySelector('.fu[data-fu="'+cssEsc(cat)+'"]'); if(span) span.textContent=' uploading…';
+  var r=new FileReader(); r.onload=function(){ var b64=String(r.result).split(',')[1];
+    post({action:'uploadBill',filename:f.name,mime:f.type,dataBase64:b64}).then(res=>{
       if(res.ok){ BILLS[cat]=res.url; if(span) span.innerHTML=' <a href="'+res.url+'" target="_blank">file ✓</a>'; toast('Uploaded'); }
-      else { if(span) span.textContent=''; toast('Upload failed: '+(res.reason||res.error)); }
-    }).catch(()=>{ if(span) span.textContent=''; toast('Upload failed'); });
-  };
-  reader.readAsDataURL(file);
-}
+      else{ if(span) span.textContent=''; toast('Upload failed: '+(res.reason||res.error)); } }).catch(()=>{ if(span) span.textContent=''; toast('Upload failed'); }); };
+  r.readAsDataURL(f); }
 
-/* Prefill form if the picked month already has an editable entry */
+function recalc(){ var s=0; document.querySelectorAll('#catInputs input[type=number][data-cat]').forEach(i=>s+=Number(i.value)||0);
+  s+=taTotal()+daTotal(); document.getElementById('fTotal').textContent='₹'+num(s); }
+
 function prefillExisting(){
   var m=document.getElementById('monthPick').value;
   var mine=(CACHE||[]).filter(r=>up(r.SubmitterId)===up(ME.Id)&&r.Month===m&&r.Status!=='APPROVED')[0];
   buildCatInputs();
   if(mine){
-    var amt={}; try{ amt=JSON.parse(mine.Amounts||'{}'); }catch(e){}
-    var bl={};  try{ bl=JSON.parse(mine.Bills||'{}'); }catch(e){}
-    var nt={};  try{ nt=JSON.parse(mine.Notes||'{}'); }catch(e){}
+    var amt={},bl={},nt={}; try{amt=JSON.parse(mine.Amounts||'{}');}catch(e){} try{bl=JSON.parse(mine.Bills||'{}');}catch(e){} try{nt=JSON.parse(mine.Notes||'{}');}catch(e){}
     document.querySelectorAll('#catInputs input[type=number][data-cat]').forEach(i=>{ if(amt[i.dataset.cat]!==undefined) i.value=amt[i.dataset.cat]; });
-    document.querySelectorAll('#catInputs textarea[data-note]').forEach(t=>{ if(nt[t.dataset.note]!==undefined){ t.value=nt[t.dataset.note]; NOTES[t.dataset.note]=nt[t.dataset.note]; } });
-    for(var k in bl){ if(bl[k]){ BILLS[k]=bl[k]; var span=document.querySelector('.fu[data-fu="'+cssEsc(k)+'"]'); if(span) span.innerHTML=' <a href="'+bl[k]+'" target="_blank">file ✓</a>'; } }
-    // restore TA trips
+    for(var k in bl){ if(bl[k]){ BILLS[k]=bl[k]; var sp=document.querySelector('.fu[data-fu="'+cssEsc(k)+'"]'); if(sp) sp.innerHTML=' <a href="'+bl[k]+'" target="_blank">file ✓</a>'; } }
     if(nt.__TA_TRIPS){ try{ TRIPS=JSON.parse(nt.__TA_TRIPS)||[]; }catch(e){ TRIPS=[]; } renderTrips(); }
-    document.getElementById('fRemark').value=mine.MiscRemark||'';
-    recalc();
+    if(nt.__DA_TRIPS){ try{ DATRIPS=JSON.parse(nt.__DA_TRIPS)||[]; }catch(e){ DATRIPS=[]; } renderDatrips(); }
+    document.getElementById('fRemark').value=mine.MiscRemark||''; recalc();
     toast('Loaded your existing '+m+' entry — you can add/update');
   }
 }
 
 /* ---- API ---- */
-function post(p){return fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(p)}).then(r=>r.json());}
-function get(p){var q=Object.keys(p).map(k=>k+'='+encodeURIComponent(p[k])).join('&');return fetch(API+'?'+q).then(r=>r.json());}
+function post(p){ if(TOKEN&&!p._tok) p._tok=TOKEN; return fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(p)}).then(r=>r.json()); }
+function get(p){ var q=Object.keys(p).map(k=>k+'='+encodeURIComponent(p[k])).join('&'); return fetch(API+'?'+q).then(r=>r.json()); }
 
 function load(){
-  if(activeTab!=='users') showLoading('tableWrap','Loading submissions…');
-  get({action:'queue',id:ME.Id}).then(res=>{
-    if(!res.ok){toast('Error: '+res.error);return;}
-    CACHE=res.data||[]; if(activeTab!=='users') render();
-    if(isAdmin()) loadSummary();
-  }).catch(()=>{ if(activeTab!=='users') showLoading('tableWrap','Network error'); toast('Network error'); });
+  if(activeTab!=='users'&&activeTab!=='analytics') showLoading('tableWrap','Loading submissions…');
+  get({action:'queue',id:ME.Id}).then(res=>{ if(!res.ok){toast('Error: '+res.error);return;}
+    CACHE=res.data||[]; if(activeTab!=='users'&&activeTab!=='analytics') render(); if(isAdmin()) loadSummary();
+  }).catch(()=>{ if(activeTab!=='users'&&activeTab!=='analytics') showLoading('tableWrap','Network error'); toast('Network error'); });
 }
 function loadSummary(){
-  get({action:'summary'}).then(res=>{
-    if(!res.ok)return; var s=res.data;
+  get({action:'summary'}).then(res=>{ if(!res.ok)return; var s=res.data;
     MONTHS=s.months||MONTHS; updateMonthTag(); updateOpenLabel();
-    var byM=s.byMonth||{};
-    var monthKpis=Object.keys(byM).map(m=>kpi(m,'₹'+num(byM[m]))).join('');
-    document.getElementById('kpis').innerHTML=
-      kpi('Open Months', openMonthsText()||'—')+
-      kpi('Grand Total','₹'+num(s.grand))+kpi('Approved','₹'+num(s.approvedTotal))+
-      kpi('Pending Items',s.pendingCount)+
-      kpi('MRI Total','₹'+num(s.byProject.MRI||0))+kpi('Cluster Total','₹'+num(s.byProject.CLUSTER||0))+
-      monthKpis;
+    var byM=s.byMonth||{}; var mk=Object.keys(byM).map(m=>kpi(m,'₹'+num(byM[m]))).join('');
+    document.getElementById('kpis').innerHTML=kpi('Open Months',openMonthsText()||'—')+kpi('Grand Total','₹'+num(s.grand))+
+      kpi('Approved','₹'+num(s.approvedTotal))+kpi('Pending Items',s.pendingCount)+
+      kpi('MRI Total','₹'+num(s.byProject.MRI||0))+kpi('Cluster Total','₹'+num(s.byProject.CLUSTER||0))+mk;
   });
 }
-function kpi(l,v){return '<div class="kpi"><div class="v">'+v+'</div><div class="l">'+l+'</div></div>';}
+function kpi(l,v){ return '<div class="kpi"><div class="v">'+v+'</div><div class="l">'+l+'</div></div>'; }
 
 /* ---- tabs ---- */
-function buildTabs(){
-  var t=document.getElementById('tabbar'); t.innerHTML=''; var tabs=[];
-  if(isAdmin()) tabs=[['all','All Submissions'],['users','Users & Hierarchy']];
+function buildTabs(){ var t=document.getElementById('tabbar'); t.innerHTML=''; var tabs=[];
+  if(isAdmin()) tabs=[['all','All Submissions'],['analytics','Analytics'],['export','Export'],['users','Users & Hierarchy']];
   else if(ROLE.isApprover1) tabs=[['queue','My Queue'],['approvals','Approvals (my team)']];
   else tabs=[['queue','My Queue']];
-  tabs.forEach(([k,l])=>{ var b=document.createElement('button'); b.textContent=l; b.onclick=()=>showTab(k); b.dataset.k=k; t.appendChild(b); });
-}
-function showTab(k){
-  activeTab=k;
+  tabs.forEach(([k,l])=>{ var b=document.createElement('button'); b.textContent=l; b.onclick=()=>showTab(k); b.dataset.k=k; t.appendChild(b); }); }
+function showTab(k){ activeTab=k;
   document.querySelectorAll('#tabbar button').forEach(b=>b.classList.toggle('active',b.dataset.k===k));
-  var showUsers=(k==='users');
-  document.getElementById('usersCard').classList.toggle('hide',!showUsers);
-  document.getElementById('listCard').classList.toggle('hide',showUsers);
-  if(showUsers){ loadUsers(); return; }
-  document.getElementById('listTitle').textContent=
-    k==='all'?'All Submissions (Admin)':k==='approvals'?'Approvals — My Team':'My Queue';
+  document.getElementById('usersCard').classList.toggle('hide',k!=='users');
+  document.getElementById('analyticsCard').classList.toggle('hide',k!=='analytics');
+  document.getElementById('exportCard').classList.toggle('hide',k!=='export');
+  document.getElementById('listCard').classList.toggle('hide',k==='users'||k==='analytics'||k==='export');
+  if(k==='users'){ loadUsers(); return; }
+  if(k==='analytics'){ loadAnalytics(); return; }
+  if(k==='export'){ document.getElementById('exportMonthPick').value=labelToPicker(MONTHS.current); return; }
+  document.getElementById('listTitle').textContent=k==='all'?'All Submissions (Admin)':k==='approvals'?'Approvals — My Team':'My Queue';
   render();
 }
 
 /* ---- render list ---- */
-function render(){
-  var flt=document.getElementById('fltStatus').value;
-  var rows=CACHE.slice().reverse();
+function render(){ var flt=document.getElementById('fltStatus').value; var rows=CACHE.slice().reverse();
   if(activeTab==='approvals') rows=rows.filter(r=>r.Status==='PENDING_AP1'&&up(r.NextApprover)===up(ME.Id));
-  if(activeTab==='queue' && ROLE.isApprover1) rows=rows.filter(r=>up(r.SubmitterId)===up(ME.Id));
+  if(activeTab==='queue'&&ROLE.isApprover1) rows=rows.filter(r=>up(r.SubmitterId)===up(ME.Id));
   if(flt) rows=rows.filter(r=>r.Status===flt);
-  if(!rows.length){document.getElementById('tableWrap').innerHTML='<p class="muted">No records.</p>';return;}
+  if(!rows.length){ document.getElementById('tableWrap').innerHTML='<p class="muted">No records.</p>'; return; }
   var admin=isAdmin();
-  var h='<table><tr><th>Month</th><th>Office / Submitter</th><th>Project</th><th>Claimed</th><th>Final</th>'+
-        '<th>Status</th><th>Chain / Comments</th><th>Action</th></tr>';
-  rows.forEach(r=>{
-    var act='—';
-    if(!admin && r.Status==='PENDING_AP1' && up(r.NextApprover)===up(ME.Id))
-      act='<button class="btn sm" onclick="openAp1(\''+r.ID+'\')">Approve</button>';
-    if(admin && r.Status==='PENDING_ADMIN')
-      act='<button class="btn sm ok" onclick="openAd(\''+r.ID+'\')">Final Approve</button>';
-    var chain=[];
-    if(r.Ap1Comment) chain.push('<b>'+esc(r.Ap1Id)+':</b> '+esc(r.Ap1Comment));
-    if(r.AdminRemark) chain.push('<b>Admin:</b> '+esc(r.AdminRemark));
-    if(r.MiscRemark) chain.push('<i>'+esc(r.MiscRemark)+'</i>');
+  var h='<table><tr><th>Month</th><th>Office / Submitter</th><th>Project</th><th>Claimed</th><th>Final</th><th>Status</th><th>Chain / Comments</th><th>Action</th></tr>';
+  rows.forEach(r=>{ var act='—';
+    if(!admin&&r.Status==='PENDING_AP1'&&up(r.NextApprover)===up(ME.Id)) act='<button class="btn sm" onclick="openAp1(\''+r.ID+'\')">Approve</button>';
+    if(admin&&r.Status==='PENDING_ADMIN') act='<button class="btn sm ok" onclick="openAd(\''+r.ID+'\')">Final Approve</button>';
+    var chain=[]; if(r.Ap1Comment) chain.push('<b>'+esc(r.Ap1Id)+':</b> '+esc(r.Ap1Comment));
+    if(r.AdminRemark) chain.push('<b>Admin:</b> '+esc(r.AdminRemark)); if(r.MiscRemark) chain.push('<i>'+esc(r.MiscRemark)+'</i>');
+    if(r.Status==='REJECTED') chain.push('<span style="color:#b02a37">✗ Rejected — you can edit &amp; resubmit</span>');
     var bills=billLinks(r);
-    h+='<tr>'+
-      '<td>'+esc(r.Month)+'</td>'+
-      '<td>'+esc(r.OfficeName)+'<div class="muted">'+esc(r.SubmitterName)+' · '+esc(r.SubmitterId)+'</div></td>'+
+    h+='<tr><td>'+esc(r.Month)+'</td><td>'+esc(r.OfficeName)+'<div class="muted">'+esc(r.SubmitterName)+' · '+esc(r.SubmitterId)+'</div></td>'+
       '<td>'+esc(r.Project)+(r.Cluster?'<div class="muted">'+esc(r.Cluster)+'</div>':'')+'</td>'+
-      '<td class="amt">₹'+num(r.ClaimedTotal)+'</td>'+
-      '<td class="amt">'+(r.FinalTotal!==''?'₹'+num(r.FinalTotal):'—')+'</td>'+
-      '<td><span class="pill '+r.Status+'">'+label(r.Status)+'</span>'+
-        (r.NextApprover?'<div class="muted">→ '+esc(r.NextApprover)+'</div>':'')+'</td>'+
-      '<td class="muted">'+(chain.join('<br>')||'—')+(bills?'<div>'+bills+'</div>':'')+'</td>'+
-      '<td>'+act+'</td></tr>';
+      '<td class="amt">₹'+num(r.ClaimedTotal)+'</td><td class="amt">'+(r.FinalTotal!==''?'₹'+num(r.FinalTotal):'—')+'</td>'+
+      '<td><span class="pill '+r.Status+'">'+label(r.Status)+'</span>'+(r.NextApprover?'<div class="muted">→ '+esc(r.NextApprover)+'</div>':'')+'</td>'+
+      '<td class="muted">'+(chain.join('<br>')||'—')+(bills?'<div>'+bills+'</div>':'')+'</td><td>'+act+'</td></tr>';
   });
   document.getElementById('tableWrap').innerHTML=h+'</table>';
 }
-function billLinks(r){
-  var bl={}; try{ bl=JSON.parse(r.Bills||'{}'); }catch(e){}
-  var out=[]; for(var k in bl){ if(bl[k]) out.push('<a href="'+esc(bl[k])+'" target="_blank">'+esc(k)+' bill</a>'); }
-  return out.join(' · ');
-}
+function billLinks(r){ var bl={}; try{ bl=JSON.parse(r.Bills||'{}'); }catch(e){} var o=[]; for(var k in bl){ if(bl[k]) o.push('<a href="'+esc(bl[k])+'" target="_blank">'+esc(k)+' bill</a>'); } return o.join(' · '); }
 
-/* ---- submit / update (partial) ---- */
+/* ---- submit ---- */
 function submitExpense(btn){
   if(!(MONTHS.open&&MONTHS.open.length)){ toast('No month is open — submission is closed'); return; }
   var month=document.getElementById('monthPick').value;
-
-  // collect amounts (non-TA)
   var amounts={},any=false;
   document.querySelectorAll('#catInputs input[type=number][data-cat]').forEach(i=>{var v=Number(i.value)||0;amounts[i.dataset.cat]=v;if(v>0)any=true;});
-  // TA amount from trips
   var ta=taTotal(); if(ta>0){ amounts['TA']=ta; any=true; }
-  if(!any){toast('Enter at least one amount');return;}
-
-  // --- mandatory bill validation: any bill-required category with amount>0 must have a file ---
-  var missing=[];
-  CATS.forEach(function(c){
-    if(c.bill && Number(amounts[c.name])>0 && !BILLS[c.name]) missing.push(c.name);
-  });
+  var da=daTotal(); if(da>0){ amounts['DA']=da; any=true; }
+  if(!any){ toast('Enter at least one amount'); return; }
+  var missing=[]; CATS.forEach(function(c){ if(c.bill&&Number(amounts[c.name])>0&&!BILLS[c.name]) missing.push(c.name); });
   if(missing.length){ toast('Upload bill for: '+missing.join(', ')); return; }
-
-  // --- TA trip validation ---
-  for(var i=0;i<TRIPS.length;i++){
-    var t=TRIPS[i];
-    if(!t.from || !t.to){ toast('Trip '+(i+1)+': enter From and To'); return; }
-    if(t.mode==='bike' && !(Number(t.km)>0)){ toast('Trip '+(i+1)+': enter KM'); return; }
-    if(t.mode==='bus'){
-      if(!(Number(t.amount)>0)){ toast('Trip '+(i+1)+': enter bus ticket amount'); return; }
-      if(!t.ticketUrl){ toast('Trip '+(i+1)+': upload bus ticket'); return; }
-    }
+  for(var i=0;i<TRIPS.length;i++){ var t=TRIPS[i];
+    if(!t.date){ toast('Trip '+(i+1)+': select date'); return; }
+    if(!t.from||!t.to){ toast('Trip '+(i+1)+': enter From and To'); return; }
+    if(t.mode==='bike'&&!(Number(t.km)>0)){ toast('Trip '+(i+1)+': enter KM'); return; }
+    if(t.mode==='bus'){ if(!(Number(t.amount)>0)){ toast('Trip '+(i+1)+': enter bus ticket amount'); return; } if(!t.ticketUrl){ toast('Trip '+(i+1)+': upload bus ticket'); return; } }
   }
-
-  // pack TA trips into notes so they persist
-  if(TRIPS.length) NOTES['__TA_TRIPS']=JSON.stringify(TRIPS);
-  else delete NOTES['__TA_TRIPS'];
-
+  for(var j=0;j<DATRIPS.length;j++){ var d=DATRIPS[j];
+    if(!d.date){ toast('DA '+(j+1)+': select date'); return; }
+    if(!d.place){ toast('DA '+(j+1)+': enter place'); return; }
+    if(!(Number(d.amount)>0)){ toast('DA '+(j+1)+': enter amount'); return; }
+  }
+  if(TRIPS.length) NOTES['__TA_TRIPS']=JSON.stringify(TRIPS); else delete NOTES['__TA_TRIPS'];
+  if(DATRIPS.length) NOTES['__DA_TRIPS']=JSON.stringify(DATRIPS); else delete NOTES['__DA_TRIPS'];
   setBusy(btn,true,'Submitting…');
   post({action:'submit',submitterId:ME.Id,month:month,amounts:amounts,bills:BILLS,notes:NOTES,miscRemark:val('fRemark')})
-    .then(res=>{
-      setBusy(btn,false);
+    .then(res=>{ setBusy(btn,false);
       if(res.ok){ toast((res.updated?'Updated ✓ ':'Submitted ✓ ')+res.month+' · Total ₹'+num(res.total)); load(); }
       else if(res.error==='MONTH_CLOSED'||res.error==='MONTH_NOT_OPEN'){ toast(res.reason||'Month is closed'); }
       else toast('Error: '+res.error);
-    })
-    .catch(()=>{setBusy(btn,false);toast('Sent');setTimeout(load,1200);});
+    }).catch(()=>{ setBusy(btn,false); toast('Sent'); setTimeout(load,1200); });
 }
 
-/* ---- Approver-1 ---- */
-function openAp1(id){curId=id;var r=byId(id);document.getElementById('ap1Info').innerHTML=infoBlock(r);document.getElementById('ap1Comment').value='';ap1Dlg.showModal();}
-function doAp1Approve(btn){
-  setBusy(btn,true,'Approving…');
-  post({action:'ap1approve',id:curId,approverId:ME.Id,comment:val('ap1Comment')})
-    .then(res=>{setBusy(btn,false);ap1Dlg.close();toast(res.ok?'Approved → Admin ✓':'Error: '+res.error);setTimeout(load,600);})
-    .catch(()=>{setBusy(btn,false);ap1Dlg.close();setTimeout(load,1200);});
-}
+/* ---- approver-1 ---- */
+function openAp1(id){ curId=id; var r=byId(id); document.getElementById('ap1Info').innerHTML=infoBlock(r); document.getElementById('ap1Comment').value=''; ap1Dlg.showModal(); }
+function doAp1Approve(btn){ setBusy(btn,true,'Approving…');
+  post({action:'ap1approve',id:curId,approverId:ME.Id,comment:val('ap1Comment')}).then(res=>{ setBusy(btn,false); ap1Dlg.close(); toast(res.ok?'Approved → Admin ✓':'Error: '+res.error); setTimeout(load,600); }).catch(()=>{ setBusy(btn,false); ap1Dlg.close(); setTimeout(load,1200); }); }
 
-/* ---- Admin final approve ---- */
-function openAd(id){
-  curId=id;var r=byId(id);document.getElementById('adInfo').innerHTML=infoBlock(r);
-  var amounts={};try{amounts=JSON.parse(r.Amounts||'{}');}catch(e){}
-  var cats=catsForProject(r.Project);
-  var w=document.getElementById('adInputs');w.innerHTML='';
+/* ---- admin approve ---- */
+function openAd(id){ curId=id; var r=byId(id); document.getElementById('adInfo').innerHTML=infoBlock(r);
+  var amounts={}; try{amounts=JSON.parse(r.Amounts||'{}');}catch(e){}
+  var cats=catsForProject(r.Project); var w=document.getElementById('adInputs'); w.innerHTML='';
   cats.forEach(c=>w.innerHTML+='<div><label>'+esc(c.name)+'</label><input type="number" min="0" data-cat="'+esc(c.name)+'" value="'+(amounts[c.name]||0)+'" oninput="adRecalc()"></div>');
-  adRecalc();document.getElementById('adRemark').value='';adDlg.showModal();
-}
-function adRecalc(){var s=0;document.querySelectorAll('#adInputs input').forEach(i=>s+=Number(i.value)||0);document.getElementById('adAuto').textContent='₹'+num(s);document.getElementById('adFinal').value=s;}
-function doApprove(btn){
-  var amounts={};document.querySelectorAll('#adInputs input').forEach(i=>amounts[i.dataset.cat]=Number(i.value)||0);
+  adRecalc(); document.getElementById('adRemark').value=''; adDlg.showModal(); }
+function adRecalc(){ var s=0; document.querySelectorAll('#adInputs input').forEach(i=>s+=Number(i.value)||0); document.getElementById('adAuto').textContent='₹'+num(s); document.getElementById('adFinal').value=s; }
+function doApprove(btn){ var amounts={}; document.querySelectorAll('#adInputs input').forEach(i=>amounts[i.dataset.cat]=Number(i.value)||0);
   setBusy(btn,true,'Approving…');
   post({action:'approve',id:curId,approverId:ME.Id,amounts:amounts,finalTotal:document.getElementById('adFinal').value,remark:val('adRemark')})
-    .then(res=>{setBusy(btn,false);adDlg.close();toast(res.ok?'Final Approved ✓ ₹'+num(res.finalTotal):'Error: '+res.error);setTimeout(load,600);})
-    .catch(()=>{setBusy(btn,false);adDlg.close();setTimeout(load,1200);});
-}
-function doReject(){var remark=prompt('Reason for rejection:');if(remark===null)return;
-  post({action:'reject',id:curId,approverId:ME.Id,remark:remark})
-    .then(()=>{try{ap1Dlg.close();}catch(e){}try{adDlg.close();}catch(e){}toast('Rejected');setTimeout(load,900);});}
+    .then(res=>{ setBusy(btn,false); adDlg.close(); toast(res.ok?'Final Approved ✓ ₹'+num(res.finalTotal):'Error: '+res.error); setTimeout(load,600); }).catch(()=>{ setBusy(btn,false); adDlg.close(); setTimeout(load,1200); }); }
+function doReject(){ var remark=prompt('Reason for rejection:'); if(remark===null) return;
+  post({action:'reject',id:curId,approverId:ME.Id,remark:remark}).then(()=>{ try{ap1Dlg.close();}catch(e){} try{adDlg.close();}catch(e){} toast('Rejected'); setTimeout(load,900); }); }
 
-/* ---- Admin: month control ---- */
-function saveMonth(slot,btn){
-  var raw=(document.getElementById(slot==='last'?'monthLast':'monthCurrent').value||'').trim();
-  var lbl=pickerToLabel(raw);   // '' if cleared -> closes the slot
-  var msg = lbl ? ('Open '+slot+' month: '+lbl+' ?') : ('Close the '+slot+' month slot? Its data will be hidden.');
-  if(!confirm(msg)) return;
+/* ---- admin month ---- */
+function saveMonth(slot,btn){ var raw=(document.getElementById(slot==='last'?'monthLast':'monthCurrent').value||'').trim(); var lbl=pickerToLabel(raw);
+  var msg=lbl?('Open '+slot+' month: '+lbl+' ?'):('Close the '+slot+' month slot? Its data will be hidden.'); if(!confirm(msg)) return;
   setBusy(btn,true,'Saving…');
-  post({action:'setMonth',adminId:ME.Id,slot:slot,month:lbl}).then(res=>{
-    setBusy(btn,false);
+  post({action:'setMonth',adminId:ME.Id,slot:slot,month:lbl}).then(res=>{ setBusy(btn,false);
     if(res.ok){ MONTHS=res.months||MONTHS; updateMonthTag(); updateOpenLabel(); buildMonthPick(); applyMonthGate();
-      document.getElementById('monthCurrent').value=labelToPicker(MONTHS.current);
-      document.getElementById('monthLast').value=labelToPicker(MONTHS.last);
-      toast('Saved'); load(); }
-    else toast('Error: '+res.error);
-  }).catch(()=>{setBusy(btn,false);toast('Network error');});
-}
+      document.getElementById('monthCurrent').value=labelToPicker(MONTHS.current); document.getElementById('monthLast').value=labelToPicker(MONTHS.last); toast('Saved'); load(); }
+    else toast('Error: '+(res.reason||res.error)); }).catch(()=>{ setBusy(btn,false); toast('Network error'); }); }
 
-/* ---- Admin: Users management ---- */
-function loadUsers(){
-  showLoading('usersWrap','Loading users…');
-  get({action:'users',id:ME.Id}).then(res=>{ if(!res.ok){toast('Error: '+res.error);showLoading('usersWrap','Could not load');return;} USERS=res.users||[]; renderUsers(); }).catch(()=>{showLoading('usersWrap','Network error');});
+/* ---- archive ---- */
+function doArchive(btn){ var raw=document.getElementById('archiveMonth').value; var lbl=pickerToLabel(raw);
+  if(!lbl){ toast('Pick a month to archive'); return; }
+  if(!confirm('Archive '+lbl+'? Its rows move to the Archive tab and leave the active list. (Month must be closed.)')) return;
+  setBusy(btn,true,'Archiving…');
+  post({action:'archiveMonth',adminId:ME.Id,month:lbl}).then(res=>{ setBusy(btn,false);
+    if(res.ok){ toast('Archived '+res.moved+' rows from '+res.month); load(); }
+    else toast('Error: '+(res.reason||res.error)); }).catch(()=>{ setBusy(btn,false); toast('Network error'); }); }
+
+/* ---- analytics ---- */
+function loadAnalytics(){ var el=document.getElementById('anaWrap'); el.innerHTML='<div class="loadwrap"><span class="spin"></span>Loading…</div>';
+  get({action:'analytics'}).then(res=>{ if(!res.ok){ el.innerHTML='<p class="muted">Could not load.</p>'; return; } renderAnalytics(res.data); }).catch(()=>{ el.innerHTML='<p class="muted">Network error.</p>'; }); }
+function renderAnalytics(d){
+  var el=document.getElementById('anaWrap');
+  var flags=(d.flags||[]).map(f=>'<li>'+esc(f.office)+' ('+esc(f.by)+'): '+esc(f.note)+'</li>').join('');
+  el.innerHTML=
+    '<div class="chartgrid"><div class="chartcard"><b>Top Offices by Spend</b><canvas id="c1" height="200"></canvas></div>'+
+    '<div class="chartcard"><b>Spend by Category</b><canvas id="c2" height="200"></canvas></div></div>'+
+    '<div class="chartcard"><b>Month-wise Trend</b><canvas id="c3" height="140"></canvas></div>'+
+    (flags?'<div class="chartcard"><b>⚠️ Flags (high Misc)</b><ul class="muted">'+flags+'</ul></div>':'');
+  var topO=(d.topOffices||[]);
+  drawBar('c1',topO.map(x=>x.office),topO.map(x=>x.total),'#0b5394',anaChart1,c=>anaChart1=c);
+  var cats=Object.keys(d.byCategory||{}); drawBar('c2',cats,cats.map(k=>d.byCategory[k]),'#c9962c',anaChart2,c=>anaChart2=c);
+  var ms=Object.keys(d.byMonth||{}); drawLine('c3',ms,ms.map(k=>d.byMonth[k]),anaChart3,c=>anaChart3=c);
 }
-function renderUsers(){
-  var h='<table><tr><th>Emp Id</th><th>Name</th><th>Office</th><th>Project</th><th>Designation</th><th>Approver-1</th><th>Active</th><th>Action</th></tr>';
-  USERS.forEach(u=>{
-    h+='<tr>'+
-      '<td><b>'+esc(u.Id)+'</b></td><td>'+esc(u.Name)+'</td><td>'+esc(u.Office)+'</td>'+
-      '<td>'+esc(u.Project)+(u.Cluster?'<div class="muted">'+esc(u.Cluster)+'</div>':'')+'</td>'+
-      '<td>'+esc(u.Designation)+'</td>'+
-      '<td>'+(u.Approver1?esc(u.Approver1):'<span class="muted">AB293 (direct)</span>')+'</td>'+
-      '<td>'+(up(u.Active)==='N'?'<span class="pill REJECTED">Inactive</span>':'<span class="pill APPROVED">Active</span>')+'</td>'+
-      '<td>'+(up(u.Id)===SUPER_ADMIN?'<span class="muted">—</span>':
-        '<button class="btn sm" onclick="openUserEdit(\''+u.Id+'\')">Edit</button> '+
-        '<button class="btn sm bad" onclick="removeUser(\''+u.Id+'\')">Remove</button>')+'</td></tr>';
-  });
-  document.getElementById('usersWrap').innerHTML=h+'</table>';
+function drawBar(id,labels,data,color,old,store){ if(old) old.destroy(); var ctx=document.getElementById(id); if(!ctx||!window.Chart) return;
+  store(new Chart(ctx,{type:'bar',data:{labels:labels,datasets:[{data:data,backgroundColor:color}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}})); }
+function drawLine(id,labels,data,old,store){ if(old) old.destroy(); var ctx=document.getElementById(id); if(!ctx||!window.Chart) return;
+  store(new Chart(ctx,{type:'line',data:{labels:labels,datasets:[{data:data,borderColor:'#1e7e34',backgroundColor:'rgba(30,126,52,.15)',fill:true,tension:.3}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}})); }
+
+/* ---- export ---- */
+function doExport(btn){ var raw=document.getElementById('exportMonthPick').value; var lbl=pickerToLabel(raw);
+  if(!lbl){ toast('Pick a month'); return; }
+  setBusy(btn,true,'Preparing…');
+  get({action:'export',month:lbl}).then(res=>{ setBusy(btn,false);
+    if(!res.ok){ toast('Error: '+res.error); return; }
+    exportCsv(res.data); }).catch(()=>{ setBusy(btn,false); toast('Network error'); }); }
+function exportCsv(d){
+  var rowsM=d.rows.filter(r=>r.project!=='CLUSTER'); var rowsC=d.rows.filter(r=>r.project==='CLUSTER');
+  var csv='';
+  function block(title,cats,rows){
+    csv+=title+' - '+d.month+'\n';
+    csv+=['Office','Name','Emp Id'].concat(cats).concat(['Total','Status','Misc Remark']).map(csvCell).join(',')+'\n';
+    rows.forEach(r=>{ var line=[r.office,r.name,r.id].concat(cats.map(c=>r.amounts[c]||0));
+      line.push(r.final!==''?r.final:r.claimed); line.push(r.status); line.push(r.notes&&r.notes.__MISC?'' :'');
+      csv+=line.map(csvCell).join(',')+'\n'; });
+    csv+='\n';
+  }
+  if(rowsM.length) block('DVVNL MRI OFFICE EXPENSES',d.mriCats,rowsM);
+  if(rowsC.length) block('DVVNL CLUSTER OFFICE EXPENSES',d.cluCats,rowsC);
+  if(!rowsM.length&&!rowsC.length){ toast('No data for '+d.month); return; }
+  var blob=new Blob([csv],{type:'text/csv;charset=utf-8'}); var url=URL.createObjectURL(blob);
+  var a=document.createElement('a'); a.href=url; a.download='DVVNL_Expenses_'+d.month+'.csv'; a.click(); URL.revokeObjectURL(url);
+  toast('Downloaded '+d.month);
 }
-function openUserAdd(){
-  editUserId=null; document.getElementById('userDlgTitle').textContent='Add User';
-  ['uId','uName','uOffice','uCluster','uApprover1'].forEach(i=>document.getElementById(i).value='');
-  document.getElementById('uProject').value='MRI'; document.getElementById('uDesig').value='SUPERVISOR';
-  document.getElementById('uActive').value='Y'; document.getElementById('uId').disabled=false; userDlg.showModal();
-}
-function openUserEdit(id){
-  editUserId=id; var u=USERS.filter(x=>up(x.Id)===up(id))[0]; if(!u)return;
+function csvCell(v){ v=String(v==null?'':v); if(/[",\n]/.test(v)) v='"'+v.replace(/"/g,'""')+'"'; return v; }
+
+/* ---- users ---- */
+function loadUsers(){ showLoading('usersWrap','Loading users…');
+  get({action:'users',id:ME.Id}).then(res=>{ if(!res.ok){ toast('Error: '+res.error); showLoading('usersWrap','Could not load'); return; } USERS=res.users||[]; renderUsers(); }).catch(()=>{ showLoading('usersWrap','Network error'); }); }
+function renderUsers(){ var h='<table><tr><th>Emp Id</th><th>Name</th><th>Office</th><th>Project</th><th>Designation</th><th>Approver-1</th><th>Email</th><th>Active</th><th>Action</th></tr>';
+  USERS.forEach(u=>{ h+='<tr><td><b>'+esc(u.Id)+'</b></td><td>'+esc(u.Name)+'</td><td>'+esc(u.Office)+'</td>'+
+    '<td>'+esc(u.Project)+(u.Cluster?'<div class="muted">'+esc(u.Cluster)+'</div>':'')+'</td><td>'+esc(u.Designation)+'</td>'+
+    '<td>'+(u.Approver1?esc(u.Approver1):'<span class="muted">AB293</span>')+'</td><td class="muted">'+esc(u.Email||'')+'</td>'+
+    '<td>'+(up(u.Active)==='N'?'<span class="pill REJECTED">Inactive</span>':'<span class="pill APPROVED">Active</span>')+'</td>'+
+    '<td>'+(up(u.Id)===SUPER_ADMIN?'<span class="muted">—</span>':'<button class="btn sm" onclick="openUserEdit(\''+u.Id+'\')">Edit</button> <button class="btn sm bad" onclick="removeUser(\''+u.Id+'\')">Remove</button>')+'</td></tr>'; });
+  document.getElementById('usersWrap').innerHTML=h+'</table>'; }
+function openUserAdd(){ editUserId=null; document.getElementById('userDlgTitle').textContent='Add User';
+  ['uId','uName','uOffice','uCluster','uApprover1','uEmail'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('uProject').value='MRI'; document.getElementById('uDesig').value='SUPERVISOR'; document.getElementById('uActive').value='Y';
+  document.getElementById('uId').disabled=false; userDlg.showModal(); }
+function openUserEdit(id){ editUserId=id; var u=USERS.filter(x=>up(x.Id)===up(id))[0]; if(!u) return;
   document.getElementById('userDlgTitle').textContent='Edit User — '+id;
   document.getElementById('uId').value=u.Id; document.getElementById('uId').disabled=true;
   document.getElementById('uName').value=u.Name; document.getElementById('uOffice').value=u.Office;
   document.getElementById('uProject').value=u.Project||'MRI'; document.getElementById('uCluster').value=u.Cluster||'';
   document.getElementById('uDesig').value=u.Designation||'SUPERVISOR'; document.getElementById('uApprover1').value=u.Approver1||'';
-  document.getElementById('uActive').value=up(u.Active)==='N'?'N':'Y'; userDlg.showModal();
-}
-function saveUser(btn){
-  var payload={ Id:val('uId').toUpperCase(),Name:val('uName'),Office:val('uOffice'),
-    Project:document.getElementById('uProject').value,Cluster:val('uCluster'),
-    Designation:document.getElementById('uDesig').value,Approver1:val('uApprover1').toUpperCase(),
-    Active:document.getElementById('uActive').value };
-  if(!payload.Id){toast('Emp Id required');return;}
-  setBusy(btn,true,'Saving…');
-  if(editUserId){
-    post({action:'userEdit',adminId:ME.Id,id:editUserId,fields:payload}).then(res=>{
-      setBusy(btn,false); userDlg.close(); toast(res.ok?'Updated ✓':'Error: '+res.error); loadUsers();
-    }).catch(()=>{setBusy(btn,false);toast('Network error');});
-  } else {
-    post({action:'userAdd',adminId:ME.Id,user:payload}).then(res=>{
-      setBusy(btn,false);
-      if(res.ok){ userDlg.close(); toast('User added ✓'); loadUsers(); }
-      else { toast(res.error==='Id already exists' ? ('Emp Id '+payload.Id+' already exists') : ('Error: '+res.error)); }
-    }).catch(()=>{setBusy(btn,false);toast('Network error');});
-  }
-}
-function removeUser(id){
-  if(!confirm('Remove '+id+'? (soft delete → inactive)'))return;
-  post({action:'userRemove',adminId:ME.Id,id:id}).then(res=>{toast(res.ok?'Removed ✓':'Error: '+res.error);loadUsers();});
-}
+  document.getElementById('uEmail').value=u.Email||''; document.getElementById('uActive').value=up(u.Active)==='N'?'N':'Y'; userDlg.showModal(); }
+function saveUser(btn){ var payload={Id:val('uId').toUpperCase(),Name:val('uName'),Office:val('uOffice'),
+  Project:document.getElementById('uProject').value,Cluster:val('uCluster'),Designation:document.getElementById('uDesig').value,
+  Approver1:val('uApprover1').toUpperCase(),Email:val('uEmail'),Active:document.getElementById('uActive').value};
+  if(!payload.Id){ toast('Emp Id required'); return; } setBusy(btn,true,'Saving…');
+  if(editUserId){ post({action:'userEdit',adminId:ME.Id,id:editUserId,fields:payload}).then(res=>{ setBusy(btn,false); userDlg.close(); toast(res.ok?'Updated ✓':'Error: '+res.error); loadUsers(); }).catch(()=>{ setBusy(btn,false); toast('Network error'); }); }
+  else { post({action:'userAdd',adminId:ME.Id,user:payload}).then(res=>{ setBusy(btn,false);
+    if(res.ok){ userDlg.close(); toast('User added ✓'); loadUsers(); } else toast(res.error==='Id already exists'?('Emp Id '+payload.Id+' already exists'):('Error: '+res.error)); }).catch(()=>{ setBusy(btn,false); toast('Network error'); }); } }
+function removeUser(id){ if(!confirm('Remove '+id+'? (soft delete → inactive)')) return;
+  post({action:'userRemove',adminId:ME.Id,id:id}).then(res=>{ toast(res.ok?'Removed ✓':'Error: '+res.error); loadUsers(); }); }
 
 /* ---- helpers ---- */
-function infoBlock(r){
-  var amounts={};try{amounts=JSON.parse(r.Amounts||'{}');}catch(e){}
-  var notes={};try{notes=JSON.parse(r.Notes||'{}');}catch(e){}
-  var parts=[];for(var k in amounts) if(amounts[k]) parts.push(k+': ₹'+num(amounts[k]));
-  var noteLines=[];for(var nk in notes){ if(nk==='__TA_TRIPS') continue; if(notes[nk]) noteLines.push('<b>'+esc(nk)+':</b> '+esc(notes[nk])); }
-  // TA trips detail
-  var taHtml='';
-  if(notes.__TA_TRIPS){
-    var trips=[]; try{ trips=JSON.parse(notes.__TA_TRIPS)||[]; }catch(e){}
-    if(trips.length){
-      taHtml='<br><b>TA Trips:</b>';
-      trips.forEach(function(t,i){
-        taHtml+='<br>'+(i+1)+'. '+esc(t.mode).toUpperCase()+': '+esc(t.from)+' → '+esc(t.to)+
-          (t.mode==='bike'?(' · '+esc(t.km)+' km × ₹'+BIKE_RATE+' = ₹'+num(t.amount)):(' · ticket ₹'+num(t.amount)+(t.ticketUrl?' · <a href="'+esc(t.ticketUrl)+'" target="_blank">ticket</a>':'')));
-      });
-    }
-  }
+function infoBlock(r){ var amounts={},notes={}; try{amounts=JSON.parse(r.Amounts||'{}');}catch(e){} try{notes=JSON.parse(r.Notes||'{}');}catch(e){}
+  var parts=[]; for(var k in amounts) if(amounts[k]) parts.push(k+': ₹'+num(amounts[k]));
+  var nl=[]; for(var nk in notes){ if(nk==='__TA_TRIPS'||nk==='__DA_TRIPS') continue; if(notes[nk]) nl.push('<b>'+esc(nk)+':</b> '+esc(notes[nk])); }
+  var ta=''; if(notes.__TA_TRIPS){ var tr=[]; try{tr=JSON.parse(notes.__TA_TRIPS)||[];}catch(e){}
+    if(tr.length){ ta='<br><b>TA Trips:</b>'; tr.forEach((t,i)=>{ ta+='<br>'+(i+1)+'. '+esc(t.date)+' '+esc(t.mode).toUpperCase()+': '+esc(t.from)+' → '+esc(t.to)+
+      (t.mode==='bike'?(' · '+esc(t.km)+'km × ₹'+BIKE_RATE+' = ₹'+num(t.amount)):(' · ticket ₹'+num(t.amount)+(t.ticketUrl?' · <a href="'+esc(t.ticketUrl)+'" target="_blank">ticket</a>':''))); }); } }
+  var dat=''; if(notes.__DA_TRIPS){ var dd=[]; try{dd=JSON.parse(notes.__DA_TRIPS)||[];}catch(e){}
+    if(dd.length){ dat='<br><b>DA Entries:</b>'; dd.forEach((d,i)=>{ dat+='<br>'+(i+1)+'. '+esc(d.date)+' · '+esc(d.place)+' · ₹'+num(d.amount)+(d.detail?' ('+esc(d.detail)+')':''); }); } }
   return '<div class="muted"><b>'+esc(r.OfficeName)+'</b> · '+esc(r.SubmitterName)+' ('+esc(r.SubmitterId)+') · '+esc(r.Month)+
-    '<br>'+esc(r.Project)+(r.Cluster?' · '+esc(r.Cluster):'')+
-    '<br>'+parts.join(' &nbsp;|&nbsp; ')+
-    (noteLines.length?'<br>'+noteLines.join('<br>'):'')+
-    taHtml+
-    '<br>Claimed Total: <b>₹'+num(r.ClaimedTotal)+'</b>'+
-    (billLinks(r)?'<br>Bills: '+billLinks(r):'')+
-    (r.MiscRemark?'<br>Remark: '+esc(r.MiscRemark):'')+
-    (r.Ap1Comment?'<br>'+esc(r.Ap1Id)+' comment: '+esc(r.Ap1Comment):'')+'</div>';
-}
-function val(id){return document.getElementById(id).value.trim();}
-function byId(id){return CACHE.filter(r=>r.ID===id)[0];}
-function up(s){return String(s==null?'':s).toUpperCase();}
-function num(n){return Number(n||0).toLocaleString('en-IN');}
-function esc(s){return String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
-function cssEsc(s){return String(s).replace(/"/g,'\\"');}
-function label(s){return {PENDING_AP1:'Pending Approver-1',PENDING_ADMIN:'Pending Admin',APPROVED:'Approved',REJECTED:'Rejected'}[s]||s;}
+    '<br>'+esc(r.Project)+(r.Cluster?' · '+esc(r.Cluster):'')+'<br>'+parts.join(' &nbsp;|&nbsp; ')+(nl.length?'<br>'+nl.join('<br>'):'')+ta+dat+
+    '<br>Claimed Total: <b>₹'+num(r.ClaimedTotal)+'</b>'+(billLinks(r)?'<br>Bills: '+billLinks(r):'')+
+    (r.MiscRemark?'<br>Remark: '+esc(r.MiscRemark):'')+(r.Ap1Comment?'<br>'+esc(r.Ap1Id)+' comment: '+esc(r.Ap1Comment):'')+'</div>'; }
+function val(id){ return document.getElementById(id).value.trim(); }
+function byId(id){ return CACHE.filter(r=>r.ID===id)[0]; }
+function up(s){ return String(s==null?'':s).toUpperCase(); }
+function num(n){ return Number(n||0).toLocaleString('en-IN'); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+function cssEsc(s){ return String(s).replace(/"/g,'\\"'); }
+function label(s){ return {PENDING_AP1:'Pending Approver-1',PENDING_ADMIN:'Pending Admin',APPROVED:'Approved',REJECTED:'Rejected'}[s]||s; }
+function setBusy(btn,busy,lbl){ if(!btn) return; if(busy){ btn._label=btn._label!==undefined?btn._label:btn.innerHTML; btn.disabled=true; btn.classList.add('busy'); btn.innerHTML='<span class="spin"></span>'+(lbl||'Please wait…'); } else { btn.disabled=false; btn.classList.remove('busy'); if(btn._label!==undefined){ btn.innerHTML=btn._label; btn._label=undefined; } } }
+function showLoading(id,msg){ var el=document.getElementById(id); if(el) el.innerHTML='<div class="loadwrap"><span class="spin"></span>'+(msg||'Loading…')+'</div>'; }
 var ap1Dlg=document.getElementById('ap1Dlg'),adDlg=document.getElementById('adDlg'),userDlg=document.getElementById('userDlg');
-function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1900);}
+function toast(m){ var t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),1900); }
 
-/* ---- busy / loading helpers ---- */
-// Disable a button and show a spinner while an async action runs.
-function setBusy(btn, busy, busyLabel){
-  if(!btn) return;
-  if(busy){
-    btn._label = btn._label!==undefined ? btn._label : btn.innerHTML;
-    btn.disabled = true; btn.classList.add('busy');
-    btn.innerHTML = '<span class="spin"></span>'+(busyLabel||'Please wait…');
-  } else {
-    btn.disabled = false; btn.classList.remove('busy');
-    if(btn._label!==undefined){ btn.innerHTML = btn._label; btn._label=undefined; }
-  }
-}
-// Show a loading spinner inside a table container while data loads.
-function showLoading(elId, msg){
-  var el=document.getElementById(elId);
-  if(el) el.innerHTML='<div class="loadwrap"><span class="spin"></span>'+(msg||'Loading…')+'</div>';
-}
 </script>
 </body>
 </html>
