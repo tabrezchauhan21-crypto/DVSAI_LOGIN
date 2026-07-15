@@ -81,7 +81,7 @@
 </head>
 <body>
 <header>
-  <h1>⚡ DVVNL Office Expense Approval <span class="tag" id="periodTag" style="background:rgba(255,255,255,.22);color:#fff;border:1px solid rgba(255,255,255,.4)">—</span><span style="font-size:9px;opacity:.6;margin-left:6px">v5</span></h1>
+  <h1>⚡ DVVNL Office Expense Approval <span class="tag" id="periodTag" style="background:rgba(255,255,255,.22);color:#fff;border:1px solid rgba(255,255,255,.4)">—</span><span style="font-size:9px;opacity:.6;margin-left:6px">v6</span></h1>
   <div style="display:flex;align-items:center;gap:12px">
     <div class="who" id="whoBar"></div>
     <button id="logoutBtn" class="hide" onclick="doLogout()"
@@ -110,26 +110,32 @@
 <div class="wrap hide" id="appView">
   <div class="tabbar" id="tabbar"></div>
 
-  <!-- Admin: month control -->
+  <!-- Admin: month/window control -->
   <div id="monthAdmin" class="card hide">
-    <h3 style="margin:0 0 4px">Open Submission Months</h3>
-    <div class="muted" style="margin-bottom:10px">Keep two months open together (current + last). Pick a month and Save. Clear &amp; Save to close a slot. Closed month data is hidden. You can Archive a closed month to keep the sheet fast.</div>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
-      <span style="font-size:12px;font-weight:700;min-width:110px">Current month</span>
-      <input id="monthCurrent" type="month" style="width:180px">
-      <button class="btn sm ok" onclick="saveMonth('current',this)">Save</button>
+    <h3 style="margin:0 0 4px">Submission Month &amp; Window</h3>
+    <div class="muted" style="margin-bottom:10px">Only the <b>previous month</b> is open, and only between the day window (default 1–12). Example: 1–12 July accepts JUNE. After day 12, submission closes automatically. You can override below.</div>
+    <div id="monthStatus" class="muted" style="margin-bottom:10px;padding:8px;background:#eef2f7;border-radius:8px"></div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+      <span style="font-size:12px;font-weight:700">Day window:</span>
+      <input id="winStart" type="number" min="1" max="31" style="width:70px" value="1"> to
+      <input id="winEnd" type="number" min="1" max="31" style="width:70px" value="12">
+      <button class="btn sm ok" onclick="saveWindow(this)">Save Window</button>
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
-      <span style="font-size:12px;font-weight:700;min-width:110px">Last month</span>
-      <input id="monthLast" type="month" style="width:180px">
-      <button class="btn sm ok" onclick="saveMonth('last',this)">Save</button>
+      <span style="font-size:12px;font-weight:700">Override:</span>
+      <button class="btn sm" onclick="setAdminMode('auto',this)">Automatic (default)</button>
+      <button class="btn sm bad" onclick="setAdminMode('close',this)">Force Close</button>
     </div>
-    <div class="muted">Currently open: <b id="openMonthsLabel">None</b></div>
-    <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <span style="font-size:12px;font-weight:700">Force open a month:</span>
+      <input id="adminMonthPick" type="month" style="width:170px">
+      <button class="btn sm gold" onclick="setAdminMode('open',this)">Force Open</button>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:10px">
       <span style="font-size:12px;font-weight:700">Archive a month:</span>
       <input id="archiveMonth" type="month" style="width:170px">
       <button class="btn sm gold" onclick="doArchive(this)">Archive</button>
-      <span class="muted">(month must be closed first)</span>
+      <span class="muted">(must be closed first)</span>
     </div>
   </div>
 
@@ -267,23 +273,25 @@ var BIKE_RATE = 3;
 var ICON={'Water':'💧','Sweeper Salary':'🧹','Cleaning Material':'🧴','Courier By Bus':'🚌',
   'Courier By DTDC':'📦','TA':'🧭','DA':'🏨','Misc':'🧾','Office Refreshment (Tea)':'☕','Stationary':'✏️'};
 
-/* categories with flags: bill(PDF/img required), trips(TA), datrips(DA) */
+/* categories with flags:
+   bill(single PDF/img), trips(TA), datrips(DA), bustrips(Courier Bus),
+   dtdctrips(Courier DTDC), misctrips(Misc multiple) */
 var MRI_CATS=[
   {name:'Water',bill:true},{name:'Sweeper Salary',bill:true},{name:'Cleaning Material',bill:true},
-  {name:'Courier By Bus',bill:true},{name:'Courier By DTDC',bill:true},
-  {name:'TA',bill:false,trips:true},{name:'DA',bill:false,datrips:true},{name:'Misc',bill:true}
+  {name:'Courier By Bus',bustrips:true},{name:'Courier By DTDC',dtdctrips:true},
+  {name:'TA',trips:true},{name:'DA',datrips:true},{name:'Misc',misctrips:true}
 ];
 var CLU_CATS=[
   {name:'Office Refreshment (Tea)',bill:false},{name:'Stationary',bill:true},{name:'Water',bill:true},
   {name:'Sweeper Salary',bill:true},{name:'Cleaning Material',bill:true},
-  {name:'Courier By Bus',bill:true},{name:'Courier By DTDC',bill:true},
-  {name:'TA',bill:false,trips:true},{name:'DA',bill:false,datrips:true},{name:'Misc',bill:true}
+  {name:'Courier By Bus',bustrips:true},{name:'Courier By DTDC',dtdctrips:true},
+  {name:'TA',trips:true},{name:'DA',datrips:true},{name:'Misc',misctrips:true}
 ];
 function catsForProject(p){ return p==='CLUSTER'?CLU_CATS:MRI_CATS; }
 
 var ME=null,CATS=[],ROLE={},CACHE=[],USERS=[],MONTHS={current:'',last:'',open:[]};
 var curId=null,editUserId=null,activeTab='queue',CURRENT_TS='',TOKEN='';
-var BILLS={},NOTES={},TRIPS=[],DATRIPS=[];
+var BILLS={},NOTES={},TRIPS=[],DATRIPS=[],BUSTRIPS=[],DTDCTRIPS=[],MISCTRIPS=[];
 var anaChart1=null,anaChart2=null,anaChart3=null;
 
 /* ---- token / login ---- */
@@ -361,9 +369,7 @@ function setupUI(){
   if(isAdmin()){
     document.getElementById('dash').classList.remove('hide');
     document.getElementById('monthAdmin').classList.remove('hide');
-    document.getElementById('monthCurrent').value=labelToPicker(MONTHS.current);
-    document.getElementById('monthLast').value=labelToPicker(MONTHS.last);
-    updateOpenLabel(); loadSummary();
+    refreshMonthUI(); loadSummary();
   }
   showTab(isAdmin()?'all':'queue');
 }
@@ -373,6 +379,7 @@ function updateMonthTag(){ var tag=document.getElementById('periodTag'); var t=o
   tag.textContent=t||'No month open';
   if(t){tag.style.background='rgba(255,255,255,.22)';tag.style.color='#fff';}else{tag.style.background='#f8d7da';tag.style.color='#842029';} }
 function updateOpenLabel(){ var el=document.getElementById('openMonthsLabel'); if(el) el.textContent=openMonthsText()||'None'; }
+function daBoxPlaceholder(){}
 
 /* month format */
 var MN=['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
@@ -387,18 +394,21 @@ function applyMonthGate(){ var open=(MONTHS.open&&MONTHS.open.length>0);
 
 /* ---- category inputs ---- */
 function buildCatInputs(){
-  BILLS={};NOTES={};TRIPS=[];DATRIPS=[];
+  BILLS={};NOTES={};TRIPS=[];DATRIPS=[];BUSTRIPS=[];DTDCTRIPS=[];MISCTRIPS=[];
   var w=document.getElementById('catInputs'); w.innerHTML='';
   CATS.forEach(function(c){
     if(c.trips){ w.innerHTML+=taBox(c); return; }
     if(c.datrips){ w.innerHTML+=daBox(c); return; }
+    if(c.bustrips){ w.innerHTML+=busBox(c); return; }
+    if(c.dtdctrips){ w.innerHTML+=dtdcBox(c); return; }
+    if(c.misctrips){ w.innerHTML+=miscBox(c); return; }
     var em=ICON[c.name]||'•';
     var billUI=c.bill?'<div class="filerow"><input type="file" accept="application/pdf,image/*" capture="environment" data-cat="'+esc(c.name)+'" onchange="onBillPick(this)" style="font-size:11px;padding:4px"><span class="fu" data-fu="'+esc(c.name)+'"></span></div>':'';
     var tag=c.bill?'<span class="billtag">BILL *</span>':'<span class="billtag no">NO BILL</span>';
     w.innerHTML+='<div class="catbox"><div class="cn"><span class="ic"><span class="emoji">'+em+'</span>'+esc(c.name)+'</span>'+tag+'</div>'+
       '<input type="number" min="0" placeholder="Amount ₹" data-cat="'+esc(c.name)+'" oninput="recalc()">'+billUI+'</div>';
   });
-  renderTrips(); renderDatrips(); recalc();
+  renderTrips(); renderDatrips(); renderBus(); renderDtdc(); renderMisc(); recalc();
 }
 
 /* TA box */
@@ -462,6 +472,87 @@ function daSet(i,k,v){ DATRIPS[i][k]=(k==='amount')?(Number(v)||0):v; setDaTotal
 function daTotal(){ var s=0; DATRIPS.forEach(d=>s+=Number(d.amount)||0); return s; }
 function setDaTotal(){ var e=document.getElementById('daTotal'); if(e) e.textContent='₹'+num(daTotal()); }
 
+/* Courier By Bus — date + description + amount (bill optional) */
+function busBox(c){ return '<div class="catbox" style="grid-column:1/-1"><div class="cn"><span class="ic"><span class="emoji">🚌</span>Courier By Bus</span><span class="billtag detail">ENTRIES</span></div>'+
+  '<div class="muted" style="margin-bottom:6px">Add each courier with date, material description and amount. Bill optional.</div>'+
+  '<div id="busList"></div><button type="button" class="btn sm" onclick="addBus()" style="margin-top:4px">+ Add Courier (Bus)</button>'+
+  '<div style="margin-top:6px;font-size:13px">Bus Total: <b id="busTotal">₹0</b></div></div>'; }
+function addBus(){ BUSTRIPS.push({date:'',desc:'',amount:0,billUrl:''}); renderBus(); recalc(); }
+function removeBus(i){ BUSTRIPS.splice(i,1); renderBus(); recalc(); }
+function renderBus(){ var box=document.getElementById('busList'); if(!box) return;
+  if(!BUSTRIPS.length){ box.innerHTML='<div class="muted">No entries.</div>'; setBusTotal(); return; }
+  var h=''; BUSTRIPS.forEach(function(t,i){
+    h+='<div class="trip"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'+
+      '<input type="date" value="'+esc(t.date)+'" onchange="busSet('+i+',\'date\',this.value)" style="width:150px">'+
+      '<input type="number" min="0" placeholder="Amount ₹" value="'+(t.amount||'')+'" oninput="busSet('+i+',\'amount\',this.value)" style="width:130px">'+
+      '<button type="button" class="btn sm bad" onclick="removeBus('+i+')" style="margin:0">✕</button></div>'+
+      '<input placeholder="Material description" value="'+esc(t.desc)+'" oninput="busSet('+i+',\'desc\',this.value)" style="margin-top:6px">'+
+      '<div class="filerow"><input type="file" accept="application/pdf,image/*" capture="environment" onchange="busBill('+i+',this)" style="font-size:11px"><span class="fu" id="bus'+i+'">'+(t.billUrl?'<a href="'+t.billUrl+'" target="_blank">bill ✓</a>':' (optional)')+'</span></div></div>';
+  });
+  box.innerHTML=h; setBusTotal(); }
+function busSet(i,k,v){ BUSTRIPS[i][k]=(k==='amount')?(Number(v)||0):v; setBusTotal(); recalc(); }
+function busTotal(){ var s=0; BUSTRIPS.forEach(t=>s+=Number(t.amount)||0); return s; }
+function setBusTotal(){ var e=document.getElementById('busTotal'); if(e) e.textContent='₹'+num(busTotal()); }
+function busBill(i,input){ var f=input.files&&input.files[0]; if(!f) return; if(f.size>5*1024*1024){ toast('Max 5MB'); input.value=''; return; }
+  var span=document.getElementById('bus'+i); if(span) span.textContent=' uploading…';
+  var r=new FileReader(); r.onload=function(){ var b64=String(r.result).split(',')[1];
+    post({action:'uploadBill',filename:f.name,mime:f.type,dataBase64:b64}).then(res=>{ if(res.ok){ BUSTRIPS[i].billUrl=res.url; if(span) span.innerHTML=' <a href="'+res.url+'" target="_blank">bill ✓</a>'; toast('Uploaded'); } else { if(span) span.textContent=''; toast('Upload failed'); } }); };
+  r.readAsDataURL(f); }
+
+/* Courier By DTDC — from + to + amount + bill (mandatory) */
+function dtdcBox(c){ return '<div class="catbox" style="grid-column:1/-1"><div class="cn"><span class="ic"><span class="emoji">📦</span>Courier By DTDC</span><span class="billtag">BILL *</span></div>'+
+  '<div class="muted" style="margin-bottom:6px">Add each courier: from, to, amount and bill (required).</div>'+
+  '<div id="dtdcList"></div><button type="button" class="btn sm" onclick="addDtdc()" style="margin-top:4px">+ Add Courier (DTDC)</button>'+
+  '<div style="margin-top:6px;font-size:13px">DTDC Total: <b id="dtdcTotal">₹0</b></div></div>'; }
+function addDtdc(){ DTDCTRIPS.push({date:'',from:'',to:'',amount:0,billUrl:''}); renderDtdc(); recalc(); }
+function removeDtdc(i){ DTDCTRIPS.splice(i,1); renderDtdc(); recalc(); }
+function renderDtdc(){ var box=document.getElementById('dtdcList'); if(!box) return;
+  if(!DTDCTRIPS.length){ box.innerHTML='<div class="muted">No entries.</div>'; setDtdcTotal(); return; }
+  var h=''; DTDCTRIPS.forEach(function(t,i){
+    h+='<div class="trip"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'+
+      '<input type="date" value="'+esc(t.date)+'" onchange="dtdcSet('+i+',\'date\',this.value)" style="width:140px">'+
+      '<input placeholder="From" value="'+esc(t.from)+'" oninput="dtdcSet('+i+',\'from\',this.value)" style="flex:1;min-width:80px">'+
+      '<input placeholder="To" value="'+esc(t.to)+'" oninput="dtdcSet('+i+',\'to\',this.value)" style="flex:1;min-width:80px">'+
+      '<input type="number" min="0" placeholder="₹" value="'+(t.amount||'')+'" oninput="dtdcSet('+i+',\'amount\',this.value)" style="width:100px">'+
+      '<button type="button" class="btn sm bad" onclick="removeDtdc('+i+')" style="margin:0">✕</button></div>'+
+      '<div class="filerow"><input type="file" accept="application/pdf,image/*" capture="environment" onchange="dtdcBill('+i+',this)" style="font-size:11px"><span class="fu" id="dtdc'+i+'">'+(t.billUrl?'<a href="'+t.billUrl+'" target="_blank">bill ✓</a>':' <b style="color:#b02a37">required</b>')+'</span></div></div>';
+  });
+  box.innerHTML=h; setDtdcTotal(); }
+function dtdcSet(i,k,v){ DTDCTRIPS[i][k]=(k==='amount')?(Number(v)||0):v; setDtdcTotal(); recalc(); }
+function dtdcTotal(){ var s=0; DTDCTRIPS.forEach(t=>s+=Number(t.amount)||0); return s; }
+function setDtdcTotal(){ var e=document.getElementById('dtdcTotal'); if(e) e.textContent='₹'+num(dtdcTotal()); }
+function dtdcBill(i,input){ var f=input.files&&input.files[0]; if(!f) return; if(f.size>5*1024*1024){ toast('Max 5MB'); input.value=''; return; }
+  var span=document.getElementById('dtdc'+i); if(span) span.textContent=' uploading…';
+  var r=new FileReader(); r.onload=function(){ var b64=String(r.result).split(',')[1];
+    post({action:'uploadBill',filename:f.name,mime:f.type,dataBase64:b64}).then(res=>{ if(res.ok){ DTDCTRIPS[i].billUrl=res.url; if(span) span.innerHTML=' <a href="'+res.url+'" target="_blank">bill ✓</a>'; toast('Uploaded'); } else { if(span) span.textContent=''; toast('Upload failed'); } }); };
+  r.readAsDataURL(f); }
+
+/* Misc — description + amount + bill (mandatory, multiple) */
+function miscBox(c){ return '<div class="catbox" style="grid-column:1/-1"><div class="cn"><span class="ic"><span class="emoji">🧾</span>Misc</span><span class="billtag">BILL *</span></div>'+
+  '<div class="muted" style="margin-bottom:6px">Add each misc item: description, amount and bill (required).</div>'+
+  '<div id="miscList"></div><button type="button" class="btn sm" onclick="addMisc()" style="margin-top:4px">+ Add Misc</button>'+
+  '<div style="margin-top:6px;font-size:13px">Misc Total: <b id="miscTotal">₹0</b></div></div>'; }
+function addMisc(){ MISCTRIPS.push({desc:'',amount:0,billUrl:''}); renderMisc(); recalc(); }
+function removeMisc(i){ MISCTRIPS.splice(i,1); renderMisc(); recalc(); }
+function renderMisc(){ var box=document.getElementById('miscList'); if(!box) return;
+  if(!MISCTRIPS.length){ box.innerHTML='<div class="muted">No entries.</div>'; setMiscTotal(); return; }
+  var h=''; MISCTRIPS.forEach(function(t,i){
+    h+='<div class="trip"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'+
+      '<input placeholder="Description" value="'+esc(t.desc)+'" oninput="miscSet('+i+',\'desc\',this.value)" style="flex:1;min-width:130px">'+
+      '<input type="number" min="0" placeholder="Amount ₹" value="'+(t.amount||'')+'" oninput="miscSet('+i+',\'amount\',this.value)" style="width:130px">'+
+      '<button type="button" class="btn sm bad" onclick="removeMisc('+i+')" style="margin:0">✕</button></div>'+
+      '<div class="filerow"><input type="file" accept="application/pdf,image/*" capture="environment" onchange="miscBill('+i+',this)" style="font-size:11px"><span class="fu" id="misc'+i+'">'+(t.billUrl?'<a href="'+t.billUrl+'" target="_blank">bill ✓</a>':' <b style="color:#b02a37">required</b>')+'</span></div></div>';
+  });
+  box.innerHTML=h; setMiscTotal(); }
+function miscSet(i,k,v){ MISCTRIPS[i][k]=(k==='amount')?(Number(v)||0):v; setMiscTotal(); recalc(); }
+function miscTotal(){ var s=0; MISCTRIPS.forEach(t=>s+=Number(t.amount)||0); return s; }
+function setMiscTotal(){ var e=document.getElementById('miscTotal'); if(e) e.textContent='₹'+num(miscTotal()); }
+function miscBill(i,input){ var f=input.files&&input.files[0]; if(!f) return; if(f.size>5*1024*1024){ toast('Max 5MB'); input.value=''; return; }
+  var span=document.getElementById('misc'+i); if(span) span.textContent=' uploading…';
+  var r=new FileReader(); r.onload=function(){ var b64=String(r.result).split(',')[1];
+    post({action:'uploadBill',filename:f.name,mime:f.type,dataBase64:b64}).then(res=>{ if(res.ok){ MISCTRIPS[i].billUrl=res.url; if(span) span.innerHTML=' <a href="'+res.url+'" target="_blank">bill ✓</a>'; toast('Uploaded'); } else { if(span) span.textContent=''; toast('Upload failed'); } }); };
+  r.readAsDataURL(f); }
+
 function onBillPick(input){ var cat=input.dataset.cat; var f=input.files&&input.files[0]; if(!f) return;
   var ok=(f.type==='application/pdf'||f.type==='image/jpeg'||f.type==='image/png'||f.type==='image/jpg');
   if(!ok){ toast('Only PDF or image (JPG/PNG) allowed'); input.value=''; return; }
@@ -474,7 +565,7 @@ function onBillPick(input){ var cat=input.dataset.cat; var f=input.files&&input.
   r.readAsDataURL(f); }
 
 function recalc(){ var s=0; document.querySelectorAll('#catInputs input[type=number][data-cat]').forEach(i=>s+=Number(i.value)||0);
-  s+=taTotal()+daTotal(); document.getElementById('fTotal').textContent='₹'+num(s); }
+  s+=taTotal()+daTotal()+busTotal()+dtdcTotal()+miscTotal(); document.getElementById('fTotal').textContent='₹'+num(s); }
 
 function prefillExisting(){
   var m=document.getElementById('monthPick').value;
@@ -486,6 +577,9 @@ function prefillExisting(){
     for(var k in bl){ if(bl[k]){ BILLS[k]=bl[k]; var sp=document.querySelector('.fu[data-fu="'+cssEsc(k)+'"]'); if(sp) sp.innerHTML=' <a href="'+bl[k]+'" target="_blank">file ✓</a>'; } }
     if(nt.__TA_TRIPS){ try{ TRIPS=JSON.parse(nt.__TA_TRIPS)||[]; }catch(e){ TRIPS=[]; } renderTrips(); }
     if(nt.__DA_TRIPS){ try{ DATRIPS=JSON.parse(nt.__DA_TRIPS)||[]; }catch(e){ DATRIPS=[]; } renderDatrips(); }
+    if(nt.__BUS){ try{ BUSTRIPS=JSON.parse(nt.__BUS)||[]; }catch(e){ BUSTRIPS=[]; } renderBus(); }
+    if(nt.__DTDC){ try{ DTDCTRIPS=JSON.parse(nt.__DTDC)||[]; }catch(e){ DTDCTRIPS=[]; } renderDtdc(); }
+    if(nt.__MISC){ try{ MISCTRIPS=JSON.parse(nt.__MISC)||[]; }catch(e){ MISCTRIPS=[]; } renderMisc(); }
     document.getElementById('fRemark').value=mine.MiscRemark||''; recalc();
     toast('Loaded your existing '+m+' entry — you can add/update');
   }
@@ -564,22 +658,50 @@ function submitExpense(btn){
   document.querySelectorAll('#catInputs input[type=number][data-cat]').forEach(i=>{var v=Number(i.value)||0;amounts[i.dataset.cat]=v;if(v>0)any=true;});
   var ta=taTotal(); if(ta>0){ amounts['TA']=ta; any=true; }
   var da=daTotal(); if(da>0){ amounts['DA']=da; any=true; }
+  var bus=busTotal(); if(bus>0){ amounts['Courier By Bus']=bus; any=true; }
+  var dtdc=dtdcTotal(); if(dtdc>0){ amounts['Courier By DTDC']=dtdc; any=true; }
+  var misc=miscTotal(); if(misc>0){ amounts['Misc']=misc; any=true; }
   if(!any){ toast('Enter at least one amount'); return; }
+  // single-field bill mandatory (Water, Sweeper, Cleaning, Stationary)
   var missing=[]; CATS.forEach(function(c){ if(c.bill&&Number(amounts[c.name])>0&&!BILLS[c.name]) missing.push(c.name); });
   if(missing.length){ toast('Upload bill for: '+missing.join(', ')); return; }
+  // TA
   for(var i=0;i<TRIPS.length;i++){ var t=TRIPS[i];
-    if(!t.date){ toast('Trip '+(i+1)+': select date'); return; }
-    if(!t.from||!t.to){ toast('Trip '+(i+1)+': enter From and To'); return; }
-    if(t.mode==='bike'&&!(Number(t.km)>0)){ toast('Trip '+(i+1)+': enter KM'); return; }
-    if(t.mode==='bus'){ if(!(Number(t.amount)>0)){ toast('Trip '+(i+1)+': enter bus ticket amount'); return; } if(!t.ticketUrl){ toast('Trip '+(i+1)+': upload bus ticket'); return; } }
+    if(!t.date){ toast('TA trip '+(i+1)+': select date'); return; }
+    if(!t.from||!t.to){ toast('TA trip '+(i+1)+': enter From and To'); return; }
+    if(t.mode==='bike'&&!(Number(t.km)>0)){ toast('TA trip '+(i+1)+': enter KM'); return; }
+    if(t.mode==='bus'){ if(!(Number(t.amount)>0)){ toast('TA trip '+(i+1)+': enter ticket amount'); return; } if(!t.ticketUrl){ toast('TA trip '+(i+1)+': upload ticket'); return; } }
   }
+  // DA
   for(var j=0;j<DATRIPS.length;j++){ var d=DATRIPS[j];
     if(!d.date){ toast('DA '+(j+1)+': select date'); return; }
     if(!d.place){ toast('DA '+(j+1)+': enter place'); return; }
     if(!(Number(d.amount)>0)){ toast('DA '+(j+1)+': enter amount'); return; }
   }
-  if(TRIPS.length) NOTES['__TA_TRIPS']=JSON.stringify(TRIPS); else delete NOTES['__TA_TRIPS'];
-  if(DATRIPS.length) NOTES['__DA_TRIPS']=JSON.stringify(DATRIPS); else delete NOTES['__DA_TRIPS'];
+  // Bus (bill optional)
+  for(var bi=0;bi<BUSTRIPS.length;bi++){ var bt=BUSTRIPS[bi];
+    if(!bt.date){ toast('Bus courier '+(bi+1)+': select date'); return; }
+    if(!bt.desc){ toast('Bus courier '+(bi+1)+': enter material description'); return; }
+    if(!(Number(bt.amount)>0)){ toast('Bus courier '+(bi+1)+': enter amount'); return; }
+  }
+  // DTDC (bill mandatory)
+  for(var di=0;di<DTDCTRIPS.length;di++){ var dt=DTDCTRIPS[di];
+    if(!dt.from||!dt.to){ toast('DTDC courier '+(di+1)+': enter From and To'); return; }
+    if(!(Number(dt.amount)>0)){ toast('DTDC courier '+(di+1)+': enter amount'); return; }
+    if(!dt.billUrl){ toast('DTDC courier '+(di+1)+': upload bill'); return; }
+  }
+  // Misc (bill mandatory)
+  for(var mi=0;mi<MISCTRIPS.length;mi++){ var mt=MISCTRIPS[mi];
+    if(!mt.desc){ toast('Misc '+(mi+1)+': enter description'); return; }
+    if(!(Number(mt.amount)>0)){ toast('Misc '+(mi+1)+': enter amount'); return; }
+    if(!mt.billUrl){ toast('Misc '+(mi+1)+': upload bill'); return; }
+  }
+  // pack builders into notes
+  NOTES['__TA_TRIPS']=TRIPS.length?JSON.stringify(TRIPS):undefined; if(!TRIPS.length) delete NOTES['__TA_TRIPS'];
+  NOTES['__DA_TRIPS']=DATRIPS.length?JSON.stringify(DATRIPS):undefined; if(!DATRIPS.length) delete NOTES['__DA_TRIPS'];
+  if(BUSTRIPS.length) NOTES['__BUS']=JSON.stringify(BUSTRIPS); else delete NOTES['__BUS'];
+  if(DTDCTRIPS.length) NOTES['__DTDC']=JSON.stringify(DTDCTRIPS); else delete NOTES['__DTDC'];
+  if(MISCTRIPS.length) NOTES['__MISC']=JSON.stringify(MISCTRIPS); else delete NOTES['__MISC'];
   setBusy(btn,true,'Submitting…');
   post({action:'submit',submitterId:ME.Id,month:month,amounts:amounts,bills:BILLS,notes:NOTES,miscRemark:val('fRemark')})
     .then(res=>{ setBusy(btn,false);
@@ -608,14 +730,38 @@ function doApprove(btn){ var amounts={}; document.querySelectorAll('#adInputs in
 function doReject(){ var remark=prompt('Reason for rejection:'); if(remark===null) return;
   post({action:'reject',id:curId,approverId:ME.Id,remark:remark}).then(()=>{ try{ap1Dlg.close();}catch(e){} try{adDlg.close();}catch(e){} toast('Rejected'); setTimeout(load,900); }); }
 
-/* ---- admin month ---- */
-function saveMonth(slot,btn){ var raw=(document.getElementById(slot==='last'?'monthLast':'monthCurrent').value||'').trim(); var lbl=pickerToLabel(raw);
-  var msg=lbl?('Open '+slot+' month: '+lbl+' ?'):('Close the '+slot+' month slot? Its data will be hidden.'); if(!confirm(msg)) return;
+/* ---- admin month/window control ---- */
+function saveWindow(btn){
+  var ws=document.getElementById('winStart').value, we=document.getElementById('winEnd').value;
   setBusy(btn,true,'Saving…');
-  post({action:'setMonth',adminId:ME.Id,slot:slot,month:lbl}).then(res=>{ setBusy(btn,false);
-    if(res.ok){ MONTHS=res.months||MONTHS; updateMonthTag(); updateOpenLabel(); buildMonthPick(); applyMonthGate();
-      document.getElementById('monthCurrent').value=labelToPicker(MONTHS.current); document.getElementById('monthLast').value=labelToPicker(MONTHS.last); toast('Saved'); load(); }
-    else toast('Error: '+(res.reason||res.error)); }).catch(()=>{ setBusy(btn,false); toast('Network error'); }); }
+  post({action:'setMonth',adminId:ME.Id,windowStart:ws,windowEnd:we}).then(res=>{ setBusy(btn,false);
+    if(res.ok){ MONTHS=res.months||MONTHS; refreshMonthUI(); toast('Window saved'); load(); } else toast('Error: '+(res.reason||res.error)); }).catch(()=>{ setBusy(btn,false); toast('Network error'); });
+}
+function setAdminMode(mode,btn){
+  // mode: 'auto' | 'open' | 'close'
+  var payload={action:'setMonth',adminId:ME.Id};
+  if(mode==='auto'){ payload.adminOpen=''; }
+  else if(mode==='close'){ payload.adminOpen='N'; }
+  else if(mode==='open'){
+    var raw=document.getElementById('adminMonthPick').value; var lbl=pickerToLabel(raw);
+    if(!lbl){ toast('Pick a month to force-open'); return; }
+    payload.adminOpen='Y'; payload.adminMonth=lbl;
+  }
+  setBusy(btn,true,'Saving…');
+  post(payload).then(res=>{ setBusy(btn,false);
+    if(res.ok){ MONTHS=res.months||MONTHS; refreshMonthUI(); toast('Saved'); load(); } else toast('Error: '+(res.reason||res.error)); }).catch(()=>{ setBusy(btn,false); toast('Network error'); });
+}
+function refreshMonthUI(){
+  updateMonthTag(); updateOpenLabel(); buildMonthPick(); applyMonthGate();
+  var s=document.getElementById('winStart'), e=document.getElementById('winEnd');
+  if(s) s.value=MONTHS.windowStart||1; if(e) e.value=MONTHS.windowEnd||12;
+  var st=document.getElementById('monthStatus');
+  if(st){
+    var mode = MONTHS.adminOpen==='Y'?('Force-open: '+MONTHS.adminMonth):(MONTHS.adminOpen==='N'?'Force-closed':'Automatic');
+    st.innerHTML='Mode: <b>'+mode+'</b> · Auto prev-month: <b>'+MONTHS.autoPrevMonth+'</b> · Today: '+MONTHS.today+
+      ' · Window: '+MONTHS.windowStart+'–'+MONTHS.windowEnd+' · Currently open: <b>'+(openMonthsText()||'CLOSED')+'</b>';
+  }
+}
 
 /* ---- archive ---- */
 function doArchive(btn){ var raw=document.getElementById('archiveMonth').value; var lbl=pickerToLabel(raw);
@@ -708,14 +854,21 @@ function removeUser(id){ if(!confirm('Remove '+id+'? (soft delete → inactive)'
 /* ---- helpers ---- */
 function infoBlock(r){ var amounts={},notes={}; try{amounts=JSON.parse(r.Amounts||'{}');}catch(e){} try{notes=JSON.parse(r.Notes||'{}');}catch(e){}
   var parts=[]; for(var k in amounts) if(amounts[k]) parts.push(k+': ₹'+num(amounts[k]));
-  var nl=[]; for(var nk in notes){ if(nk==='__TA_TRIPS'||nk==='__DA_TRIPS') continue; if(notes[nk]) nl.push('<b>'+esc(nk)+':</b> '+esc(notes[nk])); }
+  var skip={__TA_TRIPS:1,__DA_TRIPS:1,__BUS:1,__DTDC:1,__MISC:1};
+  var nl=[]; for(var nk in notes){ if(skip[nk]) continue; if(notes[nk]) nl.push('<b>'+esc(nk)+':</b> '+esc(notes[nk])); }
   var ta=''; if(notes.__TA_TRIPS){ var tr=[]; try{tr=JSON.parse(notes.__TA_TRIPS)||[];}catch(e){}
     if(tr.length){ ta='<br><b>TA Trips:</b>'; tr.forEach((t,i)=>{ ta+='<br>'+(i+1)+'. '+esc(t.date)+' '+esc(t.mode).toUpperCase()+': '+esc(t.from)+' → '+esc(t.to)+
       (t.mode==='bike'?(' · '+esc(t.km)+'km × ₹'+BIKE_RATE+' = ₹'+num(t.amount)):(' · ticket ₹'+num(t.amount)+(t.ticketUrl?' · <a href="'+esc(t.ticketUrl)+'" target="_blank">ticket</a>':''))); }); } }
   var dat=''; if(notes.__DA_TRIPS){ var dd=[]; try{dd=JSON.parse(notes.__DA_TRIPS)||[];}catch(e){}
     if(dd.length){ dat='<br><b>DA Entries:</b>'; dd.forEach((d,i)=>{ dat+='<br>'+(i+1)+'. '+esc(d.date)+' · '+esc(d.place)+' · ₹'+num(d.amount)+(d.detail?' ('+esc(d.detail)+')':''); }); } }
+  var busH=''; if(notes.__BUS){ var bb=[]; try{bb=JSON.parse(notes.__BUS)||[];}catch(e){}
+    if(bb.length){ busH='<br><b>Courier Bus:</b>'; bb.forEach((t,i)=>{ busH+='<br>'+(i+1)+'. '+esc(t.date)+' · '+esc(t.desc)+' · ₹'+num(t.amount)+(t.billUrl?' · <a href="'+esc(t.billUrl)+'" target="_blank">bill</a>':''); }); } }
+  var dtH=''; if(notes.__DTDC){ var dc=[]; try{dc=JSON.parse(notes.__DTDC)||[];}catch(e){}
+    if(dc.length){ dtH='<br><b>Courier DTDC:</b>'; dc.forEach((t,i)=>{ dtH+='<br>'+(i+1)+'. '+esc(t.date)+' · '+esc(t.from)+' → '+esc(t.to)+' · ₹'+num(t.amount)+(t.billUrl?' · <a href="'+esc(t.billUrl)+'" target="_blank">bill</a>':''); }); } }
+  var mcH=''; if(notes.__MISC){ var mc=[]; try{mc=JSON.parse(notes.__MISC)||[];}catch(e){}
+    if(mc.length){ mcH='<br><b>Misc:</b>'; mc.forEach((t,i)=>{ mcH+='<br>'+(i+1)+'. '+esc(t.desc)+' · ₹'+num(t.amount)+(t.billUrl?' · <a href="'+esc(t.billUrl)+'" target="_blank">bill</a>':''); }); } }
   return '<div class="muted"><b>'+esc(r.OfficeName)+'</b> · '+esc(r.SubmitterName)+' ('+esc(r.SubmitterId)+') · '+esc(r.Month)+
-    '<br>'+esc(r.Project)+(r.Cluster?' · '+esc(r.Cluster):'')+'<br>'+parts.join(' &nbsp;|&nbsp; ')+(nl.length?'<br>'+nl.join('<br>'):'')+ta+dat+
+    '<br>'+esc(r.Project)+(r.Cluster?' · '+esc(r.Cluster):'')+'<br>'+parts.join(' &nbsp;|&nbsp; ')+(nl.length?'<br>'+nl.join('<br>'):'')+ta+dat+busH+dtH+mcH+
     '<br>Claimed Total: <b>₹'+num(r.ClaimedTotal)+'</b>'+(billLinks(r)?'<br>Bills: '+billLinks(r):'')+
     (r.MiscRemark?'<br>Remark: '+esc(r.MiscRemark):'')+(r.Ap1Comment?'<br>'+esc(r.Ap1Id)+' comment: '+esc(r.Ap1Comment):'')+'</div>'; }
 function val(id){ return document.getElementById(id).value.trim(); }
