@@ -36,7 +36,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .sb-label{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px}
 .sb-section{margin-bottom:20px}
 .search-wrap{position:relative;margin-bottom:8px}
-.search-wrap input{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:9px 32px 9px 34px;border-radius:8px;font-size:13px;outline:none;font-family:var(--font);transition:border .15s,box-shadow .15s}
+.search-wrap input{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:9px 32px 9px 34px;border-radius:8px;font-size:16px;outline:none;font-family:var(--font);transition:border .15s,box-shadow .15s}
 .search-wrap input:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-g)}
 .search-wrap input::placeholder{color:var(--text3)}
 .s-ico{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:14px;pointer-events:none}
@@ -90,7 +90,14 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .code-hint{font-family:var(--mono);background:var(--surface);border:1px solid var(--border);padding:5px 14px;border-radius:6px;font-size:12px;color:var(--blue)}
 .result{display:none}
 .empty{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:300px;text-align:center;gap:10px}
-.emp-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:14px;display:flex;align-items:center;gap:16px;border-left:4px solid var(--blue)}
+.emp-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:14px;display:flex;align-items:center;gap:16px;border-left:4px solid var(--blue);flex-wrap:wrap}
+.disc-banner{border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:12.5px;display:flex;align-items:center;gap:10px;border:1px solid rgba(239,68,68,.35);background:rgba(239,68,68,.08);color:#FCA5A5}
+.disc-banner .db-icon{font-size:18px;flex-shrink:0}
+.disc-banner b{color:#FCA5A5}
+.mt.mt-warn{border-color:rgba(239,68,68,.5)}
+.mt-warn-badge{font-size:10px;font-weight:700;color:#FCA5A5;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.35);border-radius:6px;padding:1px 6px;margin-left:6px}
+tr.row-mismatch{background:rgba(239,68,68,.06)}
+tr.row-mismatch td:first-child{border-left:2px solid rgba(239,68,68,.5)}
 .emp-avatar{width:54px;height:54px;border-radius:12px;background:linear-gradient(135deg,var(--blue2),var(--blue));display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;font-family:var(--mono);flex-shrink:0}
 .emp-name{font-size:18px;font-weight:700;margin-bottom:3px}
 .emp-meta{font-size:12px;color:var(--text3);font-family:var(--mono);margin-bottom:6px}
@@ -139,7 +146,22 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .dtbl tr:hover td{background:var(--surface2)}
 .mono{font-family:var(--mono);font-size:11px}
 .amt{text-align:right}
-@media(max-width:768px){.layout{flex-direction:column}.sidebar{width:100%;height:auto;position:static}.month-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:768px){
+  .layout{flex-direction:column}
+  .sidebar{width:100%;height:auto;position:static}
+  .month-grid{grid-template-columns:1fr 1fr}
+  .topbar{flex-wrap:wrap;height:auto;min-height:52px;padding:10px 12px;gap:8px}
+  .topbar-right{flex-wrap:wrap;gap:6px;width:100%;justify-content:flex-end}
+  .emp-card{padding:14px}
+  .ecr{margin-left:0;text-align:left;width:100%;padding-top:8px;border-top:1px solid var(--border)}
+  .main{padding:12px}
+}
+@media(max-width:480px){
+  .month-grid{grid-template-columns:1fr}
+  .logo-text{font-size:13px}
+  .logo-sub{display:none}
+  #badge-emp,#badge-months,.tbadge.live{display:none}
+}
 </style>
 </head>
 <body>
@@ -262,7 +284,7 @@ var STAFF_USER = (function(){
 <div style="background:var(--surface);border-top:1px solid var(--border);padding:14px 16px">
   <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">&#9729; OneDrive Sync</div>
   <div style="font-size:10px;color:var(--text3);margin-bottom:8px;line-height:1.5">OneDrive Excel share link paste karo.<br>Sab users ko automatically latest data milega.</div>
-  <input type="text" id="od-link" placeholder="https://1drv.ms/x/s!Abc..." style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:7px;font-size:11px;outline:none;font-family:var(--mono);margin-bottom:7px;box-sizing:border-box"/>
+  <input type="text" id="od-link" placeholder="https://1drv.ms/x/s!Abc..." style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:7px;font-size:16px;outline:none;font-family:var(--mono);margin-bottom:7px;box-sizing:border-box"/>
   <button onclick="syncOneDrive()" style="width:100%;background:rgba(0,120,212,.2);border:1px solid #0078D4;color:#4DA6FF;border-radius:8px;padding:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);transition:all .15s">&#9729; Sync from OneDrive</button>
   <div id="od-log" style="font-size:10px;font-family:var(--mono);color:#4DA6FF;background:rgba(0,120,212,.05);border:1px solid rgba(0,120,212,.2);border-radius:6px;padding:8px;margin-top:6px;display:none;white-space:pre-wrap;word-break:break-all;line-height:1.5;max-height:100px;overflow-y:auto"></div>
 </div>
@@ -290,6 +312,7 @@ var STAFF_USER = (function(){
       </div>
       <div class="ecr"><div class="ecr-label">Latest Net Pay</div><div class="ecr-val" id="r-latest"></div></div>
     </div>
+    <div class="disc-banner" id="disc-banner" style="display:none"></div>
     <div class="info-grid">
       <div class="info-box"><div class="ib-label">Employee Code</div><div class="ib-val" id="r-code"></div></div>
       <div class="info-box"><div class="ib-label">Designation</div><div class="ib-val" id="r-desg" style="font-family:var(--font);font-size:13px"></div></div>
@@ -297,6 +320,8 @@ var STAFF_USER = (function(){
       <div class="info-box"><div class="ib-label">Zone</div><div class="ib-val" id="r-zone" style="font-family:var(--font);font-size:13px"></div></div>
       <div class="info-box"><div class="ib-label">Account No.</div><div class="ib-val" id="r-acc" style="font-size:11px"></div></div>
       <div class="info-box"><div class="ib-label">IFSC</div><div class="ib-val" id="r-ifsc"></div></div>
+      <div class="info-box"><div class="ib-label">Mobile</div><div class="ib-val" id="r-mobile" style="font-family:var(--font);font-size:13px"></div></div>
+      <div class="info-box"><div class="ib-label">Date of Joining</div><div class="ib-val" id="r-doj" style="font-family:var(--font);font-size:13px"></div></div>
     </div>
     <div class="tc">
       <div class="tc-title">&#128197; Month-wise Salary &amp; Payment History</div>
@@ -342,7 +367,12 @@ const MONTH_MAP=[
   [/SEP.{0,3}(26|2026)/i,'SEP-26'],[/OCT.{0,3}(26|2026)/i,'OCT-26'],
 ];
 const ZONE_MAP=[['ALIGARH','ALIGARH'],['ETAH','ETAH'],['MATHURA','MATHURA'],['KANPUR','KANPUR'],['AGRA','AGRA'],['BAREILLY','BAREILLY'],['MEERUT','MEERUT'],['VARANASI','VARANASI']];
-const SALARY_SHEETS={'saalry sheet staff':true,'salary sheet MR URBAN':true,'salary sheet MR RURAL':true,'salary sheet MR URBAN NOT PAID':false,'salary sheet MR RURAL NOT PAID':false};
+function classifySheet(name){
+  const n=String(name||'').toLowerCase();
+  if(n.indexOf('salary sheet')<0&&n.indexOf('saalry sheet')<0)return null;
+  if(n.indexOf('not paid')>=0)return false;
+  return true;
+}
 
 function detectMonth(fname){for(const [re,m] of MONTH_MAP)if(re.test(fname))return m;return null;}
 function detectZone(fname){const fu=fname.toUpperCase();for(const [kw,z] of ZONE_MAP)if(fu.indexOf(kw)>=0)return z;return null;}
@@ -381,6 +411,15 @@ function renderFL(t){
 }
 
 // ── EXCEL PROCESSING ──────────────────────────────────────────────
+function excelDateToStr(v){
+  if(!v)return'';
+  if(v instanceof Date)return v.toISOString().slice(0,10);
+  if(typeof v==='number'){
+    try{return XLSX.SSF.format('yyyy-mm-dd',v);}catch(e){return'';}
+  }
+  return String(v).trim();
+}
+
 function processExcel(){
   if(!pending.xl.length){alert('No Excel files selected');return;}
   const log=document.getElementById('log-xl');
@@ -411,9 +450,9 @@ function processExcel(){
       try{
         const wb=XLSX.read(e.target.result,{type:'binary'});
         let loaded=0,newEmp=0;
-        Object.entries(SALARY_SHEETS).forEach(function(entry){
-          const sn=entry[0],isPaid=entry[1];
-          if(!wb.SheetNames.includes(sn))return;
+        wb.SheetNames.forEach(function(sn){
+          const isPaid=classifySheet(sn);
+          if(isPaid===null)return;
           const rows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:''});
           if(rows.length<3)return;
           const hdrs=rows[1];
@@ -432,8 +471,15 @@ function processExcel(){
             const div=String(row[20]||'').trim();
             let acc='';try{const v=row[21];acc=v?(isNaN(v)?String(v).trim():String(Math.round(v))):'';}catch(ex){}
             const ifsc=String(row[22]||'').trim();
-            if(!DB[code]){DB[code]=[name,desg,div,zone,acc,ifsc,{}];newEmp++;}
-            else{if(!DB[code][4])DB[code][4]=acc;if(!DB[code][5])DB[code][5]=ifsc;}
+            const mobile=row[13]?String(row[13]).trim():'';
+            const doj=excelDateToStr(row[11]);
+            if(!DB[code]){DB[code]=[name,desg,div,zone,acc,ifsc,{},mobile,doj];newEmp++;}
+            else{
+              if(!DB[code][4])DB[code][4]=acc;
+              if(!DB[code][5])DB[code][5]=ifsc;
+              if(!DB[code][7]&&mobile)DB[code][7]=mobile;
+              if(!DB[code][8]&&doj)DB[code][8]=doj;
+            }
             if(!DB[code][6][month])DB[code][6][month]=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,net,0,'','',isPaid?1:0,sn];
             else{DB[code][6][month][15]=net;DB[code][6][month][19]=isPaid?1:0;DB[code][6][month][20]=sn;}
             loaded++;
@@ -463,27 +509,23 @@ async function extractPDFText(file){
 
 function parsePDFText(text,month,mode){
   const payments={};
-  // PDF.js may add spaces: "AL205 /Name" or "AL205/Name" - handle both
-  // Also search in full text joined, not just line by line
-  const lines=text.split('\n');
-  // Method 1: line-by-line with flexible slash match
-  for(let i=0;i<lines.length;i++){
-    const line=lines[i];
-    // Code optionally followed by space then slash
-    const codeMatch=line.match(/\b((?:AL|MA|TE|AI|AJ)\d{3,5})\s*\//);
-    if(!codeMatch)continue;
-    const code=codeMatch[1];
+  // pdf.js joins each ENTIRE page into a single line (no real line breaks), so a
+  // non-global per-line match only ever caught the FIRST employee on each page.
+  // Fix: scan the whole text with a GLOBAL regex, and use a character-window
+  // (not a line-window) to find each match's own amount/status.
+  const codeRe=/\b((?:AL|MA|TE|AI|AJ)\d{3,5})\s*\//g;
+  let m;
+  while((m=codeRe.exec(text))!==null){
+    const code=m[1];
+    const windowText=text.slice(m.index,m.index+250);
+    const nums=windowText.match(/\b(\d{4,7}(?:\.\d{2})?)\b/g)||[];
     let amt=0;
-    for(let j=i;j<Math.min(i+5,lines.length);j++){
-      const nums=lines[j].match(/\b(\d{4,7}(?:\.\d{2})?)\b/g)||[];
-      for(const n of nums){
-        const v=parseFloat(n);
-        if(v>=100&&v<=999999){amt=Math.round(v);break;}
-      }
-      if(amt)break;
+    for(const n of nums){
+      const v=parseFloat(n);
+      if(v>=100&&v<=999999){amt=Math.round(v);break;}
     }
     if(!amt)continue;
-    const ctx=lines.slice(Math.max(0,i-1),Math.min(lines.length,i+7)).join(' ').toLowerCase();
+    const ctx=windowText.toLowerCase();
     let status='Credited';
     if(ctx.indexOf('success')>=0)status='Success';
     else if(ctx.indexOf('returned')>=0||ctx.indexOf('ifsc')>=0)status='Returned';
@@ -740,6 +782,17 @@ function showSalaryTab(month,months){
     _bar('Billing %',bpct,100,bpctColor)+
   '</div>'+
 
+  '<div style="background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:10px">'+
+    '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Salary Breakdown</div>'+
+    _row2('Basic',basic)+
+    _row2('Salary (Bills-based)',salary)+
+    _row2('Gross Salary',gross,'var(--text)')+
+    _row2('PF Deduction',pf,'var(--red)||#EF4444')+
+    _row2('ESIC Deduction',esic,'var(--red)||#EF4444')+
+    _row2('Other Deduction',ded,'var(--red)||#EF4444')+
+    _row2('Bonus',bonus,'var(--green)')+
+  '</div>'+
+
   '<div style="background:var(--surface2);border-radius:10px;padding:14px">'+
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'+
       '<span style="font-size:13px;font-weight:700;color:var(--text)">Net Payable</span>'+
@@ -896,6 +949,9 @@ function showEmployee(code){
   document.getElementById('r-zone').textContent=d[3]||'--';
   document.getElementById('r-acc').textContent=d[4]||'Not on record';
   document.getElementById('r-ifsc').textContent=d[5]||'--';
+  const mobile=d[7]||'';
+  document.getElementById('r-mobile').innerHTML=mobile?'<a href="tel:'+mobile+'" style="color:var(--blue);text-decoration:none">\uD83D\uDCDE '+mobile+'</a>':'--';
+  document.getElementById('r-doj').textContent=d[8]||'--';
   const months=d[6];
   const latestM=MONTH_ORDER.slice().reverse().find(function(m){return months[m];});
   document.getElementById('r-latest').textContent=latestM?fmt(months[latestM][15]):'--';
@@ -903,6 +959,24 @@ function showEmployee(code){
   pills.innerHTML='<span class="pill p-blue">'+(d[1]||'--')+'</span><span class="pill p-gray">'+d[3]+'</span>';
   if(Object.values(months).some(function(mv){return mv[16]>0;}))
     pills.innerHTML+='<span class="pill p-green">Payment Found</span>';
+
+  // ── DISCREPANCY SUMMARY — flag mismatched/pending months up front ──
+  var discBanner=document.getElementById('disc-banner');
+  var mismatchCount=0,mismatchTotal=0,pendingCount=0;
+  Object.keys(months).forEach(function(mo){
+    var mv=months[mo];var net=mv[15],paid=mv[16],isPaidSheet=mv[19];
+    if(paid>0&&paid!==net){mismatchCount++;mismatchTotal+=Math.abs(paid-net);}
+    if(isPaidSheet&&paid===0&&net>0)pendingCount++;
+  });
+  if(mismatchCount>0||pendingCount>0){
+    var parts=[];
+    if(mismatchCount>0)parts.push('<b>'+mismatchCount+' month'+(mismatchCount>1?'s':'')+'</b> paid \u2260 net payable (\u20B9'+fmt(mismatchTotal)+' total diff)');
+    if(pendingCount>0)parts.push('<b>'+pendingCount+' month'+(pendingCount>1?'s':'')+'</b> still not paid');
+    discBanner.innerHTML='<span class="db-icon">\u26A0\uFE0F</span><span>'+parts.join(' &middot; ')+'</span>';
+    discBanner.style.display='flex';
+  }else{
+    discBanner.style.display='none';
+  }
 
   // ── SALARY TABS - only show uploaded months ──────────────────────
   window._currentMonths=months;
@@ -945,9 +1019,11 @@ function showEmployee(code){
       else if(paid>0&&paid===net){barCls='bar-ok';chipCls='mc-ok';chipTxt='Full Paid';}
       else if(paid>0){barCls='bar-diff';chipCls='mc-diff';chipTxt='Partial';}
       else{barCls='bar-np';chipCls='mc-np';chipTxt='Not Paid';}
+      const isMismatch=paid>0&&paid!==net;
+      if(isMismatch)tile.classList.add('mt-warn');
       const pc=paid===net?'var(--green)':'var(--amber)';
       tile.innerHTML='<div class="mt-bar '+barCls+'"></div>'+
-        '<div class="mt-head"><span class="mt-mlbl">'+mo+'</span><span class="mt-chip '+chipCls+'">'+chipTxt+'</span></div>'+
+        '<div class="mt-head"><span class="mt-mlbl">'+mo+'</span><span class="mt-chip '+chipCls+'">'+chipTxt+'</span>'+(isMismatch?'<span class="mt-warn-badge">\u26A0 diff</span>':'')+'</div>'+
         '<div class="mt-row"><span class="mt-key">Net Payable</span><span class="mt-val">'+fmt(net)+'</span></div>'+
         (paid>0?'<div class="mt-div"></div>'+
           '<div class="mt-row"><span class="mt-key">Paid</span><span class="mt-val" style="color:'+pc+'">'+fmt(paid)+'</span></div>'+
@@ -970,7 +1046,7 @@ function showEmployee(code){
       diff===0?'<span style="color:var(--green)">Matched</span>':
       diff>0?'<span style="color:var(--amber)">+'+fmt(Math.abs(diff))+'</span>':
       '<span style="color:var(--blue)">'+fmt(diff)+'</span>';
-    return'<tr>'+
+    return'<tr'+(diff!==0&&paid>0?' class="row-mismatch"':'')+'>'+
       '<td class="mono" style="color:var(--text);font-weight:700">'+mo+'</td>'+
       '<td class="mono" style="font-size:10px;color:var(--text3);max-width:140px;white-space:normal">'+src+'</td>'+
       '<td class="amt mono">'+fmt(net)+'</td>'+
@@ -989,7 +1065,7 @@ updateStats();
 // ── AUTO LOAD FROM payment_data.json (GitHub Pages) ──────────────
 async function loadFromGitHub(){
   try{
-    const res=await fetch('https://tabrezchauhan21-crypto.github.io/DV-SALARY-DASHBOARD/payment_data.json?t='+Date.now());
+    const res=await fetch('payment_data.json?t='+Date.now());
     if(!res.ok){console.log('payment_data.json not found ('+res.status+')');return;}
     const text=await res.text();
     if(!text||text.trim()[0]!=='{'){console.log('payment_data.json not ready yet');return;}
@@ -1011,13 +1087,15 @@ async function loadFromGitHub(){
       }
       if(!DB[code]){
         // Not in embedded DB - create new entry
-        DB[code]=[arr[0],arr[1],arr[2],arr[3],arr[4],arr[5],{}];
+        DB[code]=[arr[0],arr[1],arr[2],arr[3],arr[4],arr[5],{},arr[7]||'',arr[8]||''];
         Object.entries(extMonths).forEach(function(me){
           var newMv=toNew(me[1]);
           if(newMv) DB[code][6][me[0]]=newMv;
         });
       } else {
-        // Exists in embedded DB - merge month data
+        // Exists in embedded DB - fill mobile/DOJ if missing, merge month data
+        if(!DB[code][7]&&arr[7])DB[code][7]=arr[7];
+        if(!DB[code][8]&&arr[8])DB[code][8]=arr[8];
         Object.entries(extMonths).forEach(function(me){
           var m=me[0],newMv=toNew(me[1]);
           if(!newMv)return;
