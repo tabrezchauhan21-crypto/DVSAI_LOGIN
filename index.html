@@ -265,6 +265,7 @@
   .tool-tile.mridata{ background:#26215c; }
   .tool-tile.billedunbilled{ background:#4b1528; }
   .tool-tile.expense{ background:#134f3a; }
+  .tool-tile.salary{ background:#2f3542; }
   .tool-icon{
     font-size:24px;
     line-height:1;
@@ -280,6 +281,7 @@
   .tool-tile.mridata .tool-name{ color:#eeedfe; }
   .tool-tile.billedunbilled .tool-name{ color:#fbeaf0; }
   .tool-tile.expense .tool-name{ color:#dff5ec; }
+  .tool-tile.salary .tool-name{ color:#e9edf3; }
   .tool-sub{
     font-size:11px;
     line-height:1.4;
@@ -290,6 +292,7 @@
   .tool-tile.mridata .tool-sub{ color:#afa9ec; }
   .tool-tile.billedunbilled .tool-sub{ color:#ed93b1; }
   .tool-tile.expense .tool-sub{ color:#8fd9bd; }
+  .tool-tile.salary .tool-sub{ color:#a9b2c3; }
   .logout{
     border:1.5px solid var(--line);
     background:#fff;
@@ -624,6 +627,13 @@
               <div class="tool-sub">Submit &amp; Approve Field Office Expenses (MRI &amp; Cluster Billing)</div>
             </div>
           </a>
+          <a href="#" class="tool-tile salary" id="tileSalary">
+            <div class="tool-icon">💰</div>
+            <div>
+              <div class="tool-name">DVVNL Salary Dashboard</div>
+              <div class="tool-sub">View Meter Reader Salary, Payment &amp; Credit Status</div>
+            </div>
+          </a>
         </div>
 
         <button class="logout" id="logoutBtn">Log out</button>
@@ -928,6 +938,7 @@ function showDash(user){
   document.getElementById('tileDispatch').href = 'tools/dispatch.html?token=' + token;
   document.getElementById('tileElectricity').href = 'tools/electricity.html?token=' + token;
   document.getElementById('tileExpense').href = 'tools/expense.html?token=' + token;
+  document.getElementById('tileSalary').href = 'tools/salary.html?token=' + token;
 }
 
 document.getElementById('logoutBtn').addEventListener('click', async () => {
