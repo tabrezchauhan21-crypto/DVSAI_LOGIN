@@ -147,7 +147,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 // ---------- session guard (Staff Portal SSO) ----------
 var STAFF_USER = (function(){
   function b64UrlDecode(str){
-    try{ return decodeURIComponent(escape(atob(str))); }
+    try{ return decodeURIComponent(atob(str)); }
     catch(e){ return null; }
   }
   var params = new URLSearchParams(window.location.search);
