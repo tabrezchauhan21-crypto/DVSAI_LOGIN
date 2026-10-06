@@ -208,16 +208,6 @@ tr:hover td{background:#192638;}
 .btn-modal-cancel{flex:1;background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:10px;font-weight:600;cursor:pointer;font-size:13px;}
 #modal-status{font-size:12px;margin-top:8px;display:none;}
 
-/* CONFIG */
-.cfg-card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:22px;width:100%;max-width:420px;margin:16px;}
-.cfg-card h3{color:var(--gold);font-size:14px;margin-bottom:14px;}
-.cfg-card label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;}
-.cfg-card input{width:100%;background:var(--navy2);border:1px solid var(--border);border-radius:7px;color:var(--white);font-size:16px;padding:9px 12px;outline:none;margin-bottom:12px;}
-.cfg-card input:focus{border-color:var(--cyan);}
-.cfg-actions{display:flex;gap:10px;}
-.btn-cfg-save{flex:1;background:var(--gold);color:var(--navy);border:none;border-radius:7px;padding:9px;font-weight:700;cursor:pointer;}
-.btn-cfg-cancel{flex:1;background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:9px;cursor:pointer;}
-
 /* LOADER */
 #loader{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:center;justify-content:center;flex-direction:column;gap:12px;}
 #loader.show{display:flex;}
@@ -255,7 +245,7 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:13px;border-t
     <div class="subtitle">DVVNL – Agra MRI &amp; Cluster Billing</div>
   </div>
   <div class="header-right">
-    <span class="header-badge" id="staffNameBadge">DISPATCH PORTAL v3.0</span>
+    <span class="header-badge" id="staffNameBadge">DISPATCH PORTAL v3.1</span>
     <span class="logout-btn" onclick="doLogout()">Logout</span>
   </div>
 </header>
@@ -527,7 +517,6 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:13px;border-t
           </select>
         </div>
 
-        <!-- Employee identity: always visible once a designation is picked -->
         <div class="two-col">
           <div class="field">
             <label class="flabel">Employee Name <span class="req">*</span></label>
@@ -539,7 +528,6 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:13px;border-t
           </div>
         </div>
 
-        <!-- Zone Manager: only Zone -->
         <div class="field reveal-box" id="emp_field_zone">
           <label class="flabel">Zone <span class="req">*</span></label>
           <select id="employee_zone_sel" onchange="empPopulateCircles(); buildSubmitTo();">
@@ -550,7 +538,6 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:13px;border-t
           </select>
         </div>
 
-        <!-- Circle Manager: Zone + Circle -->
         <div class="two-col reveal-box" id="emp_field_circle">
           <div class="field">
             <label class="flabel">Zone <span class="req">*</span></label>
@@ -567,7 +554,6 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:13px;border-t
           </div>
         </div>
 
-        <!-- Supervisor: Zone + Circle + Division -->
         <div class="field reveal-box" id="emp_field_supervisor_zone">
           <div class="two-col">
             <div class="field">
@@ -590,7 +576,6 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:13px;border-t
           </div>
         </div>
 
-        <!-- Meter Reader: Zone + Circle + Division + Area -->
         <div class="field reveal-box" id="emp_field_meter_zone">
           <div class="two-col">
             <div class="field">
@@ -657,18 +642,18 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:13px;border-t
   </div>
 
   <div class="filter-row">
-    <input type="text" id="search-input" placeholder="🔍  Search dispatch no., subject, raised by…" oninput="applyFilters()"/>
-    <select id="filter-status" onchange="applyFilters()">
+    <input type="text" id="search-input" autocomplete="off" placeholder="🔍  Search dispatch no., subject, raised by…" oninput="applyFilters()"/>
+    <select id="filter-status" autocomplete="off" onchange="applyFilters()">
       <option value="">All Status</option>
       <option value="uploaded">Copy Uploaded ✅</option>
       <option value="pending">Copy Pending ⚠</option>
     </select>
-    <select id="filter-project" onchange="applyFilters()">
+    <select id="filter-project" autocomplete="off" onchange="applyFilters()">
       <option value="">All Projects</option>
       <option value="MRI">MRI PROJECT</option>
       <option value="CLUSTER">CLUSTER-4</option>
     </select>
-    <select id="filter-month" onchange="applyFilters()"><option value="">All Months</option></select>
+    <select id="filter-month" autocomplete="off" onchange="applyFilters()"><option value="">All Months</option></select>
     <button class="btn-refresh" onclick="loadDashboard()">↻ Refresh</button>
   </div>
 
@@ -676,7 +661,7 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:13px;border-t
     <table>
       <thead>
         <tr>
-          <th onclick="sortBy('dispatch_no_')"># Dispatch No. ↕</th>
+          <th onclick="sortBy('dispatch_no')"># Dispatch No. ↕</th>
           <th>Date</th>
           <th onclick="sortBy('report_month')">Month ↕</th>
           <th>Raised By</th>
@@ -687,7 +672,7 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:13px;border-t
         </tr>
       </thead>
       <tbody id="table-body">
-        <tr><td colspan="8"><div class="empty-state"><div class="icon">📊</div><p>Click Refresh to load data</p></div></td></tr>
+        <tr><td colspan="8"><div class="empty-state"><div class="icon">📊</div><p>Loading…</p></div></td></tr>
       </tbody>
     </table>
   </div>
@@ -723,25 +708,12 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:13px;border-t
 
 <div id="loader"><div class="spinner-lg"></div><div style="font-size:13px;color:var(--muted)">Loading…</div></div>
 
-<footer>SAI Computers Ltd. · DVVNL MRI &amp; Cluster Billing · Agra, UP &nbsp;|&nbsp; Dispatch Portal v3.0</footer>
+<footer>SAI Computers Ltd. · DVVNL MRI &amp; Cluster Billing · Agra, UP &nbsp;|&nbsp; Dispatch Portal v3.1</footer>
 
 <script>
 // ════════════════════════════════════
 // STAFF PORTAL SESSION (shared login gate)
 // ════════════════════════════════════
-// If this page was opened from the Staff Portal dashboard, the URL carries
-// a ?token=... parameter identifying who's logged in. If present and
-// readable, skip this tool's own password screen entirely. If missing,
-// send the person back to the Staff Portal to log in first — this page
-// is no longer meant to be opened on its own.
-//
-// LOGOUT-AWARE CHECK: a token never expires on its own, so without this
-// check, hitting the browser's Back button after logging out would show
-// this page again using the old (still technically valid-looking) token.
-// To stop that: every logout writes a timestamp to sessionStorage. A
-// token issued BEFORE that timestamp is treated as stale and rejected,
-// even though its structure still parses fine. A fresh login always
-// produces a newer token, so logging in again works as normal.
 var staffSession = null;
 
 function readStaffSessionToken() {
@@ -753,33 +725,22 @@ function readStaffSessionToken() {
     var data = JSON.parse(json);
     if (!data.empId) return null;
     var logoutAt = parseInt(sessionStorage.getItem('staffPortalLogoutAt') || '0', 10);
-    if (data.ts && data.ts <= logoutAt) return null; // session was logged out after this token was issued
+    if (data.ts && data.ts <= logoutAt) return null;
     return data;
   } catch (e) {
     return null;
   }
 }
 
-function goToStaffPortal() {
-  window.location.href = '../index.html';
-}
+function goToStaffPortal() { window.location.href = '../index.html'; }
 
-// If the browser restores this page from its back/forward cache (e.g. the
-// person hit Back after logging out), no script re-runs by default — the
-// page would just sit there showing whatever was on screen before. This
-// forces a real reload whenever that happens, so the check above always
-// gets a chance to run again.
 window.addEventListener('pageshow', function (event) {
-  if (event.persisted) {
-    window.location.reload();
-  }
+  if (event.persisted) window.location.reload();
 });
 
 // ════════════════════════════════════
 // LOGIN
 // ════════════════════════════════════
-
-
 function doLogin() {
   var pass = document.getElementById('login-pass').value;
   var err  = document.getElementById('login-error');
@@ -796,30 +757,22 @@ function doLogin() {
   }
 }
 
-// ── Log login event with IP-based location + browser info ──
 function logLoginEvent() {
   fetch('https://ip-api.com/json/?fields=status,country,regionName,city,query,isp')
     .then(function(res) { return res.json(); })
     .then(function(geo) {
       const params = new URLSearchParams({
         action: 'logLogin',
-        ip: geo.query || '',
-        city: geo.city || '',
-        region: geo.regionName || '',
-        country: geo.country || '',
-        isp: geo.isp || '',
-        user_agent: navigator.userAgent,
-        platform: navigator.platform || ''
+        ip: geo.query || '', city: geo.city || '', region: geo.regionName || '',
+        country: geo.country || '', isp: geo.isp || '',
+        user_agent: navigator.userAgent, platform: navigator.platform || ''
       });
       gsFetch(SCRIPT_URL + '?' + params.toString()).catch(function(){});
     })
     .catch(function() {
-      // Geolocation failed — still log with browser info, no location
       const params = new URLSearchParams({
-        action: 'logLogin',
-        ip: '', city: '', region: '', country: 'Unknown', isp: '',
-        user_agent: navigator.userAgent,
-        platform: navigator.platform || ''
+        action: 'logLogin', ip: '', city: '', region: '', country: 'Unknown', isp: '',
+        user_agent: navigator.userAgent, platform: navigator.platform || ''
       });
       gsFetch(SCRIPT_URL + '?' + params.toString()).catch(function(){});
     });
@@ -830,9 +783,6 @@ function doLogout() {
   goToStaffPortal();
 }
 
-// On load: if we have a valid Staff Portal session, skip straight to the
-// app. Otherwise send the person back to log in first — this page no
-// longer accepts being opened directly without that.
 window.onload = function() {
   staffSession = readStaffSessionToken();
   if (staffSession) {
@@ -935,17 +885,17 @@ const HIER=[
 // ════════════════════════════════════
 // CONFIG
 // ════════════════════════════════════
-// ── HARDCODED CONFIG — works on any device/system ──
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxQz-v-uPsNDOQvZ8r_JXtPSTE4lSUjRLzGQpzjW0MRRkPhCERrTCKroQBbe-0onqAb9w/exec';
 const FY         = '2026-2027';
 const LOC        = 'AGRA';
+const MONTHS     = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
-function initApp() {
+function setFormDefaults() {
   document.getElementById('submission_date').value = new Date().toISOString().split('T')[0];
-  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   document.getElementById('report_month_name').value = MONTHS[new Date().getMonth()];
   document.getElementById('report_year').value = String(new Date().getFullYear());
 }
+function initApp() { setFormDefaults(); }
 
 // ════════════════════════════════════
 // TABS
@@ -1049,10 +999,9 @@ function populateDists() {
   buildSubmitTo();
 }
 function fillSelect(id, items, ph) {
-  document.getElementById(id).innerHTML = '<option value="">' + ph + '</option>' + items.map(i => '<option>' + i + '</option>').join('');
+  document.getElementById(id).innerHTML = '<option value="">' + ph + '</option>' + items.map(i => '<option>' + esc(i) + '</option>').join('');
 }
 
-// ── EMPLOYEE LEVEL: show/hide fields based on designation ──
 function onEmployeeDesigChange() {
   const d = v('employee_desig');
   document.getElementById('emp_field_zone').classList.toggle('show', d === 'Zone Manager');
@@ -1062,7 +1011,6 @@ function onEmployeeDesigChange() {
   buildSubmitTo();
 }
 
-// ── EMPLOYEE LEVEL: zone → circle (works for all 4 zone selects) ──
 function empPopulateCircles() {
   const d = v('employee_desig');
   let zoneId, circleId;
@@ -1074,7 +1022,6 @@ function empPopulateCircles() {
   fillSelect(circleId, [...new Set(HIER.filter(r => r.zone === z).map(r => r.circle))], '— Select Circle —');
 }
 
-// ── EMPLOYEE LEVEL: circle → division (Test + Distribution combined) ──
 function empPopulateDivisions() {
   const d = v('employee_desig');
   let circleId, divId;
@@ -1091,7 +1038,6 @@ function empPopulateDivisions() {
 // ════════════════════════════════════
 document.getElementById('dispatch-form').addEventListener('submit', async function(e) {
   e.preventDefault(); hideError();
-  if (!SCRIPT_URL) { showError('Apps Script URL not configured.'); return; }
 
   const raised_by      = v('raised_by').trim();
   const raised_desig   = v('raised_desig').trim();
@@ -1117,7 +1063,8 @@ document.getElementById('dispatch-form').addEventListener('submit', async functi
   btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Generating…';
   try {
     const params = new URLSearchParams({ action:'generateDispatch', raised_by, raised_designation:raised_desig, report_month, submission_date:sub_date, project_name, subject_letter, submit_to, fy:FY, location:LOC, email: (staffSession && staffSession.email) || '' });
-    const data = await gsFetch(SCRIPT_URL + '?' + params.toString());
+    // generateDispatch must never be served from cache or retried blindly, so no JSONP fallback here
+    const data = await gsFetch(SCRIPT_URL + '?' + params.toString(), { noFallback: true });
     if (data.status === 'ok') {
       showResult(data.dispatch_no, data.saved_at, report_month, subject_letter, submit_to, raised_by, raised_desig);
     } else { showError('Server error: ' + (data.message || 'Unknown')); }
@@ -1134,9 +1081,9 @@ function showResult(no, savedAt, month, subject, to, by, desig) {
   document.getElementById('dispatch-display').textContent = no;
   const shortS = subject.length > 80 ? subject.substring(0,80)+'…' : subject;
   document.getElementById('dispatch-meta').innerHTML =
-    '<b>Month:</b> ' + month + ' &nbsp;·&nbsp; <b>By:</b> ' + by + ' (' + desig + ')<br>' +
-    '<b>Subject:</b> ' + shortS + '<br><b>To:</b> ' + to + '<br>' +
-    '<span style="font-size:11px">Saved: ' + savedAt + '</span>';
+    '<b>Month:</b> ' + esc(month) + ' &nbsp;·&nbsp; <b>By:</b> ' + esc(by) + ' (' + esc(desig) + ')<br>' +
+    '<b>Subject:</b> ' + esc(shortS) + '<br><b>To:</b> ' + esc(to) + '<br>' +
+    '<span style="font-size:11px">Saved: ' + esc(savedAt) + '</span>';
   document.getElementById('result-box').style.display = 'block';
   document.getElementById('dispatch-form').style.display = 'none';
   window.scrollTo({ top:0, behavior:'smooth' });
@@ -1163,21 +1110,14 @@ function resetForm() {
   updateCameraButtonState();
   renderFileItems(_officeCopyFiles, document.getElementById('file-list'), removeOfficeCopyFile);
   switchLevel('discom');
-  document.getElementById('submission_date').value = new Date().toISOString().split('T')[0];
+  setFormDefaults();
 }
 
-// ════════════════════════════════════
-// UPLOAD — POST method (fixes size issue)
-// ════════════════════════════════════
 // ════════════════════════════════════
 // OFFICE COPY UPLOAD — multi-file + camera (max 2 by camera)
 // ════════════════════════════════════
 const MAX_CAMERA_PHOTOS = 2;
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
-
-function fileIconFor(file) {
-  return file.type.startsWith('image/') ? null : '📄';
-}
 
 function renderFileItems(files, listEl, removeFn) {
   if (files.length === 0) {
@@ -1195,7 +1135,7 @@ function renderFileItems(files, listEl, removeFn) {
       : `<div class="fi-icon">📄</div>`;
     row.innerHTML = `
       ${thumbHtml}
-      <span class="fi-name">${entry.file.name}</span>
+      <span class="fi-name">${esc(entry.file.name)}</span>
       ${entry.source === 'camera' ? '<span class="fi-tag">camera</span>' : ''}
       <span class="fi-remove" data-i="${i}">&times;</span>
     `;
@@ -1266,27 +1206,30 @@ dz.addEventListener('drop', e => {
   if (f) { const dt = new DataTransfer(); dt.items.add(f); document.getElementById('file-input').files = dt.files; addPickedFile(document.getElementById('file-input')); }
 });
 
+// Sends one file to Apps Script. Returns the parsed JSON response.
+async function postFile(dispatchNo, file) {
+  const b64 = await fileToBase64(file);
+  const res = await fetch(SCRIPT_URL, {
+    method: 'POST',
+    body: JSON.stringify({ action: 'uploadFile', dispatch_no: dispatchNo, filename: file.name, mime: file.type, data: b64 })
+  });
+  return res.json();
+}
+
 async function uploadAndSend() {
   if (_officeCopyFiles.length === 0) { showUploadStatus('error', 'Please select at least one file.'); return; }
-  if (!SCRIPT_URL) { showUploadStatus('error', 'Apps Script URL not configured.'); return; }
   const btn = document.getElementById('upload-btn');
   btn.disabled = true;
   let okCount = 0, failCount = 0, lastUrl = '';
   for (let i = 0; i < _officeCopyFiles.length; i++) {
-    const entry = _officeCopyFiles[i];
     btn.textContent = 'Uploading ' + (i + 1) + ' / ' + _officeCopyFiles.length + '…';
     try {
-      const b64 = await fileToBase64(entry.file);
-      const res = await fetch(SCRIPT_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'uploadFile', dispatch_no: _lastNo, filename: entry.file.name, mime: entry.file.type, data: b64 })
-      });
-      const data = await res.json();
+      const data = await postFile(_lastNo, _officeCopyFiles[i].file);
       if (data.status === 'ok') { okCount++; lastUrl = data.url; } else { failCount++; }
     } catch (e) { failCount++; }
   }
   if (okCount > 0 && failCount === 0) {
-    showUploadStatus('ok', '✅ ' + okCount + ' file' + (okCount > 1 ? 's' : '') + ' uploaded! <a href="' + lastUrl + '" target="_blank" style="color:var(--cyan)">View latest</a>');
+    showUploadStatus('ok', '✅ ' + okCount + ' file' + (okCount > 1 ? 's' : '') + ' uploaded! <a href="' + esc(lastUrl) + '" target="_blank" style="color:var(--cyan)">View latest</a>');
     _officeCopyFiles = []; _cameraCount = 0; updateCameraButtonState();
     renderFileItems(_officeCopyFiles, document.getElementById('file-list'), removeOfficeCopyFile);
   } else if (okCount > 0) {
@@ -1305,24 +1248,66 @@ function showUploadStatus(type, msg) {
 // ════════════════════════════════════
 // DASHBOARD
 // ════════════════════════════════════
-let allRows = [], sortKey = 'dispatch_no_', sortAsc = false;
+let allRows = [], sortKey = 'dispatch_no', sortAsc = false;
+
+function setStatsPlaceholder() {
+  ['stat-total','stat-uploaded','stat-pending','stat-today'].forEach(id => document.getElementById(id).textContent = '—');
+  document.getElementById('stat-pct').textContent = '—';
+  document.getElementById('progress-fill').style.width = '0%';
+}
 
 async function loadDashboard() {
-  if (!SCRIPT_URL) { showTableMsg('⚙ Apps Script URL not configured.'); return; }
+  showTableMsg('Loading…', '⏳');
   showLoader(true);
+  let data;
   try {
-    const data = await gsFetch(SCRIPT_URL + '?action=getAll');
-    if (data.status === 'ok') {
-      allRows = (data.rows || []).reverse();
+    data = await gsFetch(SCRIPT_URL + '?action=getAll');
+  } catch (e) {
+    console.error('FETCH ERROR:', e);
+    setStatsPlaceholder();
+    showTableMsg('Could not load data: ' + e.message + '<br><small>Deployment: Execute as "Me" · Access "Anyone". Then press Refresh.</small>', '⚠');
+    showLoader(false);
+    return;
+  }
+  try {
+    if (data && data.status === 'ok') {
+      allRows = (data.rows || []).slice().reverse();
       populateMonthFilter(); updateStats(); applyFilters();
-    } else { showTableMsg('Error: ' + (data.message||'Unknown')); }
-  } catch(e) { showTableMsg('⚠ Could not connect. Check Apps Script URL.'); }
+    } else {
+      setStatsPlaceholder();
+      showTableMsg('Server error: ' + esc((data && data.message) || 'Unknown'), '⚠');
+    }
+  } catch (e) {
+    console.error('RENDER ERROR:', e);
+    showTableMsg('Display error: ' + esc(e.message), '⚠');
+  }
   showLoader(false);
+}
+
+// Parse "dd-MM-yyyy ..." → {d,m,y} or null
+function parseDMY(s) {
+  const m = String(s || '').match(/^(\d{2})-(\d{2})-(\d{4})/);
+  return m ? { d:m[1], m:m[2], y:m[3] } : null;
+}
+// Show any date value as dd-MM-yyyy (handles yyyy-MM-dd too)
+function fmtDate(s) {
+  s = String(s || '').trim();
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return iso[3] + '-' + iso[2] + '-' + iso[1];
+  const dmy = parseDMY(s);
+  return dmy ? (dmy.d + '-' + dmy.m + '-' + dmy.y) : s;
+}
+function urlsOf(r) {
+  return (gf(r,'file_url').match(/https?:\/\/[^\s,]+/g)) || [];
+}
+function serialOf(r) {
+  const n = parseInt(String(gf(r,'dispatch_no')).split('/').pop(), 10);
+  return isNaN(n) ? 0 : n;
 }
 
 function updateStats() {
   const total    = allRows.length;
-  const uploaded = allRows.filter(r => gf(r,'file_url').startsWith('http')).length;
+  const uploaded = allRows.filter(r => urlsOf(r).length > 0).length;
   const pending  = total - uploaded;
   const pct      = total ? Math.round(uploaded/total*100) : 0;
   const now      = new Date();
@@ -1338,8 +1323,11 @@ function updateStats() {
 }
 
 function populateMonthFilter() {
+  const sel = document.getElementById('filter-month');
+  const keep = sel.value;
   const months = [...new Set(allRows.map(r => gf(r,'report_month')).filter(Boolean))].sort();
-  document.getElementById('filter-month').innerHTML = '<option value="">All Months</option>' + months.map(m=>'<option>'+m+'</option>').join('');
+  sel.innerHTML = '<option value="">All Months</option>' + months.map(m=>'<option>'+esc(m)+'</option>').join('');
+  if (months.indexOf(keep) > -1) sel.value = keep;
 }
 
 function applyFilters() {
@@ -1348,11 +1336,11 @@ function applyFilters() {
   const project = document.getElementById('filter-project').value;
   const month   = document.getElementById('filter-month').value;
   let rows = allRows.filter(r => {
-    const no   = gf(r,'dispatch_no_').toLowerCase();
+    const no   = gf(r,'dispatch_no').toLowerCase();
     const subj = gf(r,'subject_of_letter').toLowerCase();
     const by   = gf(r,'raised_by').toLowerCase();
     const to   = gf(r,'submit_to').toLowerCase();
-    const hasFile = gf(r,'file_url').startsWith('http');
+    const hasFile = urlsOf(r).length > 0;
     if (search && !no.includes(search) && !subj.includes(search) && !by.includes(search) && !to.includes(search)) return false;
     if (status==='uploaded' && !hasFile) return false;
     if (status==='pending'  && hasFile)  return false;
@@ -1360,44 +1348,56 @@ function applyFilters() {
     if (month   && gf(r,'report_month') !== month) return false;
     return true;
   });
-  rows.sort((a,b) => { const av=gf(a,sortKey), bv=gf(b,sortKey); return sortAsc ? av.localeCompare(bv) : bv.localeCompare(av); });
+  rows.sort((a,b) => {
+    if (sortKey === 'dispatch_no') return sortAsc ? serialOf(a) - serialOf(b) : serialOf(b) - serialOf(a);
+    const av = gf(a,sortKey), bv = gf(b,sortKey);
+    return sortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
+  });
   renderTable(rows);
 }
 
 function sortBy(key) { sortKey===key ? sortAsc=!sortAsc : (sortKey=key, sortAsc=false); applyFilters(); }
 
+// Safe field getter: tolerant of header spelling differences, always returns a string
 function gf(r, key) {
-  if (r[key] !== undefined) return String(r[key]);
-  const clean = key.replace(/_+$/,'');
-  const found = Object.keys(r).find(k => k.replace(/[\s._\-]+/g,'').toLowerCase() === clean.replace(/_/g,'').toLowerCase());
-  return found ? String(r[found]) : '';
+  if (r[key] !== undefined && r[key] !== null) return String(r[key]);
+  const want = key.replace(/[\s._\-]+/g,'').toLowerCase();
+  const found = Object.keys(r).find(k => k && k.replace(/[\s._\-]+/g,'').toLowerCase() === want);
+  return found && r[found] !== null && r[found] !== undefined ? String(r[found]) : '';
 }
 
 function renderTable(rows) {
   const tbody = document.getElementById('table-body');
   if (!rows.length) { tbody.innerHTML='<tr><td colspan="8"><div class="empty-state"><div class="icon">📭</div><p>No records found</p></div></td></tr>'; return; }
-  tbody.innerHTML = rows.map(r => {
-    const no      = gf(r,'dispatch_no_') || '—';
-    const date    = gf(r,'submission_date') || '—';
-    const month   = gf(r,'report_month')   || '—';
-    const by      = gf(r,'raised_by')      || '—';
-    const desig   = gf(r,'designation')    || '';
-    const subj    = gf(r,'subject_of_letter') || '—';
-    const to      = gf(r,'submit_to')      || '—';
-    const fileUrl = gf(r,'file_url');
-    const hasFile = fileUrl.startsWith('http');
-    const badge  = hasFile ? '<span class="badge badge-ok">✅ Uploaded</span>' : '<span class="badge badge-pending">⚠ Pending</span>';
-    const action = hasFile ? '<a href="'+fileUrl+'" target="_blank" class="view-link">📄 View</a>' : '<button class="btn-upload-inline" onclick="openUploadModal(\''+esc(no)+'\')">📎 Upload</button>';
-    return '<tr><td><span class="mono">'+no+'</span></td><td style="font-size:12px;color:var(--muted)">'+date+'</td><td style="font-size:12px">'+month+'</td>' +
-      '<td style="font-size:12px">'+by+(desig?'<br><span style="font-size:11px;color:var(--muted)">'+desig+'</span>':'')+'</td>' +
-      '<td><div class="subj-cell">'+esc(subj)+'</div></td>' +
-      '<td><div class="to-cell">'+esc(to)+'</div></td>' +
-      '<td>'+badge+'</td><td>'+action+'</td></tr>';
-  }).join('');
+  const html = [];
+  rows.forEach(r => {
+    try {
+      const no      = gf(r,'dispatch_no') || '—';
+      const date    = fmtDate(gf(r,'submission_date')) || '—';
+      const month   = gf(r,'report_month')   || '—';
+      const by      = gf(r,'raised_by')      || '—';
+      const desig   = gf(r,'designation')    || '';
+      const subj    = gf(r,'subject_of_letter') || '—';
+      const to      = gf(r,'submit_to')      || '—';
+      const urls    = urlsOf(r);
+      const badge   = urls.length ? '<span class="badge badge-ok">✅ Uploaded</span>' : '<span class="badge badge-pending">⚠ Pending</span>';
+      const links   = urls.map((u,i) => '<a href="'+esc(u)+'" target="_blank" rel="noopener" class="view-link">📄 '+(urls.length>1?('File '+(i+1)):'View')+'</a>').join('<br>');
+      const upBtn   = '<button class="btn-upload-inline" data-no="'+esc(no)+'" onclick="openUploadModal(this.dataset.no)">📎 Upload'+(urls.length?' more':'')+'</button>';
+      const action  = urls.length ? links + '<br>' + upBtn : upBtn;
+      html.push('<tr><td><span class="mono">'+esc(no)+'</span></td><td style="font-size:12px;color:var(--muted)">'+esc(date)+'</td><td style="font-size:12px">'+esc(month)+'</td>' +
+        '<td style="font-size:12px">'+esc(by)+(desig?'<br><span style="font-size:11px;color:var(--muted)">'+esc(desig)+'</span>':'')+'</td>' +
+        '<td><div class="subj-cell">'+esc(subj)+'</div></td>' +
+        '<td><div class="to-cell">'+esc(to)+'</div></td>' +
+        '<td>'+badge+'</td><td>'+action+'</td></tr>');
+    } catch (e) {
+      console.error('Row render failed', r, e);   // one bad row must never blank the whole table
+    }
+  });
+  tbody.innerHTML = html.join('');
 }
 
 // ════════════════════════════════════
-// UPLOAD MODAL (Dashboard) — POST
+// UPLOAD MODAL (Dashboard)
 // ════════════════════════════════════
 let _modalDispatchNo = '', _modalFiles = [], _modalCameraCount = 0;
 
@@ -1465,29 +1465,28 @@ function modalRemoveFile(index) {
 
 async function doUpload() {
   if (_modalFiles.length === 0) { showModalStatus('error','Please select at least one file.'); return; }
-  if (!SCRIPT_URL) { showModalStatus('error','Apps Script URL not configured.'); return; }
   const btn = document.getElementById('modal-save-btn');
   btn.disabled = true;
-  let okCount = 0, failCount = 0, lastUrl = '';
+  let okCount = 0, failCount = 0, lastUrl = '', newUrls = [];
   for (let i = 0; i < _modalFiles.length; i++) {
-    const entry = _modalFiles[i];
     btn.textContent = 'Uploading ' + (i + 1) + ' / ' + _modalFiles.length + '…';
     try {
-      const b64 = await fileToBase64(entry.file);
-      const res = await fetch(SCRIPT_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action:'uploadFile', dispatch_no:_modalDispatchNo, filename:entry.file.name, mime:entry.file.type, data:b64 })
-      });
-      const data = await res.json();
-      if (data.status === 'ok') { okCount++; lastUrl = data.url; } else { failCount++; }
+      const data = await postFile(_modalDispatchNo, _modalFiles[i].file);
+      if (data.status === 'ok') { okCount++; lastUrl = data.url; newUrls.push(data.url); } else { failCount++; }
     } catch(e) { failCount++; }
   }
+  if (okCount > 0) {
+    // reflect the new links in the table immediately
+    const idx = allRows.findIndex(r => gf(r,'dispatch_no') === _modalDispatchNo);
+    if (idx >= 0) {
+      const existing = urlsOf(allRows[idx]);
+      allRows[idx].file_url = existing.concat(newUrls).join(', ');
+      updateStats(); applyFilters();
+    }
+  }
   if (okCount > 0 && failCount === 0) {
-    showModalStatus('ok','✅ ' + okCount + ' file' + (okCount > 1 ? 's' : '') + ' uploaded! <a href="'+lastUrl+'" target="_blank" style="color:var(--cyan)">View latest</a>');
+    showModalStatus('ok','✅ ' + okCount + ' file' + (okCount > 1 ? 's' : '') + ' uploaded! <a href="'+esc(lastUrl)+'" target="_blank" style="color:var(--cyan)">View latest</a>');
     btn.textContent = 'Done ✓';
-    const idx = allRows.findIndex(r => gf(r,'dispatch_no_') === _modalDispatchNo);
-    if (idx >= 0) allRows[idx].file_url = lastUrl;
-    updateStats(); applyFilters();
   } else if (okCount > 0) {
     showModalStatus('error', '⚠️ ' + okCount + ' uploaded, ' + failCount + ' failed.');
     btn.disabled = false; btn.textContent = 'Upload';
@@ -1499,43 +1498,42 @@ async function doUpload() {
 
 function showModalStatus(type, msg) { const el=document.getElementById('modal-status'); el.style.display='block'; el.style.color=type==='ok'?'var(--success)':'var(--error)'; el.innerHTML=msg; }
 
-
-
 // ════════════════════════════════════
-// JSONP — bypasses CORS for GET requests
+// NETWORK — fetch first, JSONP as automatic fallback
 // ════════════════════════════════════
-// Plain fetch()-based GET to the Apps Script backend. Replaces the old
-// JSONP (dynamic <script> tag) approach, which mobile networks — Indian
-// carriers in particular, with their data-compression proxies — can
-// silently break, showing "Script load failed" even though the backend
-// itself is fine. Regular fetch() is more robust and is already proven
-// to work against this same backend (the file upload POST request uses
-// it successfully).
-async function gsFetch(url) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error('Server returned ' + res.status);
-  return res.json();
+// A cache-busting parameter + no-store means the dashboard always shows live
+// data. If fetch() itself is blocked (some mobile networks / proxies), the
+// same request is retried via JSONP, which the backend also supports.
+async function gsFetch(url, opts) {
+  opts = opts || {};
+  const sep = url.indexOf('?') >= 0 ? '&' : '?';
+  try {
+    const res = await fetch(url + sep + '_=' + Date.now(), { cache: 'no-store' });
+    if (!res.ok) throw new Error('Server returned ' + res.status);
+    const text = await res.text();
+    try { return JSON.parse(text); }
+    catch (pe) {
+      throw new Error('Server did not return JSON (deployment access or authorization problem)');
+    }
+  } catch (err) {
+    if (opts.noFallback) throw err;
+    return jsonpFetch(url);
+  }
 }
 
 function jsonpFetch(url) {
   return new Promise(function(resolve, reject) {
     var cbName = 'cb_' + Date.now() + '_' + Math.random().toString(36).substr(2,5);
     var script = document.createElement('script');
-    var timeout = setTimeout(function() {
-      cleanup();
-      reject(new Error('Request timeout'));
-    }, 15000);
+    var timeout = setTimeout(function() { cleanup(); reject(new Error('Request timed out')); }, 20000);
     function cleanup() {
       clearTimeout(timeout);
       delete window[cbName];
       if (script.parentNode) script.parentNode.removeChild(script);
     }
-    window[cbName] = function(data) {
-      cleanup();
-      resolve(data);
-    };
-    script.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'callback=' + cbName;
-    script.onerror = function() { cleanup(); reject(new Error('Script load failed')); };
+    window[cbName] = function(data) { cleanup(); resolve(data); };
+    script.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'callback=' + cbName + '&_=' + Date.now();
+    script.onerror = function() { cleanup(); reject(new Error('Could not reach the server (check internet / deployment access)')); };
     document.head.appendChild(script);
   });
 }
@@ -1544,10 +1542,10 @@ function jsonpFetch(url) {
 // HELPERS
 // ════════════════════════════════════
 function v(id) { return document.getElementById(id).value; }
-function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function fileToBase64(file) { return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result.split(',')[1]); r.onerror=()=>rej(new Error('Read failed')); r.readAsDataURL(file); }); }
 function showLoader(val) { document.getElementById('loader').classList.toggle('show',val); }
-function showTableMsg(msg) { document.getElementById('table-body').innerHTML='<tr><td colspan="8"><div class="empty-state"><div class="icon">⚠</div><p>'+msg+'</p></div></td></tr>'; }
+function showTableMsg(msg, icon) { document.getElementById('table-body').innerHTML='<tr><td colspan="8"><div class="empty-state"><div class="icon">'+(icon||'⚠')+'</div><p>'+msg+'</p></div></td></tr>'; }
 function showError(msg) { const b=document.getElementById('error-box'); b.textContent='⚠ '+msg; b.style.display='block'; b.scrollIntoView({behavior:'smooth'}); }
 function hideError() { document.getElementById('error-box').style.display='none'; }
 </script>
