@@ -760,6 +760,10 @@ async function callScript(params){
   return res.json();
 }
 
+// Wake the backend as soon as the page opens, so the first login does not
+// have to wait for a cold start while the user is still typing.
+fetch(SCRIPT_URL + '?action=ping&_=' + Date.now()).catch(function(){});
+
 // ---------- project / zone data ----------
 const ZONES_BY_PROJECT = {
   'CLUSTER BILLING': ['ALIGARH', 'MATHURA', 'ETAH'],
