@@ -253,7 +253,7 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:13px;border-t
     <div class="subtitle">DVVNL – Agra MRI &amp; Cluster Billing</div>
   </div>
   <div class="header-right">
-    <span class="header-badge" id="staffNameBadge">DISPATCH PORTAL v3.3</span>
+    <span class="header-badge" id="staffNameBadge">DISPATCH PORTAL v3.5</span>
     <span class="logout-btn" onclick="doLogout()">Logout</span>
   </div>
 </header>
@@ -718,7 +718,7 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:13px;border-t
 
 <div id="loader"><div class="spinner-lg"></div><div style="font-size:13px;color:var(--muted)">Loading…</div></div>
 
-<footer>SAI Computers Ltd. · DVVNL MRI &amp; Cluster Billing · Agra, UP &nbsp;|&nbsp; Dispatch Portal v3.3</footer>
+<footer>SAI Computers Ltd. · DVVNL MRI &amp; Cluster Billing · Agra, UP &nbsp;|&nbsp; Dispatch Portal v3.5</footer>
 
 <script>
 // ════════════════════════════════════
@@ -759,33 +759,11 @@ function doLogin() {
     document.getElementById('main-app').style.display     = 'flex';
     err.style.display = 'none';
     initApp();
-    logLoginEvent();
   } else {
     err.style.display = 'block';
     document.getElementById('login-pass').value = '';
     document.getElementById('login-pass').focus();
   }
-}
-
-function logLoginEvent() {
-  fetch('https://ip-api.com/json/?fields=status,country,regionName,city,query,isp')
-    .then(function(res) { return res.json(); })
-    .then(function(geo) {
-      const params = new URLSearchParams({
-        action: 'logLogin',
-        ip: geo.query || '', city: geo.city || '', region: geo.regionName || '',
-        country: geo.country || '', isp: geo.isp || '',
-        user_agent: navigator.userAgent, platform: navigator.platform || ''
-      });
-      gsFetch(SCRIPT_URL + '?' + params.toString()).catch(function(){});
-    })
-    .catch(function() {
-      const params = new URLSearchParams({
-        action: 'logLogin', ip: '', city: '', region: '', country: 'Unknown', isp: '',
-        user_agent: navigator.userAgent, platform: navigator.platform || ''
-      });
-      gsFetch(SCRIPT_URL + '?' + params.toString()).catch(function(){});
-    });
 }
 
 function doLogout() {
@@ -803,7 +781,6 @@ window.onload = function() {
       badge.textContent = staffSession.name + ' · ' + (staffSession.empId || '');
     }
     initApp();
-    logLoginEvent();
   } else {
     goToStaffPortal();
   }
@@ -1359,7 +1336,7 @@ function renderPage(data, fromMemory) {
   fillMonths(data.months || []);
   renderTable(pageRows);
   renderPager(data);
-  if (!fromMemory) setSyncNote('Updated ' + timeStr(Date.now()) + (data.ms != null ? ' · server ' + data.ms + ' ms' + (data.cached ? ' (cached)' : '') : ''));
+  if (!fromMemory) setSyncNote('Updated ' + timeStr(Date.now()) + (data.ms != null ? ' · server ' + data.ms + ' ms' + (data.src ? ' · from ' + data.src : '') : ''));
 }
 
 function fillMonths(months) {
