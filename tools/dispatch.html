@@ -216,6 +216,13 @@ tr:hover td{background:#192638;}
 .pager button:disabled{opacity:.35;cursor:not-allowed;}
 .pager .pg-cur{color:var(--white);font-weight:600;padding:0 6px;}
 
+/* BUSY INDICATOR */
+#busy-bar{height:3px;border-radius:3px;margin-bottom:10px;background:transparent;overflow:hidden;position:relative;}
+#busy-bar.on{background:var(--border);}
+#busy-bar.on::after{content:'';position:absolute;top:0;bottom:0;left:-35%;width:35%;background:linear-gradient(90deg,var(--cyan),#009fb3);border-radius:3px;animation:bslide 1s ease-in-out infinite;}
+@keyframes bslide{0%{left:-35%}100%{left:100%}}
+.spinner-sm{display:inline-block;width:11px;height:11px;border:2px solid rgba(255,255,255,.2);border-top-color:var(--cyan);border-radius:50%;animation:spin .7s linear infinite;vertical-align:-1px;margin-right:6px;}
+
 /* LOADER */
 #loader{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:center;justify-content:center;flex-direction:column;gap:12px;}
 #loader.show{display:flex;}
@@ -253,7 +260,7 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:13px;border-t
     <div class="subtitle">DVVNL – Agra MRI &amp; Cluster Billing</div>
   </div>
   <div class="header-right">
-    <span class="header-badge" id="staffNameBadge">DISPATCH PORTAL v3.5</span>
+    <span class="header-badge" id="staffNameBadge">DISPATCH PORTAL v3.6</span>
     <span class="logout-btn" onclick="doLogout()">Logout</span>
   </div>
 </header>
@@ -652,20 +659,21 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:13px;border-t
 
   <div class="filter-row">
     <input type="text" id="search-input" autocomplete="off" placeholder="🔍  Search dispatch no., subject, raised by…" oninput="onFilterChange()"/>
-    <select id="filter-status" autocomplete="off" onchange="onFilterChange()">
+    <select id="filter-status" autocomplete="off" onchange="onFilterChange(true)">
       <option value="">All Status</option>
       <option value="uploaded">Copy Uploaded ✅</option>
       <option value="pending">Copy Pending ⚠</option>
     </select>
-    <select id="filter-project" autocomplete="off" onchange="onFilterChange()">
+    <select id="filter-project" autocomplete="off" onchange="onFilterChange(true)">
       <option value="">All Projects</option>
       <option value="MRI">MRI PROJECT</option>
       <option value="CLUSTER">CLUSTER-4</option>
     </select>
-    <select id="filter-month" autocomplete="off" onchange="onFilterChange()"><option value="">All Months</option></select>
+    <select id="filter-month" autocomplete="off" onchange="onFilterChange(true)"><option value="">All Months</option></select>
     <button class="btn-refresh" onclick="loadDashboard(true)">↻ Refresh</button>
   </div>
 
+  <div id="busy-bar"></div>
   <div class="table-wrap">
     <table>
       <thead>
@@ -718,7 +726,7 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:13px;border-t
 
 <div id="loader"><div class="spinner-lg"></div><div style="font-size:13px;color:var(--muted)">Loading…</div></div>
 
-<footer>SAI Computers Ltd. · DVVNL MRI &amp; Cluster Billing · Agra, UP &nbsp;|&nbsp; Dispatch Portal v3.5</footer>
+<footer>SAI Computers Ltd. · DVVNL MRI &amp; Cluster Billing · Agra, UP &nbsp;|&nbsp; Dispatch Portal v3.6</footer>
 
 <script>
 // ════════════════════════════════════
@@ -1248,7 +1256,16 @@ function setStatsPlaceholder() {
   document.getElementById('stat-pct').textContent = '—';
   document.getElementById('progress-fill').style.width = '0%';
 }
-function setSyncNote(msg) { const el = document.getElementById('sync-note'); if (el) el.textContent = msg; }
+function setSyncNote(msg, busy) {
+  const el = document.getElementById('sync-note');
+  if (el) el.innerHTML = (busy ? '<span class="spinner-sm"></span>' : '') + esc(msg);
+}
+// Shows / hides the loading indicator (moving bar above the table + dimmed rows)
+function setBusy(on) {
+  document.getElementById('busy-bar').classList.toggle('on', on);
+  document.getElementById('table-body').style.opacity = (on && pageRows.length) ? '.45' : '';
+  document.querySelectorAll('.pager button').forEach(b => { if (on) b.dataset.was = b.disabled ? '1' : '0'; b.disabled = on ? true : b.dataset.was === '1'; });
+}
 function timeStr(ts) { return new Date(ts).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }); }
 
 function buildQuery(page) {
@@ -1269,9 +1286,10 @@ function loadDashboard(force) {
   if (force) pageCache.clear();
   return loadPage(currentPage);
 }
-function onFilterChange() {
+function onFilterChange(immediate) {
   clearTimeout(_filterTimer);
-  _filterTimer = setTimeout(() => { currentPage = 1; loadPage(1); }, 350);
+  const run = () => { currentPage = 1; loadPage(1); };
+  if (immediate) run(); else _filterTimer = setTimeout(run, 350);   // typing in search waits 0.35 s
 }
 function goPage(p) {
   if (p < 1 || p > totalPages || p === currentPage) return;
@@ -1288,41 +1306,39 @@ async function loadPage(page) {
   const qs  = buildQuery(page);
   const seq = ++_seq;
 
-  if (pageCache.has(qs)) { renderPage(pageCache.get(qs), true); return; }
+  if (pageCache.has(qs)) { setBusy(false); renderPage(pageCache.get(qs), true); return; }
 
   // first visit: show the last saved first page immediately
   let shownSaved = false;
   if (!pageRows.length && isDefaultFirstPage(page)) {
     try {
       const saved = JSON.parse(localStorage.getItem(LS_FIRST_KEY) || 'null');
-      if (saved && saved.data) { renderPage(saved.data, false); setSyncNote('Saved data from ' + timeStr(saved.ts) + ' · updating…'); shownSaved = true; }
+      if (saved && saved.data) { renderPage(saved.data, false); shownSaved = true; }
     } catch (e) {}
   }
-  if (!shownSaved) {
-    if (!pageRows.length) { setStatsPlaceholder(); showTableMsg('Loading…', '⏳'); }
-    else document.getElementById('table-body').style.opacity = '.45';
-    setSyncNote('Loading page ' + page + '…');
-  }
+  if (!shownSaved && !pageRows.length) { setStatsPlaceholder(); showTableMsg('Loading…', '⏳'); }
+  setBusy(true);
+  setSyncNote('Loading page ' + page + '…', true);
 
   let data;
   try {
     data = await gsFetch(SCRIPT_URL + '?' + qs);
   } catch (e) {
     console.error('FETCH ERROR:', e);
-    document.getElementById('table-body').style.opacity = '';
     if (seq !== _seq) return;
+    setBusy(false);
     if (shownSaved || pageRows.length) { setSyncNote('⚠ Server slow or unreachable (' + e.message + ')'); }
     else { showTableMsg('Could not load data: ' + esc(e.message) + '<br><small>Press Refresh to try again.</small>', '⚠'); setSyncNote(''); }
     return;
   }
   if (seq !== _seq) return;                 // a newer request replaced this one
-  document.getElementById('table-body').style.opacity = '';
+  setBusy(false);
   if (data && data.status === 'ok') {
     pageCache.set(qs, data);
     if (isDefaultFirstPage(page)) { try { localStorage.setItem(LS_FIRST_KEY, JSON.stringify({ ts: Date.now(), data })); } catch (e) {} }
     renderPage(data, false);
   } else {
-    setSyncNote('⚠ Server error: ' + esc((data && data.message) || 'Unknown'));
+    setSyncNote('⚠ Server error: ' + ((data && data.message) || 'Unknown'));
     if (!pageRows.length) showTableMsg('Server error: ' + esc((data && data.message) || 'Unknown'), '⚠');
   }
 }
