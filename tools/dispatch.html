@@ -245,7 +245,7 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:13px;border-t
     <div class="subtitle">DVVNL – Agra MRI &amp; Cluster Billing</div>
   </div>
   <div class="header-right">
-    <span class="header-badge" id="staffNameBadge">DISPATCH PORTAL v3.1</span>
+    <span class="header-badge" id="staffNameBadge">DISPATCH PORTAL v3.2</span>
     <span class="logout-btn" onclick="doLogout()">Logout</span>
   </div>
 </header>
@@ -616,6 +616,7 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:13px;border-t
 <div class="dash-page">
   <p class="page-title">Dispatch Register</p>
   <p class="page-desc">All generated dispatch numbers — office copy upload status &amp; tracking</p>
+  <div id="sync-note" style="font-size:11px;color:var(--muted);margin:-14px 0 14px;"></div>
 
   <div class="stats-row">
     <div class="stat-card s-total">
@@ -708,7 +709,7 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:13px;border-t
 
 <div id="loader"><div class="spinner-lg"></div><div style="font-size:13px;color:var(--muted)">Loading…</div></div>
 
-<footer>SAI Computers Ltd. · DVVNL MRI &amp; Cluster Billing · Agra, UP &nbsp;|&nbsp; Dispatch Portal v3.1</footer>
+<footer>SAI Computers Ltd. · DVVNL MRI &amp; Cluster Billing · Agra, UP &nbsp;|&nbsp; Dispatch Portal v3.2</footer>
 
 <script>
 // ════════════════════════════════════
@@ -1256,30 +1257,54 @@ function setStatsPlaceholder() {
   document.getElementById('progress-fill').style.width = '0%';
 }
 
+const LS_ROWS_KEY = 'dispatchRows_v2';
+function readSavedRows() {
+  try { const j = JSON.parse(localStorage.getItem(LS_ROWS_KEY) || 'null'); return (j && Array.isArray(j.rows)) ? j : null; }
+  catch (e) { return null; }
+}
+function saveRows(rows) {
+  try { localStorage.setItem(LS_ROWS_KEY, JSON.stringify({ ts: Date.now(), rows: rows })); } catch (e) {}
+}
+function setSyncNote(msg) { const el = document.getElementById('sync-note'); if (el) el.textContent = msg; }
+function timeStr(ts) { return new Date(ts).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }); }
+
+// Shows the last saved data immediately, then refreshes from the server in the background.
 async function loadDashboard() {
-  showTableMsg('Loading…', '⏳');
-  showLoader(true);
+  const saved = readSavedRows();
+  if (saved) {
+    allRows = saved.rows.slice();  // already in display order
+    try { populateMonthFilter(); updateStats(); applyFilters(); } catch (e) { console.error(e); }
+    setSyncNote('Saved data from ' + timeStr(saved.ts) + ' · updating…');
+  } else {
+    showTableMsg('Loading… first load can take up to 30 seconds', '⏳');
+    setSyncNote('Loading…');
+    showLoader(true);
+  }
   let data;
   try {
     data = await gsFetch(SCRIPT_URL + '?action=getAll');
   } catch (e) {
     console.error('FETCH ERROR:', e);
-    setStatsPlaceholder();
-    showTableMsg('Could not load data: ' + e.message + '<br><small>Deployment: Execute as "Me" · Access "Anyone". Then press Refresh.</small>', '⚠');
     showLoader(false);
+    if (saved) { setSyncNote('⚠ Server slow or unreachable (' + e.message + ') · showing saved data from ' + timeStr(saved.ts)); return; }
+    setStatsPlaceholder();
+    showTableMsg('Could not load data: ' + esc(e.message) + '<br><small>Press Refresh to try again.</small>', '⚠');
+    setSyncNote('');
     return;
   }
   try {
     if (data && data.status === 'ok') {
       allRows = (data.rows || []).slice().reverse();
+      saveRows(allRows);
       populateMonthFilter(); updateStats(); applyFilters();
+      setSyncNote('Updated ' + timeStr(Date.now()) + (data.ms != null ? ' · server ' + data.ms + ' ms' + (data.cached ? ' (cached)' : '') : ''));
     } else {
-      setStatsPlaceholder();
-      showTableMsg('Server error: ' + esc((data && data.message) || 'Unknown'), '⚠');
+      if (!saved) { setStatsPlaceholder(); showTableMsg('Server error: ' + esc((data && data.message) || 'Unknown'), '⚠'); }
+      setSyncNote('⚠ Server error: ' + ((data && data.message) || 'Unknown'));
     }
   } catch (e) {
     console.error('RENDER ERROR:', e);
-    showTableMsg('Display error: ' + esc(e.message), '⚠');
+    setSyncNote('⚠ Display error: ' + e.message);
   }
   showLoader(false);
 }
@@ -1508,7 +1533,11 @@ async function gsFetch(url, opts) {
   opts = opts || {};
   const sep = url.indexOf('?') >= 0 ? '&' : '?';
   try {
-    const res = await fetch(url + sep + '_=' + Date.now(), { cache: 'no-store' });
+    const ctrl = new AbortController();
+    const to = setTimeout(() => ctrl.abort(), 60000);
+    let res;
+    try { res = await fetch(url + sep + '_=' + Date.now(), { cache: 'no-store', signal: ctrl.signal }); }
+    finally { clearTimeout(to); }
     if (!res.ok) throw new Error('Server returned ' + res.status);
     const text = await res.text();
     try { return JSON.parse(text); }
@@ -1525,7 +1554,7 @@ function jsonpFetch(url) {
   return new Promise(function(resolve, reject) {
     var cbName = 'cb_' + Date.now() + '_' + Math.random().toString(36).substr(2,5);
     var script = document.createElement('script');
-    var timeout = setTimeout(function() { cleanup(); reject(new Error('Request timed out')); }, 20000);
+    var timeout = setTimeout(function() { cleanup(); reject(new Error('Request timed out')); }, 60000);
     function cleanup() {
       clearTimeout(timeout);
       delete window[cbName];
