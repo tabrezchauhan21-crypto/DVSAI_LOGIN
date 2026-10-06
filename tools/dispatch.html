@@ -208,6 +208,14 @@ tr:hover td{background:#192638;}
 .btn-modal-cancel{flex:1;background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:10px;font-weight:600;cursor:pointer;font-size:13px;}
 #modal-status{font-size:12px;margin-top:8px;display:none;}
 
+/* PAGER */
+.pager{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:12px;font-size:12px;color:var(--muted);}
+.pager .pg-btns{display:flex;gap:6px;align-items:center;}
+.pager button{background:transparent;border:1px solid var(--border);color:var(--white);border-radius:7px;padding:7px 12px;font-size:12px;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;}
+.pager button:hover:not(:disabled){border-color:var(--cyan);color:var(--cyan);}
+.pager button:disabled{opacity:.35;cursor:not-allowed;}
+.pager .pg-cur{color:var(--white);font-weight:600;padding:0 6px;}
+
 /* LOADER */
 #loader{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:center;justify-content:center;flex-direction:column;gap:12px;}
 #loader.show{display:flex;}
@@ -245,7 +253,7 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:13px;border-t
     <div class="subtitle">DVVNL – Agra MRI &amp; Cluster Billing</div>
   </div>
   <div class="header-right">
-    <span class="header-badge" id="staffNameBadge">DISPATCH PORTAL v3.2</span>
+    <span class="header-badge" id="staffNameBadge">DISPATCH PORTAL v3.3</span>
     <span class="logout-btn" onclick="doLogout()">Logout</span>
   </div>
 </header>
@@ -643,19 +651,19 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:13px;border-t
   </div>
 
   <div class="filter-row">
-    <input type="text" id="search-input" autocomplete="off" placeholder="🔍  Search dispatch no., subject, raised by…" oninput="applyFilters()"/>
-    <select id="filter-status" autocomplete="off" onchange="applyFilters()">
+    <input type="text" id="search-input" autocomplete="off" placeholder="🔍  Search dispatch no., subject, raised by…" oninput="onFilterChange()"/>
+    <select id="filter-status" autocomplete="off" onchange="onFilterChange()">
       <option value="">All Status</option>
       <option value="uploaded">Copy Uploaded ✅</option>
       <option value="pending">Copy Pending ⚠</option>
     </select>
-    <select id="filter-project" autocomplete="off" onchange="applyFilters()">
+    <select id="filter-project" autocomplete="off" onchange="onFilterChange()">
       <option value="">All Projects</option>
       <option value="MRI">MRI PROJECT</option>
       <option value="CLUSTER">CLUSTER-4</option>
     </select>
-    <select id="filter-month" autocomplete="off" onchange="applyFilters()"><option value="">All Months</option></select>
-    <button class="btn-refresh" onclick="loadDashboard()">↻ Refresh</button>
+    <select id="filter-month" autocomplete="off" onchange="onFilterChange()"><option value="">All Months</option></select>
+    <button class="btn-refresh" onclick="loadDashboard(true)">↻ Refresh</button>
   </div>
 
   <div class="table-wrap">
@@ -677,6 +685,7 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:13px;border-t
       </tbody>
     </table>
   </div>
+  <div class="pager" id="pager"></div>
 </div>
 </div>
 
@@ -709,7 +718,7 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:13px;border-t
 
 <div id="loader"><div class="spinner-lg"></div><div style="font-size:13px;color:var(--muted)">Loading…</div></div>
 
-<footer>SAI Computers Ltd. · DVVNL MRI &amp; Cluster Billing · Agra, UP &nbsp;|&nbsp; Dispatch Portal v3.2</footer>
+<footer>SAI Computers Ltd. · DVVNL MRI &amp; Cluster Billing · Agra, UP &nbsp;|&nbsp; Dispatch Portal v3.3</footer>
 
 <script>
 // ════════════════════════════════════
@@ -1078,6 +1087,8 @@ document.getElementById('dispatch-form').addEventListener('submit', async functi
 // ════════════════════════════════════
 let _lastNo = '', _lastMeta = {};
 function showResult(no, savedAt, month, subject, to, by, desig) {
+  pageCache.clear();
+  try { localStorage.removeItem(LS_FIRST_KEY); } catch (e) {}
   _lastNo = no; _lastMeta = { month, subject, to, by, desig, savedAt };
   document.getElementById('dispatch-display').textContent = no;
   const shortS = subject.length > 80 ? subject.substring(0,80)+'…' : subject;
@@ -1249,147 +1260,157 @@ function showUploadStatus(type, msg) {
 // ════════════════════════════════════
 // DASHBOARD
 // ════════════════════════════════════
-let allRows = [], sortKey = 'dispatch_no', sortAsc = false;
+const PAGE_SIZE = 20;
+let currentPage = 1, totalPages = 1, sortKey = 'dispatch_no', sortAsc = false;
+let pageRows = [], lastStats = null, _seq = 0, _filterTimer = null;
+const pageCache = new Map();            // query string -> server response (this session only)
+const LS_FIRST_KEY = 'dispatchFirstPage_v1';
 
 function setStatsPlaceholder() {
   ['stat-total','stat-uploaded','stat-pending','stat-today'].forEach(id => document.getElementById(id).textContent = '—');
   document.getElementById('stat-pct').textContent = '—';
   document.getElementById('progress-fill').style.width = '0%';
 }
-
-const LS_ROWS_KEY = 'dispatchRows_v2';
-function readSavedRows() {
-  try { const j = JSON.parse(localStorage.getItem(LS_ROWS_KEY) || 'null'); return (j && Array.isArray(j.rows)) ? j : null; }
-  catch (e) { return null; }
-}
-function saveRows(rows) {
-  try { localStorage.setItem(LS_ROWS_KEY, JSON.stringify({ ts: Date.now(), rows: rows })); } catch (e) {}
-}
 function setSyncNote(msg) { const el = document.getElementById('sync-note'); if (el) el.textContent = msg; }
 function timeStr(ts) { return new Date(ts).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }); }
 
-// Shows the last saved data immediately, then refreshes from the server in the background.
-async function loadDashboard() {
-  const saved = readSavedRows();
-  if (saved) {
-    allRows = saved.rows.slice();  // already in display order
-    try { populateMonthFilter(); updateStats(); applyFilters(); } catch (e) { console.error(e); }
-    setSyncNote('Saved data from ' + timeStr(saved.ts) + ' · updating…');
-  } else {
-    showTableMsg('Loading… first load can take up to 30 seconds', '⏳');
-    setSyncNote('Loading…');
-    showLoader(true);
+function buildQuery(page) {
+  return new URLSearchParams({
+    action: 'getPage', page: String(page), size: String(PAGE_SIZE),
+    q: document.getElementById('search-input').value.trim(),
+    status: v('filter-status'), project: v('filter-project'), month: v('filter-month'),
+    sort: sortKey, dir: sortAsc ? 'asc' : 'desc'
+  }).toString();
+}
+function isDefaultFirstPage(page) {
+  return page === 1 && !document.getElementById('search-input').value.trim() &&
+    !v('filter-status') && !v('filter-project') && !v('filter-month') && sortKey === 'dispatch_no' && !sortAsc;
+}
+
+// Called by the tab switch and the Refresh button
+function loadDashboard(force) {
+  if (force) pageCache.clear();
+  return loadPage(currentPage);
+}
+function onFilterChange() {
+  clearTimeout(_filterTimer);
+  _filterTimer = setTimeout(() => { currentPage = 1; loadPage(1); }, 350);
+}
+function goPage(p) {
+  if (p < 1 || p > totalPages || p === currentPage) return;
+  loadPage(p);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function sortBy(key) {
+  sortKey === key ? sortAsc = !sortAsc : (sortKey = key, sortAsc = false);
+  currentPage = 1; loadPage(1);
+}
+
+// Loads ONE page (20 rows) from the server
+async function loadPage(page) {
+  const qs  = buildQuery(page);
+  const seq = ++_seq;
+
+  if (pageCache.has(qs)) { renderPage(pageCache.get(qs), true); return; }
+
+  // first visit: show the last saved first page immediately
+  let shownSaved = false;
+  if (!pageRows.length && isDefaultFirstPage(page)) {
+    try {
+      const saved = JSON.parse(localStorage.getItem(LS_FIRST_KEY) || 'null');
+      if (saved && saved.data) { renderPage(saved.data, false); setSyncNote('Saved data from ' + timeStr(saved.ts) + ' · updating…'); shownSaved = true; }
+    } catch (e) {}
   }
+  if (!shownSaved) {
+    if (!pageRows.length) { setStatsPlaceholder(); showTableMsg('Loading…', '⏳'); }
+    else document.getElementById('table-body').style.opacity = '.45';
+    setSyncNote('Loading page ' + page + '…');
+  }
+
   let data;
   try {
-    data = await gsFetch(SCRIPT_URL + '?action=getAll');
+    data = await gsFetch(SCRIPT_URL + '?' + qs);
   } catch (e) {
     console.error('FETCH ERROR:', e);
-    showLoader(false);
-    if (saved) { setSyncNote('⚠ Server slow or unreachable (' + e.message + ') · showing saved data from ' + timeStr(saved.ts)); return; }
-    setStatsPlaceholder();
-    showTableMsg('Could not load data: ' + esc(e.message) + '<br><small>Press Refresh to try again.</small>', '⚠');
-    setSyncNote('');
+    document.getElementById('table-body').style.opacity = '';
+    if (seq !== _seq) return;
+    if (shownSaved || pageRows.length) { setSyncNote('⚠ Server slow or unreachable (' + e.message + ')'); }
+    else { showTableMsg('Could not load data: ' + esc(e.message) + '<br><small>Press Refresh to try again.</small>', '⚠'); setSyncNote(''); }
     return;
   }
-  try {
-    if (data && data.status === 'ok') {
-      allRows = (data.rows || []).slice().reverse();
-      saveRows(allRows);
-      populateMonthFilter(); updateStats(); applyFilters();
-      setSyncNote('Updated ' + timeStr(Date.now()) + (data.ms != null ? ' · server ' + data.ms + ' ms' + (data.cached ? ' (cached)' : '') : ''));
-    } else {
-      if (!saved) { setStatsPlaceholder(); showTableMsg('Server error: ' + esc((data && data.message) || 'Unknown'), '⚠'); }
-      setSyncNote('⚠ Server error: ' + ((data && data.message) || 'Unknown'));
-    }
-  } catch (e) {
-    console.error('RENDER ERROR:', e);
-    setSyncNote('⚠ Display error: ' + e.message);
+  if (seq !== _seq) return;                 // a newer request replaced this one
+  document.getElementById('table-body').style.opacity = '';
+  if (data && data.status === 'ok') {
+    pageCache.set(qs, data);
+    if (isDefaultFirstPage(page)) { try { localStorage.setItem(LS_FIRST_KEY, JSON.stringify({ ts: Date.now(), data })); } catch (e) {} }
+    renderPage(data, false);
+  } else {
+    setSyncNote('⚠ Server error: ' + esc((data && data.message) || 'Unknown'));
+    if (!pageRows.length) showTableMsg('Server error: ' + esc((data && data.message) || 'Unknown'), '⚠');
   }
-  showLoader(false);
 }
 
-// Parse "dd-MM-yyyy ..." → {d,m,y} or null
-function parseDMY(s) {
-  const m = String(s || '').match(/^(\d{2})-(\d{2})-(\d{4})/);
-  return m ? { d:m[1], m:m[2], y:m[3] } : null;
-}
-// Show any date value as dd-MM-yyyy (handles yyyy-MM-dd too)
-function fmtDate(s) {
-  s = String(s || '').trim();
-  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (iso) return iso[3] + '-' + iso[2] + '-' + iso[1];
-  const dmy = parseDMY(s);
-  return dmy ? (dmy.d + '-' + dmy.m + '-' + dmy.y) : s;
-}
-function urlsOf(r) {
-  return (gf(r,'file_url').match(/https?:\/\/[^\s,]+/g)) || [];
-}
-function serialOf(r) {
-  const n = parseInt(String(gf(r,'dispatch_no')).split('/').pop(), 10);
-  return isNaN(n) ? 0 : n;
+function renderPage(data, fromMemory) {
+  pageRows    = data.rows || [];
+  currentPage = data.page;
+  totalPages  = data.pages;
+  lastStats   = data.stats;
+  updateStats(data.stats);
+  fillMonths(data.months || []);
+  renderTable(pageRows);
+  renderPager(data);
+  if (!fromMemory) setSyncNote('Updated ' + timeStr(Date.now()) + (data.ms != null ? ' · server ' + data.ms + ' ms' + (data.cached ? ' (cached)' : '') : ''));
 }
 
-function updateStats() {
-  const total    = allRows.length;
-  const uploaded = allRows.filter(r => urlsOf(r).length > 0).length;
-  const pending  = total - uploaded;
-  const pct      = total ? Math.round(uploaded/total*100) : 0;
-  const now      = new Date();
-  const todayStr = String(now.getDate()).padStart(2,'0') + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + now.getFullYear();
-  const todayCount = allRows.filter(r => String(gf(r,'saved_at')).startsWith(todayStr)).length;
-  document.getElementById('stat-total').textContent    = total;
-  document.getElementById('stat-uploaded').textContent = uploaded;
-  document.getElementById('stat-pending').textContent  = pending;
-  document.getElementById('stat-today').textContent    = todayCount;
-  document.getElementById('stat-pct').textContent      = total ? pct+'% complete' : '—';
-  document.getElementById('progress-fill').style.width = pct+'%';
-  document.getElementById('stat-today-date').textContent = now.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
-}
-
-function populateMonthFilter() {
+function fillMonths(months) {
   const sel = document.getElementById('filter-month');
   const keep = sel.value;
-  const months = [...new Set(allRows.map(r => gf(r,'report_month')).filter(Boolean))].sort();
-  sel.innerHTML = '<option value="">All Months</option>' + months.map(m=>'<option>'+esc(m)+'</option>').join('');
+  sel.innerHTML = '<option value="">All Months</option>' + months.map(m => '<option>' + esc(m) + '</option>').join('');
   if (months.indexOf(keep) > -1) sel.value = keep;
 }
 
-function applyFilters() {
-  const search  = document.getElementById('search-input').value.toLowerCase();
-  const status  = document.getElementById('filter-status').value;
-  const project = document.getElementById('filter-project').value;
-  const month   = document.getElementById('filter-month').value;
-  let rows = allRows.filter(r => {
-    const no   = gf(r,'dispatch_no').toLowerCase();
-    const subj = gf(r,'subject_of_letter').toLowerCase();
-    const by   = gf(r,'raised_by').toLowerCase();
-    const to   = gf(r,'submit_to').toLowerCase();
-    const hasFile = urlsOf(r).length > 0;
-    if (search && !no.includes(search) && !subj.includes(search) && !by.includes(search) && !to.includes(search)) return false;
-    if (status==='uploaded' && !hasFile) return false;
-    if (status==='pending'  && hasFile)  return false;
-    if (project && !gf(r,'project_name').toUpperCase().includes(project)) return false;
-    if (month   && gf(r,'report_month') !== month) return false;
-    return true;
-  });
-  rows.sort((a,b) => {
-    if (sortKey === 'dispatch_no') return sortAsc ? serialOf(a) - serialOf(b) : serialOf(b) - serialOf(a);
-    const av = gf(a,sortKey), bv = gf(b,sortKey);
-    return sortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
-  });
-  renderTable(rows);
+function updateStats(st) {
+  if (!st) return;
+  const pct = st.total ? Math.round(st.uploaded / st.total * 100) : 0;
+  document.getElementById('stat-total').textContent    = st.total;
+  document.getElementById('stat-uploaded').textContent = st.uploaded;
+  document.getElementById('stat-pending').textContent  = st.pending;
+  document.getElementById('stat-today').textContent    = st.today;
+  document.getElementById('stat-pct').textContent      = st.total ? pct + '% complete' : '—';
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('stat-today-date').textContent = new Date().toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
 }
 
-function sortBy(key) { sortKey===key ? sortAsc=!sortAsc : (sortKey=key, sortAsc=false); applyFilters(); }
+function renderPager(d) {
+  const el = document.getElementById('pager');
+  if (!d.filtered) { el.innerHTML = ''; return; }
+  const from = (d.page - 1) * d.size + 1, to = Math.min(d.page * d.size, d.filtered);
+  el.innerHTML =
+    '<div>Showing ' + from + '–' + to + ' of ' + d.filtered + (d.filtered !== d.stats.total ? ' (filtered from ' + d.stats.total + ')' : '') + ' entries</div>' +
+    '<div class="pg-btns">' +
+      '<button onclick="goPage(1)"' + (d.page <= 1 ? ' disabled' : '') + '>« First</button>' +
+      '<button onclick="goPage(' + (d.page - 1) + ')"' + (d.page <= 1 ? ' disabled' : '') + '>‹ Prev</button>' +
+      '<span class="pg-cur">Page ' + d.page + ' of ' + d.pages + '</span>' +
+      '<button onclick="goPage(' + (d.page + 1) + ')"' + (d.page >= d.pages ? ' disabled' : '') + '>Next ›</button>' +
+      '<button onclick="goPage(' + d.pages + ')"' + (d.page >= d.pages ? ' disabled' : '') + '>Last »</button>' +
+    '</div>';
+}
 
-// Safe field getter: tolerant of header spelling differences, always returns a string
+// Safe field getter: always returns a string
 function gf(r, key) {
   if (r[key] !== undefined && r[key] !== null) return String(r[key]);
   const want = key.replace(/[\s._\-]+/g,'').toLowerCase();
   const found = Object.keys(r).find(k => k && k.replace(/[\s._\-]+/g,'').toLowerCase() === want);
   return found && r[found] !== null && r[found] !== undefined ? String(r[found]) : '';
 }
+function fmtDate(s) {
+  s = String(s || '').trim();
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return iso[3] + '-' + iso[2] + '-' + iso[1];
+  const dmy = s.match(/^(\d{2})-(\d{2})-(\d{4})/);
+  return dmy ? (dmy[1] + '-' + dmy[2] + '-' + dmy[3]) : s;
+}
+function urlsOf(r) { return (gf(r,'file_url').match(/https?:\/\/[^\s,]+/g)) || []; }
 
 function renderTable(rows) {
   const tbody = document.getElementById('table-body');
@@ -1414,9 +1435,7 @@ function renderTable(rows) {
         '<td><div class="subj-cell">'+esc(subj)+'</div></td>' +
         '<td><div class="to-cell">'+esc(to)+'</div></td>' +
         '<td>'+badge+'</td><td>'+action+'</td></tr>');
-    } catch (e) {
-      console.error('Row render failed', r, e);   // one bad row must never blank the whole table
-    }
+    } catch (e) { console.error('Row render failed', r, e); }
   });
   tbody.innerHTML = html.join('');
 }
@@ -1501,13 +1520,16 @@ async function doUpload() {
     } catch(e) { failCount++; }
   }
   if (okCount > 0) {
-    // reflect the new links in the table immediately
-    const idx = allRows.findIndex(r => gf(r,'dispatch_no') === _modalDispatchNo);
-    if (idx >= 0) {
-      const existing = urlsOf(allRows[idx]);
-      allRows[idx].file_url = existing.concat(newUrls).join(', ');
-      updateStats(); applyFilters();
+    // reflect the new links on the current page immediately
+    const row = pageRows.find(r => gf(r,'dispatch_no') === _modalDispatchNo);
+    if (row) {
+      const hadNone = urlsOf(row).length === 0;
+      row.file_url = urlsOf(row).concat(newUrls).join(', ');
+      if (hadNone && lastStats) { lastStats.uploaded++; lastStats.pending--; updateStats(lastStats); }
+      renderTable(pageRows);
     }
+    pageCache.clear();
+    try { localStorage.removeItem(LS_FIRST_KEY); } catch (e) {}
   }
   if (okCount > 0 && failCount === 0) {
     showModalStatus('ok','✅ ' + okCount + ' file' + (okCount > 1 ? 's' : '') + ' uploaded! <a href="'+esc(lastUrl)+'" target="_blank" style="color:var(--cyan)">View latest</a>');
