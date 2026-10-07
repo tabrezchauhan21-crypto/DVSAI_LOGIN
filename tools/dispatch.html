@@ -260,7 +260,7 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:13px;border-t
     <div class="subtitle">DVVNL – Agra MRI &amp; Cluster Billing</div>
   </div>
   <div class="header-right">
-    <span class="header-badge" id="staffNameBadge">DISPATCH PORTAL v3.6</span>
+    <span class="header-badge" id="staffNameBadge">DISPATCH PORTAL v3.7</span>
     <span class="logout-btn" onclick="doLogout()">Logout</span>
   </div>
 </header>
@@ -726,7 +726,7 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:13px;border-t
 
 <div id="loader"><div class="spinner-lg"></div><div style="font-size:13px;color:var(--muted)">Loading…</div></div>
 
-<footer>SAI Computers Ltd. · DVVNL MRI &amp; Cluster Billing · Agra, UP &nbsp;|&nbsp; Dispatch Portal v3.6</footer>
+<footer>SAI Computers Ltd. · DVVNL MRI &amp; Cluster Billing · Agra, UP &nbsp;|&nbsp; Dispatch Portal v3.7</footer>
 
 <script>
 // ════════════════════════════════════
@@ -1031,6 +1031,15 @@ function empPopulateDivisions() {
 // ════════════════════════════════════
 // FORM SUBMIT
 // ════════════════════════════════════
+// One request ID per letter. Same letter content + same attempt = same ID, so a retry
+// can never create a second number. It resets after a number is generated.
+let _reqNonce = '', _submitting = false;
+function hashStr(s) { let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return (h >>> 0).toString(36); }
+function makeReqId(fp) {
+  if (!_reqNonce) _reqNonce = Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+  return _reqNonce + '-' + hashStr(fp);
+}
+
 document.getElementById('dispatch-form').addEventListener('submit', async function(e) {
   e.preventDefault(); hideError();
 
@@ -1054,16 +1063,20 @@ document.getElementById('dispatch-form').addEventListener('submit', async functi
   if (!submit_to)      miss.push('Submit To');
   if (miss.length) { showError('Please fill: ' + miss.join(', ')); return; }
 
+  if (_submitting) return;                       // never send two requests at once
+  _submitting = true;
   const btn = document.getElementById('submit-btn');
   btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Generating…';
   try {
-    const params = new URLSearchParams({ action:'generateDispatch', raised_by, raised_designation:raised_desig, report_month, submission_date:sub_date, project_name, subject_letter, submit_to, fy:FY, location:LOC, email: (staffSession && staffSession.email) || '' });
-    // generateDispatch must never be served from cache or retried blindly, so no JSONP fallback here
-    const data = await gsFetch(SCRIPT_URL + '?' + params.toString(), { noFallback: true });
+    const fp = [raised_by, raised_desig, report_month, sub_date, project_name, subject_letter, submit_to].join('|');
+    const params = new URLSearchParams({ action:'generateDispatch', req_id: makeReqId(fp), raised_by, raised_designation:raised_desig, report_month, submission_date:sub_date, project_name, subject_letter, submit_to, fy:FY, location:LOC, email: (staffSession && staffSession.email) || '' });
+    // Safe to retry: the server returns the SAME number for the same req_id
+    const data = await gsFetch(SCRIPT_URL + '?' + params.toString());
     if (data.status === 'ok') {
       showResult(data.dispatch_no, data.saved_at, report_month, subject_letter, submit_to, raised_by, raised_desig);
     } else { showError('Server error: ' + (data.message || 'Unknown')); }
-  } catch(err) { showError('Network error. (' + err.message + ')'); }
+  } catch(err) { showError('Could not confirm the number (' + err.message + '). Click "Generate Dispatch Number" again — you will get the same number, not a new one.'); }
+  _submitting = false;
   btn.disabled = false; btn.innerHTML = 'Generate Dispatch Number →';
 });
 
@@ -1072,6 +1085,7 @@ document.getElementById('dispatch-form').addEventListener('submit', async functi
 // ════════════════════════════════════
 let _lastNo = '', _lastMeta = {};
 function showResult(no, savedAt, month, subject, to, by, desig) {
+  _reqNonce = '';                       // next letter gets a fresh request ID
   pageCache.clear();
   try { localStorage.removeItem(LS_FIRST_KEY); } catch (e) {}
   _lastNo = no; _lastMeta = { month, subject, to, by, desig, savedAt };
